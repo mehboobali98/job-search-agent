@@ -32,6 +32,22 @@ test("Friday expiry recheck expires a moved lead and stops preparation", async (
   let preparedWorkbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
   const preparedRows = preparedWorkbook.worksheets.getItem("Applications").tables.getItem("ApplicationsTable").getDataRows();
   const preparedIndex = preparedRows.findIndex((row) => row[0] === FIXTURE_LEAD_ID);
+  const preparedApplication = preparedRows[preparedIndex];
+  assert.equal(preparedApplication[6], "Backend / Platform");
+  assert.match(preparedApplication[16], /Use the Backend \/ Platform resume/);
+  assert.match(preparedApplication[21], /Tailor the Backend \/ Platform resume/);
+  const preparedRowNumber = 4 + preparedIndex;
+  const styleInspection = await preparedWorkbook.inspect({
+    kind: "computedStyle",
+    sheetId: "Applications",
+    range: "A" + preparedRowNumber,
+    maxChars: 4000,
+  });
+  const preparedStyle = JSON.parse(styleInspection.ndjson.trim()).style;
+  assert.equal(preparedStyle.font.typeface, "Arial");
+  assert.equal(preparedStyle.font.fontSize, 9);
+  assert.equal(preparedStyle.wrapText, true);
+  assert.equal(preparedStyle.border.bottom.style, "thin");
   preparedWorkbook.worksheets.getItem("Applications").getRange("V" + (4 + preparedIndex)).values = [["Custom manual review note"]];
   const leadRows = preparedWorkbook.worksheets.getItem("Leads").tables.getItem("LeadsTable").getDataRows();
   const leadIndex = leadRows.findIndex((row) => row[0] === FIXTURE_LEAD_ID);

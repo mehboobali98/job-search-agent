@@ -35,6 +35,25 @@ const RUN_STATUSES = new Set(["Completed", "Partial"]);
 const FINDER_STATUSES = new Set(["Completed", "Failed", "Fallback Completed", "Fallback Failed"]);
 const JUDGE_AGENT_STATUSES = new Set([...FINDER_STATUSES, "Partial"]);
 const COUNT_FIELDS = ["queries", "found", "unique", "evaluated", "judged"];
+const TABLE_BODY_FORMAT = {
+  font: { name: "Arial", size: 9, color: "#262626" },
+  verticalAlignment: "top",
+  wrapText: true,
+  borders: { preset: "all", style: "thin", color: "#E6EAF0" },
+};
+
+function appendStyledRow(table, sheet, values, endColumn, dateFormats = {}, rowHeight = null) {
+  table.rows.add(null, [values]);
+  const rowNumber = 3 + table.getDataRows().length;
+  const rowRange = sheet.getRange(`A${rowNumber}:${endColumn}${rowNumber}`);
+  rowRange.format = TABLE_BODY_FORMAT;
+  for (const [column, numberFormat] of Object.entries(dateFormats)) {
+    sheet.getRange(`${column}${rowNumber}`).setNumberFormat(numberFormat);
+  }
+  if (rowHeight === null) rowRange.format.autofitRows();
+  else rowRange.format.rowHeight = rowHeight;
+  return rowNumber;
+}
 
 function validDate(value) {
   return normalizeText(value) && Number.isFinite(new Date(value).getTime());
@@ -257,7 +276,7 @@ try {
     if (!eventUrl && !(normalizeText(event.company) && normalizeText(event.title))) {
       throw new Error("Each scan event requires a URL or company/title identity");
     }
-    scanTable.rows.add(null, [[
+    appendStyledRow(scanTable, scanSheet, [
       payload.run_id, new Date(event.examined_at), eventKey,
       event.company ?? null, event.title ?? null, eventUrl || null, event.outcome ?? "Examined",
       event.reason ?? null, event.finder ?? null, event.preliminary_score ?? null, null,
@@ -265,7 +284,7 @@ try {
       event.source ?? null, event.job_id ?? null, event.location ?? null, event.work_type ?? null,
       event.first_seen ? new Date(event.first_seen) : now, now, event.destination ?? "Scan Log",
       event.detail_sheet ?? null, event.legacy_source_row ?? null, JSON.stringify(event),
-    ]]);
+    ], "X", { B: "yyyy-mm-dd hh:mm", S: "yyyy-mm-dd", T: "yyyy-mm-dd" }, 54);
   }
 
   for (const raw of payload.candidates) {
@@ -326,8 +345,9 @@ try {
         leadsSheet.getRange("A" + excelRow + ":AK" + excelRow).values = [values];
         outcome = "Updated Lead";
       } else {
-        leadsTable.rows.add(null, [values]);
-        excelRow = 3 + leadsTable.getDataRows().length;
+        excelRow = appendStyledRow(leadsTable, leadsSheet, values, "AK", {
+          B: "yyyy-mm-dd", C: "yyyy-mm-dd", K: "yyyy-mm-dd", AB: "yyyy-mm-dd hh:mm",
+        });
         outcome = "Added Lead";
       }
       const nextExisting = {
@@ -363,13 +383,13 @@ try {
       ? candidate.eligibility_evidence ?? "Explicit eligibility blocker"
       : candidate.eligibility === "Needs Judge" ? "Pending independent judge"
       : candidate.final_score < leadThreshold ? "Final score below configured lead threshold" : "Processed";
-    scanTable.rows.add(null, [[
+    appendStyledRow(scanTable, scanSheet, [
       payload.run_id, now, candidate.canonical_key, candidate.company, candidate.title, candidate.canonical_url,
       outcome, reason, raw.finder ?? null, raw.preliminary_score ?? null, candidate.final_score ?? null,
       candidate.eligibility, candidate.confidence, candidate.description_hash, candidate.source ?? null,
       candidate.job_id ?? null, candidate.location ?? null, candidate.work_type ?? null,
       raw.first_seen ? new Date(raw.first_seen) : now, now, viable ? "Leads" : "Scan Log", null, null, JSON.stringify(raw),
-    ]]);
+    ], "X", { B: "yyyy-mm-dd hh:mm", S: "yyyy-mm-dd", T: "yyyy-mm-dd" }, 54);
     outcomes.push({ lead_id: candidate.lead_id, canonical_key: candidate.canonical_key, outcome });
   }
 
@@ -380,7 +400,7 @@ try {
     leadsSheet.getRange("AB" + excelRow).values = [[now]];
   }
   const errors = Array.isArray(payload.errors) ? payload.errors.join(" | ") : payload.errors ?? null;
-  runTable.rows.add(null, [[
+  appendStyledRow(runTable, runSheet, [
     payload.run_id,
     new Date(payload.started_at),
     now,
@@ -399,7 +419,7 @@ try {
     selectedAlerts.length,
     errors,
     payload.notes ?? null,
-  ]]);
+  ], "R", { B: "yyyy-mm-dd hh:mm", C: "yyyy-mm-dd hh:mm" });
 
   const formulaErrors = await workbook.inspect({
     kind: "match",

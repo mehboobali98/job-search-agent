@@ -10,6 +10,18 @@ This file is the only source of candidate-experience claims. Replace every brack
 - Work-model preference: [REMOTE / HYBRID / ON-SITE]
 - Applications, outreach, salary submission, and relocation commitments require the candidate's manual approval.
 
+## Application-form facts
+
+Record exact reusable facts for form answers. Keep unknowns explicit and require confirmation for values that may change.
+
+- `E-FORM-01` — LinkedIn profile: [VERIFIED URL OR UNKNOWN]
+- `E-FORM-02` — Current location and work authorization: [VERIFIED FACTS OR UNKNOWN]
+- `E-FORM-03` — Sponsorship and relocation requirements: [VERIFIED FACTS OR UNKNOWN]
+- `E-FORM-04` — Working-hours and on-call availability: [VERIFIED FACTS OR UNKNOWN]
+- `E-FORM-05` — Common technical form facts such as background-job systems, cloud platforms, and testing tools: [VERIFIED FACTS]
+- Salary expectations must be confirmed for each application unless the candidate explicitly records a reusable rule.
+- Sensitive demographic answers, legal attestations, and signatures are never inferred.
+
 ## Stable evidence
 
 Use stable IDs so finders and the judge can cite the same facts.

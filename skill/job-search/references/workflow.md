@@ -10,7 +10,7 @@
 8. Select at most the configured judge maximum from candidates meeting the judge threshold. Blind the judge by removing finder eligibility, finder listing status, finder scores, total, recommendation, strengths, gaps, and best resume.
 9. Give `job_judge` only canonical job evidence, source links, candidate evidence, rubric, and exported configuration. Require the judge envelope and structured listing status. Convert per-candidate failures or omissions into failed-judge records.
 10. Convert finder/judge eligibility disagreements or unsupported evidence to `Needs Human Review`. A judge-verified `Expired` or `Inaccessible` listing remains `Ineligible`. Never infer listing status from rationale keywords.
-11. Build the run payload from `schemas.md`. Resolve `tracker_path` and `state_directory` from local configuration and call `scripts/update_tracker.mjs`. This is the only discovery write path.
+11. Build the run payload from `schemas.md`. Every retained candidate must carry one allowed `best_resume`. Resolve `tracker_path` and `state_directory` from local configuration and call `scripts/update_tracker.mjs`. This is the only discovery write path and it applies the established table-body formatting to every appended Leads, Scan Log, and Run Log row.
 12. On Fridays, recheck canonical URLs for `Shortlisted` and `Moved to Applications` leads, then call `scripts/recheck_expiry.mjs` with source-backed evidence.
 13. Publish only updater-returned alerts, ordered by judge score and capped by Search Config.
 

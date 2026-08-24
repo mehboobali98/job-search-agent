@@ -28,6 +28,7 @@ console.log(JSON.stringify({
     candidate_profile_path: config.raw.candidate_profile_path,
     resumes_directory: config.raw.resumes_directory,
     state_directory: config.raw.state_directory,
+    application_packages_directory: config.raw.application_packages_directory ?? "application-packages",
   },
   limits,
   allocations,

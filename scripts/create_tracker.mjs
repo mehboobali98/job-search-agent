@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
 import { argumentValue, loadProjectConfig } from "./project_config.mjs";
+import { ensureFormRunsSheet } from "./form_runs_sheet.mjs";
 
 const NAVY = "#1F3864";
 const PALE_BLUE = "#D9EAF7";
@@ -257,6 +258,7 @@ export async function createTracker({ outputPath, candidateName, timezone, targe
   dashboard.getRange("A34:H35").format = { fill: LIGHT_GRAY, font: { name: "Arial", size: 10, italic: true, color: "#595959" }, wrapText: true, verticalAlignment: "center", borders: { preset: "outside", style: "thin", color: BORDER } };
   dashboard.freezePanes.freezeRows(2);
   setWidths(dashboard, [8,24,34,12,28,20,18,38]);
+  ensureFormRunsSheet(workbook);
 
   const formulaErrors = await workbook.inspect({
     kind: "match",
