@@ -54,6 +54,17 @@ function optionalText(value) {
   return text || null;
 }
 
+function optionalMultiline(value) {
+  const text = String(value ?? "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n")
+    .trim()
+    .replace(/\n{3,}/g, "\n\n");
+  return text || null;
+}
+
 function requireBoolean(value, label) {
   if (typeof value !== "boolean") throw new Error(label + " must be boolean");
   return value;
@@ -83,11 +94,11 @@ function requireEnum(value, allowed, label) {
   return text;
 }
 
-function requireStringArray(value, label, { nonEmpty = false } = {}) {
+function requireStringArray(value, label, { nonEmpty = false, unique = true } = {}) {
   if (!Array.isArray(value)) throw new Error(label + " must be an array");
   const normalized = value.map((entry, index) => requireText(entry, `${label}[${index}]`));
   if (nonEmpty && !normalized.length) throw new Error(label + " must contain at least one value");
-  if (new Set(normalized).size !== normalized.length) throw new Error(label + " must not contain duplicates");
+  if (unique && new Set(normalized).size !== normalized.length) throw new Error(label + " must not contain duplicates");
   return normalized;
 }
 
@@ -120,7 +131,7 @@ function validateField(value, index) {
   );
   const classification = requireEnum(field.classification, FORM_FIELD_CLASSIFICATIONS, label + ".classification");
   const proposedStatus = requireEnum(field.proposed_status, FORM_DRAFT_STATUSES, label + ".proposed_status");
-  const proposedResponse = optionalText(field.proposed_response);
+  const proposedResponse = optionalMultiline(field.proposed_response);
   const userConfirmed = requireBoolean(field.user_confirmed, label + ".user_confirmed");
   const evidenceIds = requireStringArray(field.evidence_ids, label + ".evidence_ids");
   if (![true, false, "Unclear"].includes(field.required)) throw new Error(label + ".required must be true, false, or Unclear");
@@ -149,14 +160,14 @@ function validateField(value, index) {
     required: field.required,
     required_evidence: requireText(field.required_evidence, label + ".required_evidence"),
     classification,
-    options: requireStringArray(field.options, label + ".options"),
+    options: requireStringArray(field.options, label + ".options", { unique: false }),
     character_limit: field.character_limit ?? null,
     proposed_status: proposedStatus,
     proposed_response: proposedResponse,
     evidence_ids: evidenceIds,
     confidence: requireEnum(field.confidence, FORM_CONFIDENCE, label + ".confidence"),
     user_confirmed: userConfirmed,
-    notes: optionalText(field.notes),
+    notes: optionalMultiline(field.notes),
   };
 }
 
@@ -171,7 +182,7 @@ function validateCoverLetter(value) {
   const requirement = requireEnum(cover.requirement, COVER_LETTER_REQUIREMENTS, label + ".requirement");
   const inputType = requireEnum(cover.input_type, COVER_LETTER_INPUT_TYPES, label + ".input_type");
   const proposedStatus = requireEnum(cover.proposed_status, COVER_LETTER_DRAFT_STATUSES, label + ".proposed_status");
-  const proposedText = optionalText(cover.proposed_text);
+  const proposedText = optionalMultiline(cover.proposed_text);
   const evidenceIds = requireStringArray(cover.evidence_ids, label + ".evidence_ids");
   if (!detected && requirement !== "Absent") throw new Error("An undetected cover-letter field must have requirement Absent");
   if (detected && requirement === "Absent") throw new Error("A detected cover-letter field cannot have requirement Absent");
@@ -202,7 +213,7 @@ function validateCoverLetter(value) {
     proposed_status: proposedStatus,
     proposed_text: proposedText,
     evidence_ids: evidenceIds,
-    notes: optionalText(cover.notes),
+    notes: optionalMultiline(cover.notes),
   };
 }
 
@@ -236,7 +247,7 @@ function validateForm(value) {
     fields,
     cover_letter: validateCoverLetter(form.cover_letter),
     submission_control: validateSubmissionControl(form.submission_control),
-    notes: optionalText(form.notes),
+    notes: optionalMultiline(form.notes),
   };
 }
 
@@ -251,10 +262,10 @@ function validateFieldReview(value, index, fieldsById) {
   const field = fieldsById.get(fieldId);
   if (!field) throw new Error(label + " references unknown field_id: " + fieldId);
   const decision = requireEnum(result.decision, FORM_REVIEW_DECISIONS, label + ".decision");
-  const finalResponse = optionalText(result.final_response);
+  const finalResponse = optionalMultiline(result.final_response);
   const supportedEvidenceIds = requireStringArray(result.supported_evidence_ids, label + ".supported_evidence_ids");
   const unsupportedEvidence = requireBoolean(result.unsupported_evidence, label + ".unsupported_evidence");
-  const unsupportedDetails = optionalText(result.unsupported_details);
+  const unsupportedDetails = optionalMultiline(result.unsupported_details);
   if (["Accepted", "Rewritten"].includes(decision)) {
     if (!finalResponse) throw new Error(label + ".final_response is required for accepted or rewritten answers");
     if (!supportedEvidenceIds.length) throw new Error(label + ".supported_evidence_ids is required for accepted or rewritten answers");
@@ -285,7 +296,7 @@ function validateFieldReview(value, index, fieldsById) {
     supported_evidence_ids: supportedEvidenceIds,
     unsupported_evidence: unsupportedEvidence,
     unsupported_details: unsupportedDetails,
-    notes: optionalText(result.notes),
+    notes: optionalMultiline(result.notes),
   };
 }
 
@@ -297,10 +308,10 @@ function validateCoverLetterReview(value, cover) {
     label,
   );
   const decision = requireEnum(result.decision, FORM_REVIEW_DECISIONS, label + ".decision");
-  const finalText = optionalText(result.final_text);
+  const finalText = optionalMultiline(result.final_text);
   const supportedEvidenceIds = requireStringArray(result.supported_evidence_ids, label + ".supported_evidence_ids");
   const unsupportedEvidence = requireBoolean(result.unsupported_evidence, label + ".unsupported_evidence");
-  const unsupportedDetails = optionalText(result.unsupported_details);
+  const unsupportedDetails = optionalMultiline(result.unsupported_details);
   const documentPath = optionalText(result.document_path);
   if (cover.requirement === "Required" && cover.proposed_status === "Ready") {
     if (!["Accepted", "Rewritten", "Needs User Input"].includes(decision)) throw new Error("A drafted required cover letter must be reviewed");
@@ -334,7 +345,7 @@ function validateCoverLetterReview(value, cover) {
     unsupported_evidence: unsupportedEvidence,
     unsupported_details: unsupportedDetails,
     document_path: documentPath,
-    notes: optionalText(result.notes),
+    notes: optionalMultiline(result.notes),
   };
 }
 
@@ -358,7 +369,7 @@ function validateReview(value, form) {
     reviewed_at: requireDate(review.reviewed_at, "review.reviewed_at"),
     fields,
     cover_letter: validateCoverLetterReview(review.cover_letter, form.cover_letter),
-    notes: optionalText(review.notes),
+    notes: optionalMultiline(review.notes),
   };
 }
 
@@ -384,6 +395,8 @@ export function applicationFormSummary(packet) {
   const coverReview = packet.review.cover_letter;
   if (["Accepted", "Rewritten"].includes(coverReview.decision)) counts.ready += 1;
   else if (coverReview.decision === "Needs User Input") counts.needs_input += 1;
+  else if (cover.detected && coverReview.decision === "Do Not Answer") counts.manual += 1;
+  else if (cover.detected) counts.not_applicable += 1;
   let coverLetterStatus;
   if (cover.requirement === "Required" && ["Accepted", "Rewritten"].includes(coverReview.decision)) coverLetterStatus = "Required — drafted";
   else if (cover.requirement === "Required") coverLetterStatus = "Required — needs input";

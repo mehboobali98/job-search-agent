@@ -6,6 +6,17 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-25
+
+### Fixed
+
+- Preserve line breaks in long-form answers and cover letters, reconcile optional cover letters in Form Runs counts, and accept duplicate third-party select labels.
+- Preserve post-application stages and manual edits when recording later salary or cover-letter details.
+- Reject missing CLI option values and non-`.xlsx` workbook targets before any mutation.
+- Roll back staged form packets when workbook commit fails, clear stale pending markers, and keep required cover-letter files scoped to their lead.
+- Remove dead alert-selection logic, avoid repeated full-table scans while appending run rows, and apply Form Runs validation to rows beyond the original template range.
+- Make dashboard refreshes use verified atomic workbook replacement with a recoverable pending marker.
+
 ## [1.1.0] - 2026-08-24
 
 ### Added
@@ -34,6 +45,7 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/mehboobali98/job-search-agent/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mehboobali98/job-search-agent/releases/tag/v1.0.0

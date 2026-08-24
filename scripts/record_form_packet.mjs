@@ -9,8 +9,10 @@ import {
   validateApplicationFormPacket,
 } from "./application_form_lib.mjs";
 import { ensureFormRunsSheet, upsertFormRun } from "./form_runs_sheet.mjs";
+import { promoteFilesWithRollback } from "./file_transaction.mjs";
 import { normalizeText, normalizeUrl, RESUMES } from "./job_tracker_lib.mjs";
 import { argumentValue } from "./project_config.mjs";
+import { removeTemporaryWorkbook, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
 const workbookArgument = argumentValue(process.argv, "--workbook", "");
 const leadId = normalizeText(argumentValue(process.argv, "--lead-id", ""));
@@ -18,7 +20,7 @@ const inputArgument = argumentValue(process.argv, "--input", "");
 if (!workbookArgument || !leadId || !inputArgument) {
   throw new Error("Usage: node scripts/record_form_packet.mjs --workbook <xlsx> --lead-id <ID> --input <packet.json> [--state-dir <dir>] [--packages-dir <dir>]");
 }
-const workbookPath = path.resolve(workbookArgument);
+const workbookPath = resolveXlsxWorkbookPath(workbookArgument, "--workbook");
 const inputPath = path.resolve(inputArgument);
 const stateDir = path.resolve(argumentValue(process.argv, "--state-dir", path.join(path.dirname(workbookPath), "state")));
 const packagesDir = path.resolve(argumentValue(process.argv, "--packages-dir", path.join(path.dirname(workbookPath), "application-packages")));
@@ -26,8 +28,11 @@ const packagesDir = path.resolve(argumentValue(process.argv, "--packages-dir", p
 const safeLeadId = safePacketSegment(leadId);
 await fs.mkdir(stateDir, { recursive: true });
 await fs.mkdir(packagesDir, { recursive: true });
-let pendingPath = path.join(stateDir, `pending-form-${safeLeadId}.json`);
-let tempWorkbookPath = workbookPath.replace(/\.xlsx$/i, `.form-${Date.now()}.tmp.xlsx`);
+const pendingBasePath = path.join(stateDir, `pending-form-${safeLeadId}.json`);
+let pendingPath = pendingBasePath;
+const tempWorkbookPath = workbookTemporaryPath(workbookPath, `form-${Date.now()}-tmp`);
+let packetTempPath = null;
+let responseTempPath = null;
 
 function visiblePath(target) {
   const relative = path.relative(path.dirname(workbookPath), target);
@@ -60,7 +65,7 @@ try {
   const responseVisible = visiblePath(responsePath);
 
   if (packet.review.cover_letter.document_path) {
-    const documentPath = resolveInside(packagesDir, packet.review.cover_letter.document_path);
+    const documentPath = resolveInside(responseDirectory, packet.review.cover_letter.document_path);
     await fs.access(documentPath);
   }
 
@@ -85,12 +90,10 @@ try {
 
   await fs.mkdir(packetDirectory, { recursive: true });
   await fs.mkdir(responseDirectory, { recursive: true });
-  const packetTempPath = packetJsonPath + ".tmp";
-  const responseTempPath = responsePath + ".tmp";
+  packetTempPath = packetJsonPath + `.staged-${process.pid}-${Date.now()}`;
+  responseTempPath = responsePath + `.staged-${process.pid}-${Date.now()}`;
   await fs.writeFile(packetTempPath, JSON.stringify(packet, null, 2) + "\n");
-  await fs.rename(packetTempPath, packetJsonPath);
   await fs.writeFile(responseTempPath, markdown);
-  await fs.rename(responseTempPath, responsePath);
 
   const { sheet: formRunsSheet, table: formRunsTable } = ensureFormRunsSheet(workbook);
   const now = new Date();
@@ -141,8 +144,14 @@ try {
   if (!verifiedForm || String(verifiedForm[17] ?? "") !== summary.review_status) {
     throw new Error("Form Runs verification failed before workbook commit");
   }
-  await fs.rename(tempWorkbookPath, workbookPath);
-  await fs.rm(pendingPath, { force: true });
+  await promoteFilesWithRollback([
+    { staged: packetTempPath, target: packetJsonPath },
+    { staged: responseTempPath, target: responsePath },
+  ], async () => fs.rename(tempWorkbookPath, workbookPath));
+  await Promise.allSettled([
+    fs.rm(pendingPath, { force: true }),
+    fs.rm(pendingBasePath, { force: true }),
+  ]);
   console.log(JSON.stringify({
     form_id: packet.form.form_id,
     lead_id: packet.form.lead_id,
@@ -158,11 +167,15 @@ try {
     validated_packet: packetJsonPath,
   }, null, 2));
 } catch (error) {
-  try { await fs.rm(tempWorkbookPath, { force: true }); } catch { /* Preserve the original workbook. */ }
+  try { await removeTemporaryWorkbook(tempWorkbookPath, workbookPath); } catch { /* Preserve the original workbook. */ }
+  for (const stagedPath of [packetTempPath, responseTempPath].filter(Boolean)) {
+    try { await fs.rm(stagedPath, { force: true }); } catch { /* Pending metadata records the failed transaction. */ }
+  }
   await fs.writeFile(pendingPath, JSON.stringify({
     lead_id: leadId,
     input: inputPath,
     error: String(error?.stack ?? error),
+    rollback_errors: error?.rollback_errors ?? [],
     created_at: new Date().toISOString(),
   }, null, 2) + "\n");
   throw error;

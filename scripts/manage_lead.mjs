@@ -1,27 +1,25 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
+import { argumentValue } from "./project_config.mjs";
+import { removeTemporaryWorkbook, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
-function argument(name, fallback = null) {
-  const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : fallback;
-}
+const workbookArgument = argumentValue(process.argv, "--workbook");
+const leadId = argumentValue(process.argv, "--lead-id");
+const action = String(argumentValue(process.argv, "--action", "")).toLowerCase();
 
-const workbookPath = argument("--workbook");
-const leadId = argument("--lead-id");
-const action = String(argument("--action", "")).toLowerCase();
-const stateDir = argument("--state-dir", path.join(path.dirname(workbookPath ?? "."), "state"));
-const appliedAtArgument = argument("--applied-at");
-const followUpAtArgument = argument("--follow-up-at");
-const salaryArgument = argument("--salary");
-const coverLetterArgument = argument("--cover-letter");
-
-if (!workbookPath || !leadId || !["shortlist", "dismiss", "prepare", "applied"].includes(action)) {
+if (!workbookArgument || !leadId || !["shortlist", "dismiss", "prepare", "applied"].includes(action)) {
   throw new Error("Usage: node scripts/manage_lead.mjs --workbook <xlsx> --lead-id <ID> --action <shortlist|dismiss|prepare|applied> [--applied-at YYYY-MM-DD] [--follow-up-at YYYY-MM-DD] [--salary <text>] [--cover-letter <text>] [--state-dir <dir>]");
 }
+const workbookPath = resolveXlsxWorkbookPath(workbookArgument, "--workbook");
+const stateDir = path.resolve(argumentValue(process.argv, "--state-dir", path.join(path.dirname(workbookPath), "state")));
+const appliedAtArgument = argumentValue(process.argv, "--applied-at");
+const followUpAtArgument = argumentValue(process.argv, "--follow-up-at");
+const salaryArgument = argumentValue(process.argv, "--salary");
+const coverLetterArgument = argumentValue(process.argv, "--cover-letter");
 
 const now = new Date();
-const tempPath = workbookPath.replace(/\.xlsx$/i, ".tmp.xlsx");
+const tempPath = workbookTemporaryPath(workbookPath, "action-tmp");
 const pendingPath = path.join(stateDir, "pending-action-" + leadId.replace(/[^a-z0-9_-]/gi, "_") + "-" + action + ".json");
 await fs.mkdir(stateDir, { recursive: true });
 
@@ -88,6 +86,14 @@ function preparationAction(lead) {
   ].filter(Boolean).join(" ");
 }
 
+const PRE_APPLICATION_STATUSES = new Set(["", "Draft", "Not generated"]);
+const PRE_APPLICATION_STAGES = new Set(["", "Interested", "Evaluating", "Preparing"]);
+
+function shouldTransitionToApplied(application) {
+  return PRE_APPLICATION_STATUSES.has(compactText(application[11]))
+    && PRE_APPLICATION_STAGES.has(compactText(application[20]));
+}
+
 try {
   const workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
   const leadsSheet = workbook.worksheets.getItem("Leads");
@@ -150,6 +156,7 @@ try {
   }
 
   let applicationStatus = null;
+  let applicationStage = null;
   let appliedAt = null;
   let followUpAt = null;
   if (action === "applied") {
@@ -158,7 +165,7 @@ try {
     if (existingIndex < 0) throw new Error("Application not found for lead: " + leadId + ". Run prepare first.");
     const existing = applicationRows[existingIndex];
     const rowNumber = 4 + existingIndex;
-    const firstAppliedTransition = compactText(existing[20]) !== "Applied" || compactText(existing[11]) !== "Applied";
+    const firstAppliedTransition = shouldTransitionToApplied(existing);
     const requestedAppliedAt = optionalDate(appliedAtArgument, "--applied-at");
     const recordedDate = requestedAppliedAt ?? workbookDate(existing[1]) ?? now;
     appliedAt = requestedAppliedAt ?? (existing[1] ? null : now);
@@ -181,7 +188,8 @@ try {
       applicationsSheet.getRange("W" + rowNumber).values = [[now]];
       applicationChanged = true;
     }
-    applicationStatus = "Applied";
+    applicationStatus = firstAppliedTransition ? "Applied" : (compactText(existing[11]) || null);
+    applicationStage = firstAppliedTransition ? "Applied" : (compactText(existing[20]) || null);
   }
 
   const exported = await SpreadsheetFile.exportXlsx(workbook);
@@ -193,13 +201,14 @@ try {
     action,
     lead_status: nextStatus,
     application_status: applicationStatus,
+    application_stage: applicationStage,
     application_changed: applicationChanged,
     applied_at: appliedAt ? dateLabel(appliedAt) : null,
     follow_up_at: followUpAt ? dateLabel(followUpAt) : null,
   }, null, 2));
 } catch (error) {
   try {
-    await fs.rm(tempPath, { force: true });
+    await removeTemporaryWorkbook(tempPath, workbookPath);
   } catch {
     // Preserve the action request even if a lock or conflicting path blocks cleanup.
   }

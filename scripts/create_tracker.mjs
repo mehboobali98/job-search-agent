@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
 import { argumentValue, loadProjectConfig } from "./project_config.mjs";
 import { ensureFormRunsSheet } from "./form_runs_sheet.mjs";
+import { resolveXlsxWorkbookPath } from "./workbook_io.mjs";
 
 const NAVY = "#1F3864";
 const PALE_BLUE = "#D9EAF7";
@@ -103,6 +104,7 @@ function setWidths(sheet, widths) {
 }
 
 export async function createTracker({ outputPath, candidateName, timezone, targetGeography }) {
+  outputPath = resolveXlsxWorkbookPath(outputPath, "Tracker output path");
   const workbook = Workbook.create();
   const dashboard = workbook.worksheets.add("Dashboard");
   const configSheet = workbook.worksheets.add("Search Config");

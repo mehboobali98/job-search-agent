@@ -15,19 +15,18 @@ import {
   shouldRepeatAlert,
   validateJudgedCandidate,
 } from "./job_tracker_lib.mjs";
+import { argumentValue } from "./project_config.mjs";
+import { removeTemporaryWorkbook, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
-function argument(name, fallback = null) {
-  const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : fallback;
-}
+const workbookArgument = argumentValue(process.argv, "--workbook");
+const inputArgument = argumentValue(process.argv, "--input");
 
-const workbookPath = argument("--workbook");
-const inputPath = argument("--input");
-const stateDir = argument("--state-dir", path.join(path.dirname(workbookPath ?? "."), "state"));
-
-if (!workbookPath || !inputPath) {
+if (!workbookArgument || !inputArgument) {
   throw new Error("Usage: node scripts/update_tracker.mjs --workbook <xlsx> --input <run.json> [--state-dir <dir>]");
 }
+const workbookPath = resolveXlsxWorkbookPath(workbookArgument, "--workbook");
+const inputPath = path.resolve(inputArgument);
+const stateDir = path.resolve(argumentValue(process.argv, "--state-dir", path.join(path.dirname(workbookPath), "state")));
 
 const payload = JSON.parse(await fs.readFile(inputPath, "utf8"));
 
@@ -42,9 +41,12 @@ const TABLE_BODY_FORMAT = {
   borders: { preset: "all", style: "thin", color: "#E6EAF0" },
 };
 
+const NEXT_APPEND_ROW = new WeakMap();
+
 function appendStyledRow(table, sheet, values, endColumn, dateFormats = {}, rowHeight = null) {
+  const rowNumber = NEXT_APPEND_ROW.get(table) ?? (4 + table.getDataRows().length);
   table.rows.add(null, [values]);
-  const rowNumber = 3 + table.getDataRows().length;
+  NEXT_APPEND_ROW.set(table, rowNumber + 1);
   const rowRange = sheet.getRange(`A${rowNumber}:${endColumn}${rowNumber}`);
   rowRange.format = TABLE_BODY_FORMAT;
   for (const [column, numberFormat] of Object.entries(dateFormats)) {
@@ -105,7 +107,7 @@ validateRunPayload(payload);
 
 const now = payload.completed_at ? new Date(payload.completed_at) : new Date();
 const pendingPath = path.join(stateDir, "pending-" + String(payload.run_id).replace(/[^a-z0-9_-]/gi, "_") + ".json");
-const tempPath = workbookPath.replace(/\.xlsx$/i, ".tmp.xlsx");
+const tempPath = workbookTemporaryPath(workbookPath, "update-tmp");
 
 function rowValues(candidate, previous, alert) {
   const firstSeen = previous?.first_seen ? new Date(previous.first_seen) : new Date(candidate.first_seen ?? now);
@@ -359,8 +361,7 @@ try {
       byIdentity.set(candidate.canonical_key, nextExisting);
       writtenRows.set(candidate.lead_id, excelRow);
       if (alert && isAlertable(candidate, alertThreshold)) {
-        const prior = alertCandidates.get(candidate.lead_id);
-        if (!prior || candidate.final_score > prior.final_score) alertCandidates.set(candidate.lead_id, { ...candidate, lead_id: candidate.lead_id });
+        alertCandidates.set(candidate.lead_id, { ...candidate, lead_id: candidate.lead_id });
       }
     } else if (existing && candidate.eligibility === "Ineligible") {
       const values = rowValues(candidate, existing, false);
@@ -450,7 +451,7 @@ try {
   console.log(JSON.stringify({ ...result, state_warnings: stateWarnings }, null, 2));
 } catch (error) {
   try {
-    await fs.rm(tempPath, { force: true });
+    await removeTemporaryWorkbook(tempPath, workbookPath);
   } catch {
     // A lock or conflicting directory must not prevent the pending payload from being preserved.
   }

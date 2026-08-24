@@ -87,5 +87,6 @@ Rules enforced by the deterministic validator:
 - Sensitive, legal, and signature fields remain manual.
 - Salary, availability, location, authorization, sponsorship, and relocation cannot be Ready without explicit user confirmation.
 - Optional, absent, or unclear cover letters contain no draft or evidence IDs.
-- A required file-upload cover letter needs a safe relative DOCX or PDF path under the configured application-packages directory.
+- Textarea responses and cover letters preserve paragraph and line breaks.
+- A required file-upload cover letter needs a safe relative DOCX or PDF path inside that lead's directory under the configured application-packages directory.
 - The form agent must report `submission_control.interacted: false`.

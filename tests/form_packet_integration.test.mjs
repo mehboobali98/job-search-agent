@@ -41,7 +41,7 @@ function packet() {
         options: [],
         character_limit: 500,
         proposed_status: "Ready",
-        proposed_response: "I have owned production backend services.",
+        proposed_response: "I have owned production backend services.\n\nI have also improved their reliability.",
         evidence_ids: ["E-BE-01"],
         confidence: "High",
         user_confirmed: false,
@@ -70,7 +70,7 @@ function packet() {
       fields: [{
         field_id: "ownership",
         decision: "Accepted",
-        final_response: "I have owned production backend services.",
+        final_response: "I have owned production backend services.\n\nI have also improved their reliability.",
         supported_evidence_ids: ["E-BE-01"],
         unsupported_evidence: false,
         unsupported_details: null,
@@ -118,7 +118,9 @@ test("records a reviewed form packet without changing the application stage", as
   assert.equal(application[17], "Not present");
   assert.equal(application[20], "Preparing");
   assert.match(application[21], /\[Form packet\]/);
-  assert.match(await fs.readFile(result.response_packet, "utf8"), /Ready to paste/);
+  const responsePacket = await fs.readFile(result.response_packet, "utf8");
+  assert.match(responsePacket, /Ready to paste/);
+  assert.match(responsePacket, /production backend services\.\n\nI have also improved/);
 
   const repeated = runScript("scripts/record_form_packet.mjs", [
     "--workbook", workbookPath, "--lead-id", FIXTURE_LEAD_ID, "--input", inputPath,
@@ -147,4 +149,74 @@ test("rejects a form packet for the wrong canonical job", async () => {
   ]);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /does not match Applications\.Job Posting URL/);
+});
+
+test("successful recording clears an earlier lead-only pending marker", async () => {
+  const workbookPath = await createFixtureWorkbook();
+  const root = path.dirname(workbookPath);
+  const stateDir = path.join(root, "state");
+  const inputPath = path.join(root, "form.json");
+  assert.equal(runScript("scripts/manage_lead.mjs", [
+    "--workbook", workbookPath, "--lead-id", FIXTURE_LEAD_ID, "--action", "prepare", "--state-dir", stateDir,
+  ]).status, 0);
+
+  await fs.writeFile(inputPath, "{}\n");
+  const rejected = runScript("scripts/record_form_packet.mjs", [
+    "--workbook", workbookPath, "--lead-id", FIXTURE_LEAD_ID, "--input", inputPath, "--state-dir", stateDir,
+  ]);
+  assert.notEqual(rejected.status, 0);
+  const leadOnlyPending = path.join(stateDir, `pending-form-${FIXTURE_LEAD_ID}.json`);
+  await fs.access(leadOnlyPending);
+
+  await fs.writeFile(inputPath, JSON.stringify(packet(), null, 2));
+  const recorded = runScript("scripts/record_form_packet.mjs", [
+    "--workbook", workbookPath, "--lead-id", FIXTURE_LEAD_ID, "--input", inputPath, "--state-dir", stateDir,
+  ]);
+  assert.equal(recorded.status, 0, recorded.stderr);
+  await assert.rejects(fs.access(leadOnlyPending), /ENOENT/);
+});
+
+test("required cover-letter files are scoped to the requested lead", async () => {
+  const workbookPath = await createFixtureWorkbook();
+  const root = path.dirname(workbookPath);
+  const stateDir = path.join(root, "state");
+  const packagesDir = path.join(root, "application-packages");
+  const otherLeadDirectory = path.join(packagesDir, "OTHER-LEAD");
+  const inputPath = path.join(root, "form.json");
+  await fs.mkdir(otherLeadDirectory, { recursive: true });
+  await fs.writeFile(path.join(otherLeadDirectory, "cover.pdf"), "not a real PDF; access scope is the invariant");
+  assert.equal(runScript("scripts/manage_lead.mjs", [
+    "--workbook", workbookPath, "--lead-id", FIXTURE_LEAD_ID, "--action", "prepare", "--state-dir", stateDir,
+  ]).status, 0);
+
+  const required = packet();
+  required.form.cover_letter = {
+    detected: true,
+    field_id: "cover_letter",
+    label: "Cover letter",
+    requirement: "Required",
+    requirement_evidence: "required attribute",
+    input_type: "file",
+    accepted_types: [".pdf"],
+    proposed_status: "Ready",
+    proposed_text: "Required letter text.",
+    evidence_ids: ["E-BE-01"],
+    notes: null,
+  };
+  required.review.cover_letter = {
+    decision: "Accepted",
+    final_text: "Required letter text.",
+    supported_evidence_ids: ["E-BE-01"],
+    unsupported_evidence: false,
+    unsupported_details: null,
+    document_path: "OTHER-LEAD/cover.pdf",
+    notes: null,
+  };
+  await fs.writeFile(inputPath, JSON.stringify(required, null, 2));
+  const result = runScript("scripts/record_form_packet.mjs", [
+    "--workbook", workbookPath, "--lead-id", FIXTURE_LEAD_ID, "--input", inputPath,
+    "--state-dir", stateDir, "--packages-dir", packagesDir,
+  ]);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /ENOENT/);
 });

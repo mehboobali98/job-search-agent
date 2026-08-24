@@ -193,3 +193,68 @@ test("requires a document for a required cover-letter upload", () => {
   };
   assert.throws(() => validateApplicationFormPacket(packet), /document_path is required/);
 });
+
+test("preserves line breaks in textarea answers and required cover letters", () => {
+  const packet = basePacket();
+  const answer = "First paragraph.\n\nSecond paragraph.\nFinal line.";
+  const letter = "Dear Hiring Team,\n\nI build reliable backend systems.\n\nBest,\nCandidate";
+  packet.form.fields[0].proposed_response = answer;
+  packet.review.fields[0].final_response = answer;
+  packet.form.cover_letter = {
+    detected: true,
+    field_id: "cover_letter",
+    label: "Cover letter",
+    requirement: "Required",
+    requirement_evidence: "required attribute",
+    input_type: "textarea",
+    accepted_types: [],
+    proposed_status: "Ready",
+    proposed_text: letter,
+    evidence_ids: ["E-BE-01"],
+    notes: null,
+  };
+  packet.review.cover_letter = {
+    decision: "Accepted",
+    final_text: letter,
+    supported_evidence_ids: ["E-BE-01"],
+    unsupported_evidence: false,
+    unsupported_details: null,
+    document_path: null,
+    notes: null,
+  };
+  const validated = validateApplicationFormPacket(packet);
+  assert.equal(validated.form.fields[0].proposed_response, answer);
+  assert.equal(validated.review.fields[0].final_response, answer);
+  assert.equal(validated.form.cover_letter.proposed_text, letter);
+  assert.equal(validated.review.cover_letter.final_text, letter);
+});
+
+test("counts a detected optional cover letter as not applicable", () => {
+  const packet = basePacket();
+  packet.form.cover_letter = {
+    detected: true,
+    field_id: "cover_letter",
+    label: "Cover letter (optional)",
+    requirement: "Optional",
+    requirement_evidence: "Label says optional",
+    input_type: "textarea",
+    accepted_types: [],
+    proposed_status: "Not Drafted",
+    proposed_text: null,
+    evidence_ids: [],
+    notes: null,
+  };
+  const validated = validateApplicationFormPacket(packet);
+  const summary = applicationFormSummary(validated);
+  assert.equal(summary.fields, 3);
+  assert.equal(summary.ready + summary.needs_input + summary.manual + summary.not_applicable, summary.fields);
+  assert.equal(summary.not_applicable, 1);
+});
+
+test("retains duplicate option labels from third-party forms", () => {
+  const packet = basePacket();
+  packet.form.fields[0].input_type = "select";
+  packet.form.fields[0].options = ["Other", "Other"];
+  const validated = validateApplicationFormPacket(packet);
+  assert.deepEqual(validated.form.fields[0].options, ["Other", "Other"]);
+});

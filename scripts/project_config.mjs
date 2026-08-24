@@ -5,7 +5,12 @@ export const LOCAL_CONFIG_NAME = ".job-search.local.json";
 
 export function argumentValue(argv, name, fallback = null) {
   const index = argv.indexOf(name);
-  return index >= 0 ? argv[index + 1] : fallback;
+  if (index < 0) return fallback;
+  const value = argv[index + 1];
+  if (value === undefined || String(value).startsWith("--")) {
+    throw new Error(name + " requires a value");
+  }
+  return value;
 }
 
 export function resolveProjectPath(projectRoot, value) {

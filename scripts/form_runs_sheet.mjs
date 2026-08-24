@@ -101,6 +101,15 @@ export function ensureFormRunsSheet(workbook) {
   return { sheet, table: sheet.tables.items.find((item) => item.name === "FormRunsTable"), changed };
 }
 
+export function applyFormRunRowRules(sheet, rowNumber) {
+  if (!Number.isInteger(rowNumber) || rowNumber < 4) throw new Error("Form Runs row number must be at least 4");
+  sheet.getRange(`C${rowNumber}`).setNumberFormat("yyyy-mm-dd hh:mm");
+  sheet.getRange(`S${rowNumber}`).setNumberFormat("yyyy-mm-dd hh:mm");
+  sheet.getRange(`K${rowNumber}:N${rowNumber}`).setNumberFormat("0");
+  sheet.getRange(`O${rowNumber}`).dataValidation = { rule: { type: "list", values: ["Required", "Optional", "Absent", "Unclear"] } };
+  sheet.getRange(`R${rowNumber}`).dataValidation = { rule: { type: "list", values: ["Ready", "Needs User Input"] } };
+}
+
 export function upsertFormRun({ sheet, table, values }) {
   if (!Array.isArray(values) || values.length !== FORM_RUN_HEADERS.length) throw new Error("Form Runs row has invalid width");
   const rows = table.getDataRows();
@@ -119,7 +128,6 @@ export function upsertFormRun({ sheet, table, values }) {
     rowRange.format.rowHeight = 48;
     outcome = "Added";
   }
-  sheet.getRange(`C${rowNumber}`).setNumberFormat("yyyy-mm-dd hh:mm");
-  sheet.getRange(`S${rowNumber}`).setNumberFormat("yyyy-mm-dd hh:mm");
+  applyFormRunRowRules(sheet, rowNumber);
   return { rowNumber, outcome };
 }

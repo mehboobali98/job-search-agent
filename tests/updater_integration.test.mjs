@@ -7,6 +7,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { candidateIdentityKeys, descriptionHash } from "../scripts/job_tracker_lib.mjs";
+import { workbookTemporaryPath } from "../scripts/workbook_io.mjs";
 import { createFixtureWorkbook } from "./test_fixture.mjs";
 
 const projectRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
@@ -288,7 +289,7 @@ test("empty runs succeed and locked-write failures preserve the workbook with a 
   const emptyRun = JSON.parse(await fs.readFile(path.join(stateDir, "last-run.json"), "utf8"));
   assert.deepEqual(emptyRun.alerts, []);
 
-  const lockPath = workbook.replace(/\.xlsx$/i, ".tmp.xlsx");
+  const lockPath = workbookTemporaryPath(workbook, "update-tmp");
   await fs.mkdir(lockPath);
   const before = await sha256(workbook);
   const lockedPath = path.join(tempDir, "locked.json");

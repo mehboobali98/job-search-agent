@@ -60,3 +60,48 @@ test("applied requires a prepared application and preserves the workbook on fail
   assert.match(result.stderr, /Run prepare first/);
   assert.deepEqual(await fs.readFile(workbookPath), before);
 });
+
+test("applied detail updates never regress a later application stage", async () => {
+  const workbookPath = await createFixtureWorkbook();
+  const stateDir = path.join(path.dirname(workbookPath), "state");
+  assert.equal(action(workbookPath, stateDir, "prepare").status, 0);
+  assert.equal(action(workbookPath, stateDir, "applied", ["--applied-at", "2026-01-05"]).status, 0);
+
+  let workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
+  const applications = workbook.worksheets.getItem("Applications").tables.getItem("ApplicationsTable").getDataRows();
+  const rowNumber = 4 + applications.findIndex((item) => item[0] === FIXTURE_LEAD_ID);
+  workbook.worksheets.getItem("Applications").getRange(`L${rowNumber}:N${rowNumber}`).values = [[
+    "Screening", new Date("2026-02-01T12:00:00Z"), "Recruiter replied; preserve this note.",
+  ]];
+  workbook.worksheets.getItem("Applications").getRange(`U${rowNumber}:V${rowNumber}`).values = [[
+    "Recruiter Screen", "Prepare for recruiter screen",
+  ]];
+  await (await SpreadsheetFile.exportXlsx(workbook)).save(workbookPath);
+  workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
+  const preservedFollowUp = workbook.worksheets.getItem("Applications").tables.getItem("ApplicationsTable").getDataRows()
+    .find((item) => item[0] === FIXTURE_LEAD_ID)[12];
+
+  const update = action(workbookPath, stateDir, "applied", ["--salary", "USD 5,000/month"]);
+  assert.equal(update.status, 0, update.stderr);
+  workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
+  const updated = workbook.worksheets.getItem("Applications").tables.getItem("ApplicationsTable").getDataRows()
+    .find((item) => item[0] === FIXTURE_LEAD_ID);
+  assert.equal(updated[10], "USD 5,000/month");
+  assert.equal(updated[11], "Screening");
+  assert.equal(updated[20], "Recruiter Screen");
+  assert.equal(updated[21], "Prepare for recruiter screen");
+  assert.equal(updated[13], "Recruiter replied; preserve this note.");
+  assert.equal(updated[12], preservedFollowUp);
+  assert.equal(trailingJson(update.stdout).application_status, "Screening");
+});
+
+test("missing optional flag values are rejected before workbook mutation", async () => {
+  const workbookPath = await createFixtureWorkbook();
+  const stateDir = path.join(path.dirname(workbookPath), "state");
+  assert.equal(action(workbookPath, stateDir, "prepare").status, 0);
+  const before = await fs.readFile(workbookPath);
+  const result = action(workbookPath, stateDir, "applied", ["--salary"]);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /--salary requires a value/);
+  assert.deepEqual(await fs.readFile(workbookPath), before);
+});

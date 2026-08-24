@@ -2,18 +2,17 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { normalizeUrl } from "./job_tracker_lib.mjs";
+import { argumentValue } from "./project_config.mjs";
+import { removeTemporaryWorkbook, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
-function argument(name, fallback = null) {
-  const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : fallback;
-}
-
-const workbookPath = argument("--workbook");
-const inputPath = argument("--input");
-const stateDir = argument("--state-dir", path.join(path.dirname(workbookPath ?? "."), "state"));
-if (!workbookPath || !inputPath) {
+const workbookArgument = argumentValue(process.argv, "--workbook");
+const inputArgument = argumentValue(process.argv, "--input");
+if (!workbookArgument || !inputArgument) {
   throw new Error("Usage: node scripts/recheck_expiry.mjs --workbook <xlsx> --input <recheck.json> [--state-dir <dir>]");
 }
+const workbookPath = resolveXlsxWorkbookPath(workbookArgument, "--workbook");
+const inputPath = path.resolve(inputArgument);
+const stateDir = path.resolve(argumentValue(process.argv, "--state-dir", path.join(path.dirname(workbookPath), "state")));
 
 const payload = JSON.parse(await fs.readFile(inputPath, "utf8"));
 function validDate(value) {
@@ -24,7 +23,7 @@ if (!String(payload.run_id ?? "").trim() || !validDate(payload.started_at) || !v
 }
 if (new Date(payload.completed_at) < new Date(payload.started_at)) throw new Error("Recheck completed_at cannot precede started_at");
 const now = new Date(payload.completed_at);
-const tempPath = workbookPath.replace(/\.xlsx$/i, ".tmp.xlsx");
+const tempPath = workbookTemporaryPath(workbookPath, "recheck-tmp");
 const pendingPath = path.join(stateDir, "pending-" + payload.run_id.replace(/[^a-z0-9_-]/gi, "_") + ".json");
 await fs.mkdir(stateDir, { recursive: true });
 
@@ -94,7 +93,7 @@ try {
   console.log(JSON.stringify({ run_id: payload.run_id, outcomes }, null, 2));
 } catch (error) {
   try {
-    await fs.rm(tempPath, { force: true });
+    await removeTemporaryWorkbook(tempPath, workbookPath);
   } catch {
     // Preserve the recheck request even when a lock or conflicting path blocks cleanup.
   }

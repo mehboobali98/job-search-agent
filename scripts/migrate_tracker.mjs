@@ -3,12 +3,13 @@ import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { ensureFormRunsSheet, FORM_RUN_HEADERS } from "./form_runs_sheet.mjs";
 import { argumentValue } from "./project_config.mjs";
+import { removeTemporaryWorkbook, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
 const workbookArgument = argumentValue(process.argv, "--workbook", process.argv[2]);
 if (!workbookArgument) throw new Error("Usage: node scripts/migrate_tracker.mjs --workbook <xlsx> [--state-dir <dir>]");
-const workbookPath = path.resolve(workbookArgument);
+const workbookPath = resolveXlsxWorkbookPath(workbookArgument, "--workbook");
 const stateDir = path.resolve(argumentValue(process.argv, "--state-dir", path.join(path.dirname(workbookPath), "state")));
-const tempPath = workbookPath.replace(/\.xlsx$/i, ".migration.tmp.xlsx");
+const tempPath = workbookTemporaryPath(workbookPath, "migration-tmp");
 const pendingPath = path.join(stateDir, "pending-tracker-migration.json");
 await fs.mkdir(stateDir, { recursive: true });
 
@@ -31,7 +32,7 @@ try {
   await fs.rm(pendingPath, { force: true });
   console.log(JSON.stringify({ migrated: changed, workbook: workbookPath, form_runs_sheet: true }, null, 2));
 } catch (error) {
-  try { await fs.rm(tempPath, { force: true }); } catch { /* Keep the original workbook. */ }
+  try { await removeTemporaryWorkbook(tempPath, workbookPath); } catch { /* Keep the original workbook. */ }
   await fs.writeFile(pendingPath, JSON.stringify({
     workbook: workbookPath,
     error: String(error?.stack ?? error),
