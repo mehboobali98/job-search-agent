@@ -180,10 +180,13 @@ test("mixed run enforces judging, eligibility, dedupe, partial coverage, and ale
   const result = runUpdater(workbook, stateDir, payloadPath);
   assert.equal(result.status, 0, result.stderr);
 
-  const leads = await workbookRows(workbook, "Leads", "LeadsTable");
+  const persistedWorkbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbook));
+  const leadsSheet = persistedWorkbook.worksheets.getItem("Leads");
+  const leads = leadsSheet.tables.getItem("LeadsTable").getDataRows();
   const byCompany = new Map(leads.map((row) => [row[3], row]));
   assert.equal(leads.filter((row) => row[3] === "Global Example").length, 1, "canonical duplicates must produce one lead");
   assert.equal(byCompany.has("Blocked Example"), false, "hard location blocker must be suppressed");
+  assert.equal(byCompany.get("Global Example")[14], "Backend / Platform", "the selected resume must be persisted with the lead");
   assert.equal(byCompany.get("Unclear Example")[11], "Unclear");
   assert.equal(byCompany.get("Evidence Example")[11], "Needs Human Review");
   assert.equal(byCompany.get("Disagreement Example")[11], "Needs Human Review");
@@ -194,13 +197,30 @@ test("mixed run enforces judging, eligibility, dedupe, partial coverage, and ale
   assert.equal(lastRun.alerts.length, 2, "only judged strong and unclear matches should alert");
   assert.deepEqual(new Set(lastRun.alerts.map((item) => item.company)), new Set(["Global Example", "Unclear Example"]));
 
-  const runRows = await workbookRows(workbook, "Run Log", "RunLogTable");
+  const runSheet = persistedWorkbook.worksheets.getItem("Run Log");
+  const runRows = runSheet.tables.getItem("RunLogTable").getDataRows();
   const logged = runRows.find((row) => row[0] === "TEST-MIXED-001");
   assert.equal(logged[3], "Partial");
   assert.equal(logged[4], "Failed");
   assert.equal(logged[15], 2);
-  const scanRows = await workbookRows(workbook, "Scan Log", "ScanLogTable");
+  const scanSheet = persistedWorkbook.worksheets.getItem("Scan Log");
+  const scanRows = scanSheet.tables.getItem("ScanLogTable").getDataRows();
   assert.equal(scanRows.find((row) => row[3] === "Duplicate Example")[6], "Duplicate");
+
+  for (const [sheet, rowNumber] of [
+    [leadsSheet, 4 + leads.findIndex((row) => row[3] === "Global Example")],
+    [scanSheet, 4 + scanRows.findIndex((row) => row[3] === "Duplicate Example")],
+    [runSheet, 4 + runRows.findIndex((row) => row[0] === "TEST-MIXED-001")],
+  ]) {
+    const inspection = await persistedWorkbook.inspect({
+      kind: "computedStyle", sheetId: sheet.name, range: "A" + rowNumber, maxChars: 4000,
+    });
+    const style = JSON.parse(inspection.ndjson.trim()).style;
+    assert.equal(style.font.typeface, "Arial");
+    assert.equal(style.font.fontSize, 9);
+    assert.equal(style.wrapText, true);
+    assert.equal(style.border.bottom.style, "thin");
+  }
 });
 
 test("only alerts inside the configured digest cap are stamped as alerted", async () => {

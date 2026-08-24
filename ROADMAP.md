@@ -20,7 +20,16 @@ Status: released.
 - Six-sheet Excel tracker, atomic updates, lead actions, and Friday expiry checks.
 - Candidate-local setup, reusable Codex skill, privacy guard, and integration tests.
 
-## v1.1 — Onboarding and reliability
+## v1.1 — Application assistance
+
+Status: released.
+
+- Read-only application-form inspection with evidence-backed response drafting and independent review.
+- Required-only cover-letter detection and generation, with optional and ambiguous fields deliberately skipped.
+- Private form packets, compact `Form Runs` tracking, multi-step reinspection, and a deterministic `applied` action.
+- Consistent tracker-row formatting and explicit resume guidance through the preparation workflow.
+
+## v1.2 — Onboarding and reliability
 
 Status: planned.
 
@@ -31,7 +40,7 @@ Status: planned.
 - Versioned local configuration with safe upgrade checks.
 - Continuous integration across supported Node.js versions.
 
-## v1.2 — Search and evaluation quality
+## v1.3 — Search and evaluation quality
 
 Status: planned.
 

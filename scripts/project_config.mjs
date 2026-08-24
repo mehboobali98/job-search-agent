@@ -14,11 +14,15 @@ export function resolveProjectPath(projectRoot, value) {
 
 export function validateProjectConfig(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Local configuration must be a JSON object");
+  if (![1, 2].includes(raw.version)) throw new Error("Unsupported local configuration version: " + raw.version);
   for (const field of [
     "candidate_name", "timezone", "target_geography", "tracker_path",
     "candidate_profile_path", "resumes_directory", "state_directory",
   ]) {
     if (!String(raw[field] ?? "").trim()) throw new Error("Missing local configuration field: " + field);
+  }
+  if (raw.application_packages_directory !== undefined && !String(raw.application_packages_directory).trim()) {
+    throw new Error("application_packages_directory must be non-empty when provided");
   }
   try {
     new Intl.DateTimeFormat("en", { timeZone: raw.timezone }).format(new Date());
@@ -48,5 +52,6 @@ export async function loadProjectConfig({ projectRoot = process.cwd(), configPat
     candidateProfilePath: resolveProjectPath(absoluteRoot, raw.candidate_profile_path),
     resumesDirectory: resolveProjectPath(absoluteRoot, raw.resumes_directory),
     stateDirectory: resolveProjectPath(absoluteRoot, raw.state_directory),
+    applicationPackagesDirectory: resolveProjectPath(absoluteRoot, raw.application_packages_directory ?? "application-packages"),
   };
 }

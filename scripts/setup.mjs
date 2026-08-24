@@ -11,7 +11,7 @@ const force = process.argv.includes("--force");
 if (!candidateName) throw new Error("Usage: npm run setup -- --name \"Candidate Name\" [--timezone \"Etc/UTC\"] [--geography \"Worldwide remote\"] [--force]");
 
 const config = validateProjectConfig({
-  version: 1,
+  version: 2,
   candidate_name: candidateName,
   timezone,
   target_geography: targetGeography,
@@ -19,6 +19,7 @@ const config = validateProjectConfig({
   candidate_profile_path: "profile/candidate-profile.md",
   resumes_directory: "profile/resumes",
   state_directory: "state",
+  application_packages_directory: "application-packages",
 });
 const configPath = path.join(projectRoot, LOCAL_CONFIG_NAME);
 const trackerPath = resolveProjectPath(projectRoot, config.tracker_path);
@@ -36,6 +37,7 @@ for (const target of [configPath, trackerPath, profilePath]) {
 await fs.mkdir(path.dirname(profilePath), { recursive: true });
 await fs.mkdir(resolveProjectPath(projectRoot, config.resumes_directory), { recursive: true });
 await fs.mkdir(resolveProjectPath(projectRoot, config.state_directory), { recursive: true });
+await fs.mkdir(resolveProjectPath(projectRoot, config.application_packages_directory), { recursive: true });
 const profileTemplate = await fs.readFile(path.join(projectRoot, "templates/candidate-profile.template.md"), "utf8");
 await fs.writeFile(profilePath, profileTemplate
   .replaceAll("{{CANDIDATE_NAME}}", candidateName)
@@ -48,5 +50,6 @@ console.log(JSON.stringify({
   tracker: config.tracker_path,
   candidate_profile: config.candidate_profile_path,
   resumes_directory: config.resumes_directory,
+  application_packages_directory: config.application_packages_directory,
   next: "Complete the candidate profile, add resume files, then run npm run install-skill.",
 }, null, 2));

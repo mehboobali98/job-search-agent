@@ -22,6 +22,8 @@ A judged candidate requires identity, source, description and matching hash, str
 
 Allowed resumes: `Backend / Platform`, `Staff / Principal / Tech Lead`, `Applied AI / LLM`, `Developer Productivity / AI Enablement`, and `Full-stack / Product`.
 
+The updater persists this value in `Leads.Best Resume`. A later `prepare` action copies it to `Applications.Resume Version` and repeats it in the resume-tailoring guidance and next action so the intended resume is visible without consulting the discovery packet.
+
 A failed-judge candidate restores the finder packet with `listing_status: Active`, preliminary score, finder eligibility/evidence, `eligibility: Needs Judge`, `confidence: Low`, and `judge_status: Needs Judge`. It has no final scores.
 
 ## Run payload

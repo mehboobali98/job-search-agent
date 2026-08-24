@@ -1,6 +1,6 @@
 interface:
   display_name: "Job Search"
-  short_description: "Discover, judge, track, and alert on relevant jobs"
-  default_prompt: "Use $job-search to run the configured multi-agent job-discovery workflow."
+  short_description: "Discover, assess, and prepare job applications"
+  default_prompt: "Use $job-search to discover jobs or inspect a prepared application form."
 policy:
   allow_implicit_invocation: true
