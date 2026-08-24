@@ -6,6 +6,10 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Public roadmap covering near-term reliability work and longer-term ingestion, notification, and service-mode plans.
+
 ## [1.0.0] - 2026-08-24
 
 ### Added

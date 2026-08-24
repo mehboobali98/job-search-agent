@@ -63,6 +63,10 @@ The repository contains only reusable code, schemas, templates, tests, project a
 
 Run `npm run install-skill` after pulling skill changes. It installs the generic skill into the current user's Codex skill directory.
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned reliability, search-quality, ingestion, notification, and service-mode work.
+
 ## Releases
 
 Releases follow [Semantic Versioning](https://semver.org/). See [CHANGELOG.md](CHANGELOG.md) for version history.
