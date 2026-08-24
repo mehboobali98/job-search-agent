@@ -62,3 +62,11 @@ npm run verify-public
 The repository contains only reusable code, schemas, templates, tests, project agents, and the generic skill. Git ignores the local configuration, live workbook, candidate profile, resumes, state, renders, PDFs, Word files, and spreadsheets. A pre-commit hook rejects those paths and common private-data patterns if they are staged accidentally.
 
 Run `npm run install-skill` after pulling skill changes. It installs the generic skill into the current user's Codex skill directory.
+
+## Releases
+
+Releases follow [Semantic Versioning](https://semver.org/). See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+## License
+
+Licensed under the [MIT License](LICENSE).
