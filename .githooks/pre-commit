@@ -1,0 +1,3 @@
+#!/bin/sh
+set -eu
+node scripts/verify_public_repo.mjs --staged

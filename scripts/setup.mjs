@@ -1,0 +1,52 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { createTracker } from "./create_tracker.mjs";
+import { argumentValue, LOCAL_CONFIG_NAME, resolveProjectPath, validateProjectConfig } from "./project_config.mjs";
+
+const projectRoot = path.resolve(argumentValue(process.argv, "--project-root", process.cwd()));
+const candidateName = argumentValue(process.argv, "--name");
+const timezone = argumentValue(process.argv, "--timezone", "Etc/UTC");
+const targetGeography = argumentValue(process.argv, "--geography", "Worldwide remote and roles offering credible relocation or work-authorization support");
+const force = process.argv.includes("--force");
+if (!candidateName) throw new Error("Usage: npm run setup -- --name \"Candidate Name\" [--timezone \"Etc/UTC\"] [--geography \"Worldwide remote\"] [--force]");
+
+const config = validateProjectConfig({
+  version: 1,
+  candidate_name: candidateName,
+  timezone,
+  target_geography: targetGeography,
+  tracker_path: "Job_Application_Tracker.xlsx",
+  candidate_profile_path: "profile/candidate-profile.md",
+  resumes_directory: "profile/resumes",
+  state_directory: "state",
+});
+const configPath = path.join(projectRoot, LOCAL_CONFIG_NAME);
+const trackerPath = resolveProjectPath(projectRoot, config.tracker_path);
+const profilePath = resolveProjectPath(projectRoot, config.candidate_profile_path);
+for (const target of [configPath, trackerPath, profilePath]) {
+  if (!force) {
+    try {
+      await fs.access(target);
+      throw new Error("Refusing to overwrite existing local artifact: " + target + ". Add --force only if replacement is intentional.");
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
+}
+await fs.mkdir(path.dirname(profilePath), { recursive: true });
+await fs.mkdir(resolveProjectPath(projectRoot, config.resumes_directory), { recursive: true });
+await fs.mkdir(resolveProjectPath(projectRoot, config.state_directory), { recursive: true });
+const profileTemplate = await fs.readFile(path.join(projectRoot, "templates/candidate-profile.template.md"), "utf8");
+await fs.writeFile(profilePath, profileTemplate
+  .replaceAll("{{CANDIDATE_NAME}}", candidateName)
+  .replaceAll("{{TARGET_GEOGRAPHY}}", targetGeography));
+await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n");
+await createTracker({ outputPath: trackerPath, candidateName, timezone, targetGeography });
+console.log(JSON.stringify({
+  configured: true,
+  config: LOCAL_CONFIG_NAME,
+  tracker: config.tracker_path,
+  candidate_profile: config.candidate_profile_path,
+  resumes_directory: config.resumes_directory,
+  next: "Complete the candidate profile, add resume files, then run npm run install-skill.",
+}, null, 2));

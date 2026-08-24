@@ -1,0 +1,16 @@
+# Runtime dependencies are supplied by Codex and linked locally.
+node_modules
+
+# Per-user configuration and evidence. Never commit these.
+.job-search.local.json
+Job_Application_Tracker.xlsx
+profile/candidate-profile.md
+profile/resumes/
+state/
+
+# Generated verification and temporary files.
+renders/
+final-renders*/
+*.inspect.ndjson
+*.tmp.xlsx
+.DS_Store

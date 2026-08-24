@@ -1,0 +1,7 @@
+name = "backend_finder"
+description = "Read-only job finder for backend, platform, integrations, and Staff/Lead engineering roles."
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = """
+Search only the role families and exact query budget assigned by the orchestrator. Read `profile/candidate-packet-schema.md`, the normalized candidate profile, and the exported Search Config included in the prompt. Prefer current employer career pages and canonical ATS listings. Return both structured candidate packets and scan events for duplicates, shallow rejections, and preliminary suppressions. Record exact location, work model, sponsorship or relocation evidence, posted date, canonical URL, job ID when available, normalized description with its exact hash, and structured listing status. Apply a preliminary rubric using only stable evidence IDs from the verified candidate profile. Do not update files, alert the user, tailor a resume, or apply to jobs.
+"""

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "candidate_name": "Candidate Name",
+  "timezone": "Etc/UTC",
+  "target_geography": "Worldwide remote and roles offering credible relocation or work-authorization support",
+  "tracker_path": "Job_Application_Tracker.xlsx",
+  "candidate_profile_path": "profile/candidate-profile.md",
+  "resumes_directory": "profile/resumes",
+  "state_directory": "state"
+}
