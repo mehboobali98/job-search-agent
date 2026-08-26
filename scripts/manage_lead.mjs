@@ -2,7 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { argumentValue } from "./project_config.mjs";
-import { removeTemporaryWorkbook, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
+import { appendStyledRow } from "./tracker_rows.mjs";
+import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
 const workbookArgument = argumentValue(process.argv, "--workbook");
 const leadId = argumentValue(process.argv, "--lead-id");
@@ -111,7 +112,9 @@ try {
   const repeatedApplicationAction = ["prepare", "applied"].includes(action) && String(lead[26] ?? "") === "Moved to Applications";
   if (!repeatedApplicationAction) {
     leadsSheet.getRange("AA" + excelRow).values = [[nextStatus]];
-    leadsSheet.getRange("AI" + excelRow).values = [[action === "prepare" ? "Prepare manual application package" : null]];
+    if (action === "prepare") {
+      leadsSheet.getRange("AI" + excelRow).values = [["Prepare manual application package"]];
+    }
   }
 
   let applicationChanged = false;
@@ -135,22 +138,15 @@ try {
         applicationChanged = true;
       }
     } else {
-      applicationsTable.rows.add(null, [values]);
-      const addedRowNumber = 3 + applicationsTable.getDataRows().length;
-      const templateRowNumber = addedRowNumber === 5 ? 4 : (addedRowNumber % 2 === 0 ? 4 : 5);
-      const addedRange = applicationsSheet.getRange(`A${addedRowNumber}:AC${addedRowNumber}`);
-      addedRange.copyFrom(applicationsSheet.getRange(`A${templateRowNumber}:AC${templateRowNumber}`), "all");
-      addedRange.values = [values];
-      addedRange.format = {
-        font: { name: "Arial", size: 9, color: "#262626" },
-        verticalAlignment: "top",
-        wrapText: true,
-        borders: { preset: "all", style: "thin", color: "#E6EAF0" },
-      };
-      applicationsSheet.getRange(`B${addedRowNumber}`).setNumberFormat("yyyy-mm-dd");
-      applicationsSheet.getRange(`M${addedRowNumber}`).setNumberFormat("yyyy-mm-dd");
-      applicationsSheet.getRange(`W${addedRowNumber}`).setNumberFormat("yyyy-mm-dd hh:mm");
-      addedRange.format.autofitRows();
+      appendStyledRow(applicationsTable, applicationsSheet, values, "AC", {
+        numberFormats: { B: "yyyy-mm-dd", M: "yyyy-mm-dd", O: "0", W: "yyyy-mm-dd hh:mm" },
+        validations: {
+          G: ["Backend / Platform", "Staff / Principal / Tech Lead", "Applied AI / LLM", "Developer Productivity / AI Enablement", "Full-stack / Product"],
+          L: ["Draft", "Applied", "Submitted", "Skipped", "Not needed", "Not generated", "Screening", "Interview", "Offer", "Rejected", "Withdrawn"],
+          T: ["Not started", "Plan ready — not started", "In progress", "Ready", "Completed", "Not started — skipped"],
+          U: ["Interested", "Evaluating", "Preparing", "Applied", "Recruiter Screen", "Assessment", "Technical", "System Design", "Hiring Manager", "Final", "Offer", "Rejected", "Withdrawn", "Ghosted", "Accepted", "Not applying"],
+        },
+      });
       applicationChanged = true;
     }
   }
@@ -195,6 +191,7 @@ try {
   const exported = await SpreadsheetFile.exportXlsx(workbook);
   await exported.save(tempPath);
   await fs.rename(tempPath, workbookPath);
+  try { await removeWorkbookInspection(tempPath); } catch { /* Workbook commit already succeeded. */ }
   try { await fs.rm(pendingPath, { force: true }); } catch { /* Workbook commit already succeeded. */ }
   console.log(JSON.stringify({
     lead_id: lead[0],

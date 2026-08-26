@@ -82,11 +82,7 @@ export function ensureFormRunsSheet(workbook) {
     table.style = "TableStyleMedium2";
     table.showFilterButton = true;
     sheet.freezePanes.freezeRows(3);
-    sheet.getRange("C4:C203").setNumberFormat("yyyy-mm-dd hh:mm");
-    sheet.getRange("S4:S203").setNumberFormat("yyyy-mm-dd hh:mm");
-    sheet.getRange("K4:N203").setNumberFormat("0");
-    sheet.getRange("O4:O203").dataValidation = { rule: { type: "list", values: ["Required", "Optional", "Absent", "Unclear"] } };
-    sheet.getRange("R4:R203").dataValidation = { rule: { type: "list", values: ["Ready", "Needs User Input"] } };
+    applyFormRunRowRules(sheet, 4);
     setWidths(sheet, [24, 18, 19, 10, 24, 22, 32, 18, 38, 38, 12, 10, 12, 10, 22, 28, 42, 20, 19]);
     changed = true;
   } else {

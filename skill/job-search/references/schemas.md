@@ -14,7 +14,7 @@ Each finder returns `{ agent, status, query_count, packets, scan_events, error? 
 
 A finder packet requires identity and source fields, normalized job description with exact SHA-256 hash, `listing_status`, rubric evidence, finder eligibility and evidence, seven preliminary component scores, total, strengths, gaps, best resume, and stable candidate evidence IDs. Query-plan discoveries also carry `discovery_query_id`, `discovery_source`, and their original discovery URL before canonical-source resolution. A vacancy found through a company watchlist also carries the configured non-empty `interview_process_signal`; the updater stores it in Notes and it never changes a component score.
 
-A scan event includes identity when known, finder, examination timestamp, outcome, reason, optional score/eligibility/hash, `counts_toward_unique`, `deep_evaluated`, and `destination: Scan Log`. It also retains query-plan provenance in its raw JSON when applicable.
+A scan event includes identity when known, finder, examination timestamp, outcome, reason, optional score/eligibility/hash, `counts_toward_unique`, `deep_evaluated`, and `destination: Scan Log`. `deep_evaluated: true` requires `counts_toward_unique: true`; a duplicate or other examination excluded from the unique-vacancy count cannot increase the deep-evaluation count. It also retains query-plan provenance in its raw JSON when applicable.
 
 ## Blind judge input
 

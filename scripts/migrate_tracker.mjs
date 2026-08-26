@@ -3,7 +3,7 @@ import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { ensureFormRunsSheet, FORM_RUN_HEADERS } from "./form_runs_sheet.mjs";
 import { argumentValue } from "./project_config.mjs";
-import { removeTemporaryWorkbook, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
+import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
 const workbookArgument = argumentValue(process.argv, "--workbook", process.argv[2]);
 if (!workbookArgument) throw new Error("Usage: node scripts/migrate_tracker.mjs --workbook <xlsx> [--state-dir <dir>]");
@@ -29,6 +29,7 @@ try {
   const headers = table.getHeaderRowRange().values[0].map((value) => String(value ?? ""));
   if (headers.join("\u0000") !== FORM_RUN_HEADERS.join("\u0000")) throw new Error("Form Runs migration verification failed");
   await fs.rename(tempPath, workbookPath);
+  try { await removeWorkbookInspection(tempPath); } catch { /* Workbook commit already succeeded. */ }
   await fs.rm(pendingPath, { force: true });
   console.log(JSON.stringify({ migrated: changed, workbook: workbookPath, form_runs_sheet: true }, null, 2));
 } catch (error) {

@@ -12,7 +12,7 @@ import { ensureFormRunsSheet, upsertFormRun } from "./form_runs_sheet.mjs";
 import { promoteFilesWithRollback } from "./file_transaction.mjs";
 import { normalizeText, normalizeUrl, RESUMES } from "./job_tracker_lib.mjs";
 import { argumentValue } from "./project_config.mjs";
-import { removeTemporaryWorkbook, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
+import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
 const workbookArgument = argumentValue(process.argv, "--workbook", "");
 const leadId = normalizeText(argumentValue(process.argv, "--lead-id", ""));
@@ -148,6 +148,7 @@ try {
     { staged: packetTempPath, target: packetJsonPath },
     { staged: responseTempPath, target: responsePath },
   ], async () => fs.rename(tempWorkbookPath, workbookPath));
+  try { await removeWorkbookInspection(tempWorkbookPath); } catch { /* Workbook commit already succeeded. */ }
   await Promise.allSettled([
     fs.rm(pendingPath, { force: true }),
     fs.rm(pendingBasePath, { force: true }),

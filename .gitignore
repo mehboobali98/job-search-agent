@@ -15,4 +15,5 @@ renders/
 final-renders*/
 *.inspect.ndjson
 *.tmp.xlsx
+*-tmp.xlsx
 .DS_Store

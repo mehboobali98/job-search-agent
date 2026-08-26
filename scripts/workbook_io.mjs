@@ -20,9 +20,18 @@ export function workbookTemporaryPath(workbookPath, marker = "tmp") {
   return temporary;
 }
 
+export function workbookInspectionPath(workbookPath) {
+  return resolveXlsxWorkbookPath(workbookPath) + ".inspect.ndjson";
+}
+
+export async function removeWorkbookInspection(workbookPath) {
+  await fs.rm(workbookInspectionPath(workbookPath), { force: true });
+}
+
 export async function removeTemporaryWorkbook(temporaryPath, workbookPath) {
   const temporary = path.resolve(temporaryPath);
   const workbook = resolveXlsxWorkbookPath(workbookPath);
   if (temporary === workbook) throw new Error("Refusing to remove the live workbook as a temporary file");
   await fs.rm(temporary, { force: true });
+  await removeWorkbookInspection(temporary);
 }

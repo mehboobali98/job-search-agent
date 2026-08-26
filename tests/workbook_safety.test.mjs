@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { argumentValue } from "../scripts/project_config.mjs";
 import { createTracker } from "../scripts/create_tracker.mjs";
-import { resolveXlsxWorkbookPath, workbookTemporaryPath } from "../scripts/workbook_io.mjs";
+import { resolveXlsxWorkbookPath, workbookInspectionPath, workbookTemporaryPath } from "../scripts/workbook_io.mjs";
 
 test("strict arguments reject a flag without a value", () => {
   assert.throws(() => argumentValue(["node", "script", "--salary"], "--salary"), /requires a value/);
@@ -67,9 +67,19 @@ test("dashboard refresh commits through a distinct verified workbook", async () 
     timezone: "Etc/UTC",
     targetGeography: "Worldwide remote",
   });
+  await assert.rejects(fs.access(workbookInspectionPath(workbookPath)), /ENOENT/);
+  const stale = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
+  stale.worksheets.getItem("Search Config").getRange("B28").values = [["Judged | Needs Judge | Failed"]];
+  await (await SpreadsheetFile.exportXlsx(stale)).save(workbookPath);
   const result = spawnSync(process.execPath, ["scripts/refresh_dashboard.mjs", workbookPath], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   const workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
-  assert.match(workbook.worksheets.getItem("Dashboard").getRange("C5:D6").formulas[0][0], /^=COUNTIFS/);
+  const dashboard = workbook.worksheets.getItem("Dashboard");
+  assert.match(dashboard.getRange("C5:D6").formulas[0][0], /^=COUNTIFS/);
+  assert.match(dashboard.getRange("C5:D6").formulas[0][0], /LeadsTable\[Final Score\]/);
+  assert.doesNotMatch(dashboard.getRange("C5:D6").formulas[0][0], /\$203/);
+  assert.match(dashboard.getRange("H10").formulas[0][0], /LeadsTable\[Canonical URL\]/);
+  assert.match(workbook.worksheets.getItem("Search Config").getRange("B28").values[0][0], /Legacy \/ unjudged/);
   await assert.rejects(fs.access(workbookTemporaryPath(workbookPath, "dashboard-tmp")), /ENOENT/);
+  await assert.rejects(fs.access(workbookInspectionPath(workbookTemporaryPath(workbookPath, "dashboard-tmp"))), /ENOENT/);
 });

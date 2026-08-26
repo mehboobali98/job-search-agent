@@ -7,7 +7,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { candidateIdentityKeys, descriptionHash } from "../scripts/job_tracker_lib.mjs";
-import { workbookTemporaryPath } from "../scripts/workbook_io.mjs";
+import { workbookInspectionPath, workbookTemporaryPath } from "../scripts/workbook_io.mjs";
 import { createFixtureWorkbook } from "./test_fixture.mjs";
 
 const projectRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
@@ -196,6 +196,8 @@ test("mixed run enforces judging, eligibility, dedupe, partial coverage, and ale
   assert.equal(leads.filter((row) => row[3] === "Global Example").length, 1, "canonical duplicates must produce one lead");
   assert.equal(byCompany.has("Blocked Example"), false, "hard location blocker must be suppressed");
   assert.equal(byCompany.get("Global Example")[14], "Backend / Platform", "the selected resume must be persisted with the lead");
+  assert.match(byCompany.get("Global Example")[24], /^• Verified backend ownership\n• Ruby and PostgreSQL fit$/);
+  assert.match(byCompany.get("Global Example")[25], /^• Compensation is unpublished$/);
   assert.match(byCompany.get("Global Example")[33], /Interview-process signal: Listed by Hiring Without Whiteboards/);
   assert.match(byCompany.get("Global Example")[33], /does not affect the fit score/);
   assert.equal(byCompany.get("Unclear Example")[11], "Unclear");
@@ -232,6 +234,7 @@ test("mixed run enforces judging, eligibility, dedupe, partial coverage, and ale
     assert.equal(style.wrapText, true);
     assert.equal(style.border.bottom.style, "thin");
   }
+  await assert.rejects(fs.access(workbookInspectionPath(workbookTemporaryPath(workbook, "update-tmp"))), /ENOENT/);
 });
 
 test("only alerts inside the configured digest cap are stamped as alerted", async () => {
@@ -388,6 +391,45 @@ test("impossible counts and config-cap overruns are rejected", async () => {
   await fs.writeFile(payloadPath, JSON.stringify(overCap));
   result = runUpdater(workbook, stateDir, payloadPath);
   assert.notEqual(result.status, 0);
+});
+
+test("deep scan evaluations must also count as unique vacancies", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "job-updater-scan-invariant-"));
+  const workbook = path.join(tempDir, "Tracker.xlsx");
+  const stateDir = path.join(tempDir, "state");
+  const payloadPath = path.join(tempDir, "run.json");
+  await fs.copyFile(sourceWorkbook, workbook);
+  const scanEvent = {
+    finder: "backend_finder",
+    examined_at: "2026-08-24T08:02:00+05:00",
+    company: "Duplicate Example",
+    title: "Backend Engineer",
+    canonical_url: "https://jobs.example.test/duplicate",
+    counts_toward_unique: false,
+    deep_evaluated: true,
+    outcome: "Duplicate",
+    reason: "Already retained through the canonical employer page.",
+    destination: "Scan Log",
+  };
+  await fs.writeFile(payloadPath, JSON.stringify(runPayload({ run_id: "TEST-SCAN-INVARIANT", scan_events: [scanEvent] })));
+  const result = runUpdater(workbook, stateDir, payloadPath);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /cannot be deep_evaluated when counts_toward_unique is false/);
+});
+
+test("reads Search Config run limits by label instead of row position", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "job-updater-keyed-config-"));
+  const workbook = path.join(tempDir, "Tracker.xlsx");
+  const stateDir = path.join(tempDir, "state");
+  const payloadPath = path.join(tempDir, "run.json");
+  await fs.copyFile(sourceWorkbook, workbook);
+  const edited = await SpreadsheetFile.importXlsx(await FileBlob.load(workbook));
+  const configRange = edited.worksheets.getItem("Search Config").getRange("A5:B13");
+  configRange.values = [...configRange.values].reverse();
+  await (await SpreadsheetFile.exportXlsx(edited)).save(workbook);
+  await fs.writeFile(payloadPath, JSON.stringify(runPayload({ run_id: "TEST-KEYED-CONFIG", candidates: [candidate()] })));
+  const result = runUpdater(workbook, stateDir, payloadPath);
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test("retrying a committed run id is a no-op with no repeated digest", async () => {

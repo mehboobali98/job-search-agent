@@ -17,7 +17,8 @@ import {
   validateJudgedCandidate,
 } from "./job_tracker_lib.mjs";
 import { argumentValue } from "./project_config.mjs";
-import { removeTemporaryWorkbook, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
+import { appendStyledRow } from "./tracker_rows.mjs";
+import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
 const workbookArgument = argumentValue(process.argv, "--workbook");
 const inputArgument = argumentValue(process.argv, "--input");
@@ -35,29 +36,22 @@ const RUN_STATUSES = new Set(["Completed", "Partial"]);
 const FINDER_STATUSES = new Set(["Completed", "Failed", "Fallback Completed", "Fallback Failed"]);
 const JUDGE_AGENT_STATUSES = new Set([...FINDER_STATUSES, "Partial"]);
 const COUNT_FIELDS = ["queries", "found", "unique", "evaluated", "judged"];
-const TABLE_BODY_FORMAT = {
-  font: { name: "Arial", size: 9, color: "#262626" },
-  verticalAlignment: "top",
-  wrapText: true,
-  borders: { preset: "all", style: "thin", color: "#E6EAF0" },
+const LEAD_ROW_OPTIONS = {
+  numberFormats: { B: "yyyy-mm-dd", C: "yyyy-mm-dd", K: "yyyy-mm-dd", AB: "yyyy-mm-dd hh:mm", "P:W": "0" },
+  validations: {
+    L: ["Eligible", "Unclear", "Ineligible", "Needs Human Review", "Needs Judge"],
+    N: ["High", "Medium", "Low"],
+    O: ["Backend / Platform", "Staff / Principal / Tech Lead", "Applied AI / LLM", "Developer Productivity / AI Enablement", "Full-stack / Product"],
+    AA: ["New", "Review", "Shortlisted", "Preparing", "Dismissed", "Expired", "Moved to Applications"],
+    AF: ["Judged", "Needs Judge", "Legacy / unjudged", "Failed"],
+  },
+  conditionalFormats: [
+    { column: "W", type: "colorScale", options: { colors: ["#FCE4D6", "#FFF2CC", "#E2F0D9"], thresholds: ["min", "50%", "max"] } },
+    { column: "L", type: "containsText", options: { text: "Ineligible", format: { fill: "#FCE4D6", font: { color: "#9C0006" } } } },
+    { column: "L", type: "containsText", options: { text: "Unclear", format: { fill: "#FFF2CC", font: { color: "#7F6000" } } } },
+    { column: "L", type: "containsText", options: { text: "Eligible", format: { fill: "#E2F0D9", font: { color: "#375623" } } } },
+  ],
 };
-
-const NEXT_APPEND_ROW = new WeakMap();
-
-function appendStyledRow(table, sheet, values, endColumn, dateFormats = {}, rowHeight = null) {
-  const rowNumber = NEXT_APPEND_ROW.get(table) ?? (4 + table.getDataRows().length);
-  table.rows.add(null, [values]);
-  NEXT_APPEND_ROW.set(table, rowNumber + 1);
-  const rowRange = sheet.getRange(`A${rowNumber}:${endColumn}${rowNumber}`);
-  rowRange.format = TABLE_BODY_FORMAT;
-  for (const [column, numberFormat] of Object.entries(dateFormats)) {
-    sheet.getRange(`${column}${rowNumber}`).setNumberFormat(numberFormat);
-  }
-  if (rowHeight === null) rowRange.format.autofitRows();
-  else rowRange.format.rowHeight = rowHeight;
-  return rowNumber;
-}
-
 function validDate(value) {
   return normalizeText(value) && Number.isFinite(new Date(value).getTime());
 }
@@ -82,6 +76,15 @@ function validateRunPayload(run) {
   if (run.notes !== undefined && typeof run.notes !== "string") throw new Error("notes must be a string");
   if (!Array.isArray(run.scan_events)) throw new Error("Run payload requires scan_events[]");
   if (!Array.isArray(run.candidates)) throw new Error("Run payload requires candidates[]");
+  for (let index = 0; index < run.scan_events.length; index += 1) {
+    const event = run.scan_events[index];
+    if (typeof event.counts_toward_unique !== "boolean" || typeof event.deep_evaluated !== "boolean") {
+      throw new Error(`scan_events[${index}] requires counts_toward_unique and deep_evaluated booleans`);
+    }
+    if (event.deep_evaluated && !event.counts_toward_unique) {
+      throw new Error(`scan_events[${index}] cannot be deep_evaluated when counts_toward_unique is false`);
+    }
+  }
 }
 
 function computedCounts(run) {
@@ -138,8 +141,8 @@ function rowValues(candidate, previous, alert) {
     candidate.scores?.compensation ?? null,
     candidate.final_score,
     candidate.recommendation,
-    Array.isArray(candidate.strengths) ? candidate.strengths.join("\n• ") : candidate.strengths ?? null,
-    Array.isArray(candidate.gaps) ? candidate.gaps.join("\n• ") : candidate.gaps ?? null,
+    bulletList(candidate.strengths),
+    bulletList(candidate.gaps),
     previous?.status ?? candidate.status ?? "New",
     lastAlerted,
     candidate.canonical_key,
@@ -152,6 +155,27 @@ function rowValues(candidate, previous, alert) {
     previous?.detail_sheet ?? null,
     previous?.legacy_source_row ?? null,
   ];
+}
+
+function bulletList(value) {
+  if (!Array.isArray(value)) return value ?? null;
+  return value.length ? "• " + value.join("\n• ") : null;
+}
+
+function searchConfigValues(sheet) {
+  const values = new Map();
+  for (const [rawLabel, value] of sheet.getRange("A5:B13").values) {
+    const label = normalizeText(rawLabel);
+    if (!label) continue;
+    if (values.has(label)) throw new Error("Duplicate Search Config label: " + label);
+    values.set(label, value);
+  }
+  return values;
+}
+
+function requiredConfigNumber(values, label) {
+  if (!values.has(label)) throw new Error("Missing Search Config label: " + label);
+  return Number(values.get(label));
 }
 
 function serializeExisting(row) {
@@ -220,13 +244,14 @@ try {
     process.exit(0);
   }
 
-  const configuredMaxAlerts = Number(configSheet.getRange("B10").values[0][0]);
-  const alertThreshold = Number(configSheet.getRange("B11").values[0][0]);
-  const leadThreshold = Number(configSheet.getRange("B12").values[0][0]);
-  const configuredMaxSearches = Number(configSheet.getRange("B6").values[0][0]);
-  const configuredMaxUnique = Number(configSheet.getRange("B7").values[0][0]);
-  const configuredMaxEvaluated = Number(configSheet.getRange("B8").values[0][0]);
-  const configuredMaxJudged = Number(configSheet.getRange("B9").values[0][0]);
+  const configValues = searchConfigValues(configSheet);
+  const configuredMaxAlerts = requiredConfigNumber(configValues, "Maximum alerts");
+  const alertThreshold = requiredConfigNumber(configValues, "Alert threshold");
+  const leadThreshold = requiredConfigNumber(configValues, "Lead threshold");
+  const configuredMaxSearches = requiredConfigNumber(configValues, "Maximum searches");
+  const configuredMaxUnique = requiredConfigNumber(configValues, "Maximum unique candidates");
+  const configuredMaxEvaluated = requiredConfigNumber(configValues, "Maximum deep evaluations");
+  const configuredMaxJudged = requiredConfigNumber(configValues, "Maximum judged candidates");
   if (!Number.isInteger(configuredMaxAlerts) || configuredMaxAlerts < 0 || configuredMaxAlerts > 20) throw new Error("Invalid Search Config maximum alerts");
   if (!Number.isFinite(alertThreshold) || alertThreshold < 0 || alertThreshold > 100) throw new Error("Invalid Search Config alert threshold");
   if (!Number.isFinite(leadThreshold) || leadThreshold < 0 || leadThreshold > alertThreshold) throw new Error("Invalid Search Config lead threshold");
@@ -272,9 +297,6 @@ try {
     if (!normalizeText(event.finder) || !normalizeText(event.outcome) || !normalizeText(event.reason) || !validDate(event.examined_at)) {
       throw new Error("Each scan event requires finder, examined_at, outcome, and reason");
     }
-    if (typeof event.counts_toward_unique !== "boolean" || typeof event.deep_evaluated !== "boolean") {
-      throw new Error("Each scan event requires counts_toward_unique and deep_evaluated booleans");
-    }
     if (event.destination !== "Scan Log") throw new Error("Each scan event destination must be Scan Log");
     if (!eventUrl && !(normalizeText(event.company) && normalizeText(event.title))) {
       throw new Error("Each scan event requires a URL or company/title identity");
@@ -287,7 +309,10 @@ try {
       event.source ?? null, event.job_id ?? null, event.location ?? null, event.work_type ?? null,
       event.first_seen ? new Date(event.first_seen) : now, now, event.destination ?? "Scan Log",
       event.detail_sheet ?? null, event.legacy_source_row ?? null, JSON.stringify(event),
-    ], "X", { B: "yyyy-mm-dd hh:mm", S: "yyyy-mm-dd", T: "yyyy-mm-dd" }, 54);
+    ], "X", {
+      numberFormats: { B: "yyyy-mm-dd hh:mm", S: "yyyy-mm-dd", T: "yyyy-mm-dd" },
+      rowHeight: 54,
+    });
   }
 
   for (const raw of payload.candidates) {
@@ -348,9 +373,7 @@ try {
         leadsSheet.getRange("A" + excelRow + ":AK" + excelRow).values = [values];
         outcome = "Updated Lead";
       } else {
-        excelRow = appendStyledRow(leadsTable, leadsSheet, values, "AK", {
-          B: "yyyy-mm-dd", C: "yyyy-mm-dd", K: "yyyy-mm-dd", AB: "yyyy-mm-dd hh:mm",
-        });
+        excelRow = appendStyledRow(leadsTable, leadsSheet, values, "AK", LEAD_ROW_OPTIONS);
         outcome = "Added Lead";
       }
       const nextExisting = {
@@ -391,7 +414,10 @@ try {
       candidate.eligibility, candidate.confidence, candidate.description_hash, candidate.source ?? null,
       candidate.job_id ?? null, candidate.location ?? null, candidate.work_type ?? null,
       raw.first_seen ? new Date(raw.first_seen) : now, now, viable ? "Leads" : "Scan Log", null, null, JSON.stringify(raw),
-    ], "X", { B: "yyyy-mm-dd hh:mm", S: "yyyy-mm-dd", T: "yyyy-mm-dd" }, 54);
+    ], "X", {
+      numberFormats: { B: "yyyy-mm-dd hh:mm", S: "yyyy-mm-dd", T: "yyyy-mm-dd" },
+      rowHeight: 54,
+    });
     outcomes.push({ lead_id: candidate.lead_id, canonical_key: candidate.canonical_key, outcome });
   }
 
@@ -421,7 +447,9 @@ try {
     selectedAlerts.length,
     errors,
     payload.notes ?? null,
-  ], "R", { B: "yyyy-mm-dd hh:mm", C: "yyyy-mm-dd hh:mm" });
+  ], "R", {
+    numberFormats: { B: "yyyy-mm-dd hh:mm", C: "yyyy-mm-dd hh:mm", "H:P": "0" },
+  });
 
   const formulaErrors = await workbook.inspect({
     kind: "match",
@@ -439,6 +467,11 @@ try {
   await fs.rename(tempPath, workbookPath);
 
   const stateWarnings = [];
+  try {
+    await removeWorkbookInspection(tempPath);
+  } catch (error) {
+    stateWarnings.push("Workbook committed; temporary inspection artifact could not be removed: " + String(error));
+  }
   try {
     await fs.rename(resultTempPath, path.join(stateDir, "last-run.json"));
   } catch (error) {

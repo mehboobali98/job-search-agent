@@ -6,6 +6,7 @@ import {
   buildSearchPlan,
   validateSearchTerms,
 } from "../scripts/search_query_lib.mjs";
+import { configuredRunTiming } from "../scripts/build_search_queries.mjs";
 
 function termsFixture() {
   return {
@@ -28,6 +29,13 @@ function termsFixture() {
     }])),
   };
 }
+
+test("derives weekday and emitted timezone from the validated local configuration", () => {
+  const runDate = new Date("2026-08-28T10:00:00Z");
+  const timing = configuredRunTiming({ raw: { timezone: "Pacific/Kiritimati" } }, runDate);
+  assert.deepEqual(timing, { timezone: "Pacific/Kiritimati", runWeekday: "Saturday" });
+  assert.throws(() => configuredRunTiming({ timezone: "Pacific/Kiritimati" }, runDate), /Configured timezone is required/);
+});
 
 test("builds exact-budget public LinkedIn and canonical query lanes", () => {
   const roleQueryBudget = {

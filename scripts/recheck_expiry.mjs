@@ -3,7 +3,8 @@ import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { normalizeUrl } from "./job_tracker_lib.mjs";
 import { argumentValue } from "./project_config.mjs";
-import { removeTemporaryWorkbook, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
+import { appendStyledRow } from "./tracker_rows.mjs";
+import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
 const workbookArgument = argumentValue(process.argv, "--workbook");
 const inputArgument = argumentValue(process.argv, "--input");
@@ -71,24 +72,30 @@ try {
     }
 
     const outcome = expired ? (wasActive ? "Expired" : "Expired / already inactive") : "Rechecked Active";
-    scanTable.rows.add(null, [[
+    appendStyledRow(scanTable, scanSheet, [
       payload.run_id, now, lead[28], lead[3], lead[4], check.canonical_url ?? lead[8], outcome,
       check.evidence ?? null, "Friday Recheck", null, lead[22], lead[11], lead[13], lead[29], lead[7], lead[9],
       lead[5], lead[6], lead[1], now, "Leads", lead[35], lead[36], JSON.stringify(check),
-    ]]);
+    ], "X", {
+      numberFormats: { B: "yyyy-mm-dd hh:mm", S: "yyyy-mm-dd", T: "yyyy-mm-dd" },
+      rowHeight: 54,
+    });
     outcomes.push({ lead_id: lead[0], result: check.result, changed: expired && wasActive });
   }
 
-  runTable.rows.add(null, [[
+  appendStyledRow(runTable, runSheet, [
     payload.run_id, new Date(payload.started_at), now, "Completed",
     "Friday Recheck", "Friday Recheck", "Not run", payload.checks.length, payload.checks.length,
     payload.checks.length, payload.checks.length, 0, 0, 0,
     outcomes.filter((item) => item.result === "Expired").length, 0, null, payload.notes,
-  ]]);
+  ], "R", {
+    numberFormats: { B: "yyyy-mm-dd hh:mm", C: "yyyy-mm-dd hh:mm", "H:P": "0" },
+  });
 
   const exported = await SpreadsheetFile.exportXlsx(workbook);
   await exported.save(tempPath);
   await fs.rename(tempPath, workbookPath);
+  try { await removeWorkbookInspection(tempPath); } catch { /* Workbook commit already succeeded. */ }
   try { await fs.rm(pendingPath, { force: true }); } catch { /* Workbook commit already succeeded. */ }
   console.log(JSON.stringify({ run_id: payload.run_id, outcomes }, null, 2));
 } catch (error) {

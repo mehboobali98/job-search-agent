@@ -2,9 +2,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
+import { applyDashboardFormulas, DASHBOARD_CARD_FORMULAS } from "./dashboard_formulas.mjs";
 import { argumentValue, loadProjectConfig } from "./project_config.mjs";
 import { ensureFormRunsSheet } from "./form_runs_sheet.mjs";
-import { resolveXlsxWorkbookPath } from "./workbook_io.mjs";
+import { removeWorkbookInspection, resolveXlsxWorkbookPath } from "./workbook_io.mjs";
 
 const NAVY = "#1F3864";
 const PALE_BLUE = "#D9EAF7";
@@ -168,7 +169,7 @@ export async function createTracker({ outputPath, candidateName, timezone, targe
     ["Eligibility", "Eligible | Unclear | Ineligible | Needs Human Review | Needs Judge", "Hard blockers never alert"],
     ["Confidence", "High | Medium | Low", "Only High/Medium can alert"],
     ["Lead Status", "New | Review | Shortlisted | Preparing | Dismissed | Expired | Moved to Applications", "User-controlled workflow"],
-    ["Judge Status", "Judged | Needs Judge | Failed", "Only Judged can alert"],
+    ["Judge Status", "Judged | Needs Judge | Legacy / unjudged | Failed", "Only Judged can alert"],
     ["Application Status", "Draft | Applied | Submitted | Skipped | Screening | Interview | Offer | Rejected | Withdrawn", "Manual pipeline"],
     ["Current Stage", "Interested | Evaluating | Preparing | Applied | Recruiter Screen | Assessment | Technical | System Design | Hiring Manager | Final | Offer | Rejected | Withdrawn | Ghosted | Accepted | Not applying", "Manual pipeline"],
   ];
@@ -182,32 +183,32 @@ export async function createTracker({ outputPath, candidateName, timezone, targe
   writeEmptyTable(scanSheet, SCAN_HEADERS, "ScanLogTable", "X", "Append-only audit log for every examined, duplicate, rejected, and suppressed role.");
   writeEmptyTable(runSheet, RUN_HEADERS, "RunLogTable", "R", "One row per orchestration run, including partial and failed runs.");
 
-  leadsSheet.getRange("B4:C203").setNumberFormat("yyyy-mm-dd");
-  leadsSheet.getRange("K4:K203").setNumberFormat("yyyy-mm-dd");
-  leadsSheet.getRange("AB4:AB203").setNumberFormat("yyyy-mm-dd hh:mm");
-  leadsSheet.getRange("P4:W203").setNumberFormat("0");
-  applicationsSheet.getRange("B4:B203").setNumberFormat("yyyy-mm-dd");
-  applicationsSheet.getRange("M4:M203").setNumberFormat("yyyy-mm-dd");
-  applicationsSheet.getRange("W4:W203").setNumberFormat("yyyy-mm-dd hh:mm");
-  applicationsSheet.getRange("O4:O203").setNumberFormat("0");
-  scanSheet.getRange("B4:B203").setNumberFormat("yyyy-mm-dd hh:mm");
-  scanSheet.getRange("S4:T203").setNumberFormat("yyyy-mm-dd");
-  runSheet.getRange("B4:C203").setNumberFormat("yyyy-mm-dd hh:mm");
-  runSheet.getRange("H4:P203").setNumberFormat("0");
+  leadsSheet.getRange("B4:C4").setNumberFormat("yyyy-mm-dd");
+  leadsSheet.getRange("K4").setNumberFormat("yyyy-mm-dd");
+  leadsSheet.getRange("AB4").setNumberFormat("yyyy-mm-dd hh:mm");
+  leadsSheet.getRange("P4:W4").setNumberFormat("0");
+  applicationsSheet.getRange("B4").setNumberFormat("yyyy-mm-dd");
+  applicationsSheet.getRange("M4").setNumberFormat("yyyy-mm-dd");
+  applicationsSheet.getRange("W4").setNumberFormat("yyyy-mm-dd hh:mm");
+  applicationsSheet.getRange("O4").setNumberFormat("0");
+  scanSheet.getRange("B4").setNumberFormat("yyyy-mm-dd hh:mm");
+  scanSheet.getRange("S4:T4").setNumberFormat("yyyy-mm-dd");
+  runSheet.getRange("B4:C4").setNumberFormat("yyyy-mm-dd hh:mm");
+  runSheet.getRange("H4:P4").setNumberFormat("0");
 
-  leadsSheet.getRange("L4:L203").dataValidation = { rule: { type: "list", values: ["Eligible", "Unclear", "Ineligible", "Needs Human Review", "Needs Judge"] } };
-  leadsSheet.getRange("N4:N203").dataValidation = { rule: { type: "list", values: ["High", "Medium", "Low"] } };
-  leadsSheet.getRange("O4:O203").dataValidation = { rule: { type: "list", values: ["Backend / Platform", "Staff / Principal / Tech Lead", "Applied AI / LLM", "Developer Productivity / AI Enablement", "Full-stack / Product"] } };
-  leadsSheet.getRange("AA4:AA203").dataValidation = { rule: { type: "list", values: ["New", "Review", "Shortlisted", "Preparing", "Dismissed", "Expired", "Moved to Applications"] } };
-  leadsSheet.getRange("AF4:AF203").dataValidation = { rule: { type: "list", values: ["Judged", "Needs Judge", "Legacy / unjudged", "Failed"] } };
-  applicationsSheet.getRange("G4:G203").dataValidation = { rule: { type: "list", values: ["Backend / Platform", "Staff / Principal / Tech Lead", "Applied AI / LLM", "Developer Productivity / AI Enablement", "Full-stack / Product"] } };
-  applicationsSheet.getRange("L4:L203").dataValidation = { rule: { type: "list", values: ["Draft", "Applied", "Submitted", "Skipped", "Not needed", "Not generated", "Screening", "Interview", "Offer", "Rejected", "Withdrawn"] } };
-  applicationsSheet.getRange("T4:T203").dataValidation = { rule: { type: "list", values: ["Not started", "Plan ready — not started", "In progress", "Ready", "Completed", "Not started — skipped"] } };
-  applicationsSheet.getRange("U4:U203").dataValidation = { rule: { type: "list", values: ["Interested", "Evaluating", "Preparing", "Applied", "Recruiter Screen", "Assessment", "Technical", "System Design", "Hiring Manager", "Final", "Offer", "Rejected", "Withdrawn", "Ghosted", "Accepted", "Not applying"] } };
-  leadsSheet.getRange("W4:W203").conditionalFormats.add("colorScale", { colors: [RED, AMBER, GREEN], thresholds: ["min", "50%", "max"] });
-  leadsSheet.getRange("L4:L203").conditionalFormats.add("containsText", { text: "Ineligible", format: { fill: RED, font: { color: "#9C0006" } } });
-  leadsSheet.getRange("L4:L203").conditionalFormats.add("containsText", { text: "Unclear", format: { fill: AMBER, font: { color: "#7F6000" } } });
-  leadsSheet.getRange("L4:L203").conditionalFormats.add("containsText", { text: "Eligible", format: { fill: GREEN, font: { color: "#375623" } } });
+  leadsSheet.getRange("L4").dataValidation = { rule: { type: "list", values: ["Eligible", "Unclear", "Ineligible", "Needs Human Review", "Needs Judge"] } };
+  leadsSheet.getRange("N4").dataValidation = { rule: { type: "list", values: ["High", "Medium", "Low"] } };
+  leadsSheet.getRange("O4").dataValidation = { rule: { type: "list", values: ["Backend / Platform", "Staff / Principal / Tech Lead", "Applied AI / LLM", "Developer Productivity / AI Enablement", "Full-stack / Product"] } };
+  leadsSheet.getRange("AA4").dataValidation = { rule: { type: "list", values: ["New", "Review", "Shortlisted", "Preparing", "Dismissed", "Expired", "Moved to Applications"] } };
+  leadsSheet.getRange("AF4").dataValidation = { rule: { type: "list", values: ["Judged", "Needs Judge", "Legacy / unjudged", "Failed"] } };
+  applicationsSheet.getRange("G4").dataValidation = { rule: { type: "list", values: ["Backend / Platform", "Staff / Principal / Tech Lead", "Applied AI / LLM", "Developer Productivity / AI Enablement", "Full-stack / Product"] } };
+  applicationsSheet.getRange("L4").dataValidation = { rule: { type: "list", values: ["Draft", "Applied", "Submitted", "Skipped", "Not needed", "Not generated", "Screening", "Interview", "Offer", "Rejected", "Withdrawn"] } };
+  applicationsSheet.getRange("T4").dataValidation = { rule: { type: "list", values: ["Not started", "Plan ready — not started", "In progress", "Ready", "Completed", "Not started — skipped"] } };
+  applicationsSheet.getRange("U4").dataValidation = { rule: { type: "list", values: ["Interested", "Evaluating", "Preparing", "Applied", "Recruiter Screen", "Assessment", "Technical", "System Design", "Hiring Manager", "Final", "Offer", "Rejected", "Withdrawn", "Ghosted", "Accepted", "Not applying"] } };
+  leadsSheet.getRange("W4").conditionalFormats.add("colorScale", { colors: [RED, AMBER, GREEN], thresholds: ["min", "50%", "max"] });
+  leadsSheet.getRange("L4").conditionalFormats.add("containsText", { text: "Ineligible", format: { fill: RED, font: { color: "#9C0006" } } });
+  leadsSheet.getRange("L4").conditionalFormats.add("containsText", { text: "Unclear", format: { fill: AMBER, font: { color: "#7F6000" } } });
+  leadsSheet.getRange("L4").conditionalFormats.add("containsText", { text: "Eligible", format: { fill: GREEN, font: { color: "#375623" } } });
   setWidths(leadsSheet, [15,12,12,22,32,24,16,21,34,14,12,20,38,12,27,10,10,10,10,10,12,12,12,20,36,36,18,18,32,22,20,20,18,42,42,22,16]);
   setWidths(applicationsSheet, [15,12,22,32,24,16,27,21,34,20,22,16,14,42,12,36,38,24,24,24,18,42,18,20,12,32,20,22,16]);
   setWidths(scanSheet, [20,18,32,22,32,34,21,42,20,12,12,20,12,22,22,14,24,16,12,12,18,22,16,50]);
@@ -216,15 +217,15 @@ export async function createTracker({ outputPath, candidateName, timezone, targe
   dashboard.getRange("A1:H35").format.rowHeight = 18;
   styleTitle(dashboard, "H", "Job Search Dashboard — " + candidateName, "Only independently judged, eligible or unclear roles meeting the configured threshold appear in the priority queue.");
   const cards = [
-    ["A4:B4", "Active Leads", "A5:B6", "=COUNTIFS('Leads'!$A$4:$A$203,\"<>\",'Leads'!$AA$4:$AA$203,\"<>Dismissed\",'Leads'!$L$4:$L$203,\"<>Ineligible\")"],
-    ["C4:D4", "Priority Leads", "C5:D6", "=COUNTIFS('Leads'!$W$4:$W$203,\">=\"&'Search Config'!$B$11,'Leads'!$AF$4:$AF$203,\"Judged\",'Leads'!$L$4:$L$203,\"Eligible\",'Leads'!$AA$4:$AA$203,\"<>Dismissed\",'Leads'!$AA$4:$AA$203,\"<>Expired\")+COUNTIFS('Leads'!$W$4:$W$203,\">=\"&'Search Config'!$B$11,'Leads'!$AF$4:$AF$203,\"Judged\",'Leads'!$L$4:$L$203,\"Unclear\",'Leads'!$AA$4:$AA$203,\"<>Dismissed\",'Leads'!$AA$4:$AA$203,\"<>Expired\")"],
-    ["E4:F4", "Applications", "E5:F6", "=COUNTIFS('Applications'!$A$4:$A$203,\"<>\")"],
-    ["G4:H4", "Follow-ups Due", "G5:H6", "=COUNTIFS('Applications'!$A$4:$A$203,\"<>\",'Applications'!$M$4:$M$203,\"<=\"&TODAY(),'Applications'!$M$4:$M$203,\"<>\")"],
+    ["A4:B4", "Active Leads", "A5:B6"],
+    ["C4:D4", "Priority Leads", "C5:D6"],
+    ["E4:F4", "Applications", "E5:F6"],
+    ["G4:H4", "Follow-ups Due", "G5:H6"],
   ];
-  for (const [labelRange, label, valueRange, formula] of cards) {
+  for (const [labelRange, label, valueRange] of cards) {
     const labelCell = dashboard.getRange(labelRange); labelCell.merge(); labelCell.values = [[label]];
     labelCell.format = { fill: PALE_BLUE, font: { name: "Arial", size: 10, bold: true, color: NAVY }, horizontalAlignment: "center", verticalAlignment: "center", borders: { preset: "outside", style: "thin", color: BORDER } };
-    const valueCell = dashboard.getRange(valueRange); valueCell.merge(); valueCell.formulas = [[formula]];
+    const valueCell = dashboard.getRange(valueRange); valueCell.merge(); valueCell.formulas = [[DASHBOARD_CARD_FORMULAS[valueRange]]];
     valueCell.setNumberFormat("0");
     valueCell.format = { fill: "#FFFFFF", font: { name: "Arial", size: 20, bold: true, color: NAVY }, horizontalAlignment: "center", verticalAlignment: "center", borders: { preset: "outside", style: "thin", color: BORDER } };
   }
@@ -232,13 +233,6 @@ export async function createTracker({ outputPath, candidateName, timezone, targe
   styleHeader(dashboard.getRange("A9:H9"));
   for (let row = 10; row <= 14; row += 1) {
     dashboard.getRange("A" + row).values = [[row - 9]];
-    const eligible = "('Leads'!$AF$4:$AF$203=\"Judged\")*('Leads'!$W$4:$W$203>='Search Config'!$B$11)*(('Leads'!$L$4:$L$203=\"Eligible\")+('Leads'!$L$4:$L$203=\"Unclear\"))*('Leads'!$AA$4:$AA$203<>\"Dismissed\")*('Leads'!$AA$4:$AA$203<>\"Expired\")";
-    const scoreKeys = "('Leads'!$W$4:$W$203+((204-ROW('Leads'!$W$4:$W$203))/100000))";
-    const targetKey = "LARGE(FILTER(" + scoreKeys + "," + eligible + "),$A" + row + ")";
-    const position = "MATCH(" + targetKey + "," + scoreKeys + ",0)";
-    for (const [column, source] of [["B","D"],["C","E"],["D","W"],["E","O"],["F","L"],["G","AA"],["H","I"]]) {
-      dashboard.getRange(column + row).formulas = [["=IFERROR(INDEX('Leads'!$" + source + "$4:$" + source + "$203," + position + "),\"\")"]];
-    }
   }
   styleBody(dashboard.getRange("A10:H14"));
   dashboard.getRange("A10:H14").format.rowHeight = 38;
@@ -248,8 +242,8 @@ export async function createTracker({ outputPath, candidateName, timezone, targe
   for (const [index, band] of ["Immediate priority", "Strong match", "Review", "Stretch/watchlist", "Needs Human Review"].entries()) {
     const row = 19 + index;
     dashboard.getRange("A" + row).values = [[band]];
-    dashboard.getRange("B" + row).formulas = [["=COUNTIF('Leads'!$X$4:$X$203,A" + row + ")"]];
   }
+  applyDashboardFormulas(dashboard);
   styleBody(dashboard.getRange("A19:B23"));
   const chart = dashboard.charts.add("bar", dashboard.getRange("A18:B23"));
   chart.title = "Leads by recommendation";
@@ -271,6 +265,7 @@ export async function createTracker({ outputPath, candidateName, timezone, targe
   if (/#[A-Z0-9/]+[!?]/.test(formulaErrors.ndjson)) throw new Error("Formula validation failed: " + formulaErrors.ndjson);
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await (await SpreadsheetFile.exportXlsx(workbook)).save(outputPath);
+  await removeWorkbookInspection(outputPath);
   return { outputPath, sheets: workbook.worksheets.items.map((sheet) => sheet.name) };
 }
 

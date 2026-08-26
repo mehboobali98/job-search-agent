@@ -95,6 +95,17 @@ test("Friday expiry recheck expires a moved lead and stops preparation", async (
   assert.equal(scans.filter((row) => row[0] === "TEST-RECHECK-001").length, 1);
   assert.equal(runs.find((row) => row[0] === "TEST-RECHECK-001")[3], "Completed");
   assert.equal(runs.filter((row) => row[0] === "TEST-RECHECK-001").length, 1);
+  for (const [sheetName, rowNumber] of [
+    ["Scan Log", 4 + scans.findIndex((row) => row[0] === "TEST-RECHECK-001")],
+    ["Run Log", 4 + runs.findIndex((row) => row[0] === "TEST-RECHECK-001")],
+  ]) {
+    const inspection = await workbook.inspect({ kind: "computedStyle", sheetId: sheetName, range: `A${rowNumber}`, maxChars: 4000 });
+    const style = JSON.parse(inspection.ndjson.trim()).style;
+    assert.equal(style.font.typeface, "Arial");
+    assert.equal(style.font.fontSize, 9);
+    assert.equal(style.wrapText, true);
+    assert.equal(style.border.bottom.style, "thin");
+  }
 });
 
 test("expiry recheck expires a newly discovered lead", async () => {

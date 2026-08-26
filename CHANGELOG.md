@@ -6,6 +6,17 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-08-27
+
+### Fixed
+
+- Honor the configured IANA timezone when generating search plans and expose it in query-plan output.
+- Remove the row-203 tracker ceiling with table-driven dashboard formulas and append-time formatting, validation, and conditional-format rules.
+- Give malformed deep-evaluation scan flags a clear per-event validation error and document the count invariant.
+- Preserve lead next actions during shortlist and dismiss actions, restore native Applications table banding, and render all strengths and gaps as bullets.
+- Read run limits by Search Config label, synchronize the Judge Status list, and style Friday recheck audit rows consistently.
+- Clean generated workbook inspection artifacts after every workflow and ignore all deterministic temporary workbook names.
+
 ## [1.4.0] - 2026-08-26
 
 ### Added
@@ -74,7 +85,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.1...v1.2.0

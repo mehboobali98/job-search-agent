@@ -105,3 +105,20 @@ test("missing optional flag values are rejected before workbook mutation", async
   assert.match(result.stderr, /--salary requires a value/);
   assert.deepEqual(await fs.readFile(workbookPath), before);
 });
+
+test("shortlist and dismiss preserve an existing lead next action", async () => {
+  const workbookPath = await createFixtureWorkbook();
+  const stateDir = path.join(path.dirname(workbookPath), "state");
+  let workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
+  const leads = workbook.worksheets.getItem("Leads").tables.getItem("LeadsTable").getDataRows();
+  const rowNumber = 4 + leads.findIndex((item) => item[0] === FIXTURE_LEAD_ID);
+  workbook.worksheets.getItem("Leads").getRange(`AI${rowNumber}`).values = [["Review sponsorship evidence before applying"]];
+  await (await SpreadsheetFile.exportXlsx(workbook)).save(workbookPath);
+
+  assert.equal(action(workbookPath, stateDir, "shortlist").status, 0);
+  assert.equal(action(workbookPath, stateDir, "dismiss").status, 0);
+  workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
+  const updated = workbook.worksheets.getItem("Leads").tables.getItem("LeadsTable").getDataRows()
+    .find((item) => item[0] === FIXTURE_LEAD_ID);
+  assert.equal(updated[34], "Review sponsorship evidence before applying");
+});
