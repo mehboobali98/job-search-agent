@@ -6,6 +6,12 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-26
+
+### Changed
+
+- Introduce query-plan v2 with broad title-focused LinkedIn searches and move technical, exclusion, country-eligibility, sponsorship, and relocation checks into post-discovery screening.
+
 ## [1.2.0] - 2026-08-26
 
 ### Added
@@ -56,7 +62,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/mehboobali98/job-search-agent/releases/tag/v1.1.0

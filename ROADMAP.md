@@ -42,9 +42,9 @@ Status: planned.
 
 ## v1.3 — Search and evaluation quality
 
-Status: in progress.
+Status: partially delivered in v1.3.0.
 
-- Reusable candidate-local query packs with deterministic public LinkedIn Boolean searches are implemented; pluggable public-source adapters remain planned.
+- Reusable candidate-local query packs with broad title-first public LinkedIn searches and post-discovery fit screening are implemented; pluggable public-source adapters remain planned.
 - Better source-health, freshness, canonicalization, and description-change signals.
 - Evaluation fixtures for judge calibration, eligibility disagreements, and score drift.
 - Explainable score breakdowns with tighter links between job evidence and candidate evidence IDs.

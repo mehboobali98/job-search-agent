@@ -121,6 +121,10 @@ export function buildBooleanKeywords(roleTerms, { variant = 0, relocationTerms =
   return keywords;
 }
 
+export function buildTitleKeywords(roleTerms, { variant = 0 } = {}) {
+  return expression(rotateTerms(roleTerms.titles, variant, 4));
+}
+
 export function buildLinkedInPublicUrl({ keywords, location, freshnessDays, remote }) {
   const url = new URL("https://www.linkedin.com/jobs/search/");
   url.searchParams.set("keywords", requiredString(keywords, "keywords"));
@@ -142,11 +146,7 @@ function linkedInQuery({ role, finder, roleTerms, settings, index }) {
   // Rotate locations once per remote/relocation pair so the first query in
   // each lane starts with the first configured location.
   const location = locations[Math.floor(index / 2) % locations.length];
-  const keywords = buildBooleanKeywords(roleTerms, {
-    variant: index,
-    relocationTerms: relocation ? settings.relocation_terms : [],
-    excludeTerms: settings.exclude_terms,
-  });
+  const keywords = buildTitleKeywords(roleTerms, { variant: index });
   const searchUrl = buildLinkedInPublicUrl({
     keywords,
     location,
@@ -166,10 +166,17 @@ function linkedInQuery({ role, finder, roleTerms, settings, index }) {
       workplace: relocation ? "Any" : "Remote",
       sort: "Most recent",
     },
+    post_discovery_screening: {
+      skills: roleTerms.skills,
+      context: roleTerms.context,
+      relocation_terms: relocation ? settings.relocation_terms : [],
+      exclude_terms: settings.exclude_terms,
+    },
     search_url: searchUrl,
     public_index_query: "site:linkedin.com/jobs/view " + keywords + " " + quoteTerm(location),
     source_rules: [
       "Read only public LinkedIn job pages; never sign in or use an authenticated session.",
+      "Keep the public search title-focused; apply skills, context, exclusions, country eligibility, and sponsorship rules only after discovering a vacancy.",
       "Treat a 404, 410, unrelated redirect, or explicit no-longer-accepting notice as Expired or Inaccessible.",
       "Resolve an employer or public ATS page before judging when one is available.",
     ],
@@ -221,7 +228,7 @@ export function buildSearchPlan({ rawTerms, roleQueryBudget, targetGeography }) 
     queries.filter((query) => query.finder === finder),
   ]));
   return {
-    version: 1,
+    version: 2,
     target_geography: requiredString(targetGeography, "targetGeography"),
     query_count: queries.length,
     linkedin_query_count: queries.filter((query) => query.source === "linkedin_public").length,

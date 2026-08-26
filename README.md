@@ -54,7 +54,7 @@ Local scheduled work requires the computer and Codex desktop to be running.
 
 ## Public LinkedIn discovery
 
-Run `npm run queries` to preview the exact discovery plan. It allocates the workbook's search budget across role families and produces a mix of public LinkedIn and canonical employer/ATS queries. LinkedIn queries use exact phrases, uppercase Boolean operators, parentheses, a seven-day freshness window by default, and explicit remote or relocation lanes.
+Run `npm run queries` to preview the exact discovery plan. It allocates the workbook's search budget across role families and produces a mix of public LinkedIn and canonical employer/ATS queries. LinkedIn discovery uses short title-only Boolean searches with exact phrases and uppercase `OR`, plus a seven-day freshness window by default and explicit remote or relocation lanes. Skills, technical context, exclusions, country eligibility, sponsorship, and relocation are evaluated after discovery so public indexing is not over-constrained.
 
 Finder agents may read public LinkedIn job-detail pages without signing in. They record the query ID and LinkedIn job ID, classify unavailable or closed pages as expired, and resolve an employer or public ATS listing before judging whenever possible. The workflow never automates an authenticated LinkedIn session or submits an application.
 

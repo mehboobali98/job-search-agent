@@ -43,6 +43,7 @@ test("builds exact-budget public LinkedIn and canonical query lanes", () => {
     targetGeography: "Worldwide remote plus credible relocation or sponsorship",
   });
 
+  assert.equal(plan.version, 2);
   assert.equal(plan.query_count, 12);
   assert.equal(plan.linkedin_query_count, 7);
   assert.equal(plan.by_finder.backend_finder.length, 8);
@@ -60,16 +61,20 @@ test("builds exact-budget public LinkedIn and canonical query lanes", () => {
   assert.equal(remoteUrl.searchParams.get("f_TPR"), "r604800");
   assert.equal(remoteUrl.searchParams.get("f_WT"), "2");
   assert.equal(remoteUrl.searchParams.get("sortBy"), "DD");
-  assert.match(remoteUrl.searchParams.get("keywords"), /"Ruby on Rails"/);
+  assert.match(remoteUrl.searchParams.get("keywords"), /"Ruby on Rails Engineer"/);
+  assert.doesNotMatch(remote.keywords, /\sAND\s|\sNOT\s/);
+  assert.deepEqual(remote.post_discovery_screening.skills, ["Ruby on Rails", "Rails", "PostgreSQL"]);
+  assert.deepEqual(remote.post_discovery_screening.exclude_terms, ["junior", "intern", "internship", "frontend only", "mobile"]);
   assert.match(remote.public_index_query, /^site:linkedin\.com\/jobs\/view /);
 
   const relocation = plan.queries.find((query) => query.source === "linkedin_public" && query.lane === "relocation_recent");
   assert.equal(relocation.location, "Europe");
-  assert.match(relocation.keywords, /"visa sponsorship"/);
+  assert.doesNotMatch(relocation.keywords, /relocation|sponsorship|permit/i);
+  assert.deepEqual(relocation.post_discovery_screening.relocation_terms, ["relocation", "visa sponsorship", "work permit"]);
   assert.equal(new URL(relocation.search_url).searchParams.has("f_WT"), false);
 });
 
-test("uses LinkedIn-supported Boolean syntax with exact phrases and exclusions", () => {
+test("retains detailed Boolean syntax for canonical employer and ATS searches", () => {
   const keywords = buildBooleanKeywords({
     titles: ["Senior Backend Engineer", "Ruby on Rails Engineer"],
     skills: ["Ruby on Rails", "PostgreSQL"],

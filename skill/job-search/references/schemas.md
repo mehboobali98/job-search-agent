@@ -4,9 +4,9 @@ All packets are JSON-compatible. Text evidence is concise and source-specific.
 
 ## Search query plan
 
-The deterministic query planner returns a versioned JSON object with `target_geography`, exact `query_count`, `linkedin_query_count`, `role_query_budget`, `by_finder`, and a flat `queries` list. Each finder receives only its own `by_finder` entries and must execute exactly that assigned count.
+Query-plan v2 returns a JSON object with `target_geography`, exact `query_count`, `linkedin_query_count`, `role_query_budget`, `by_finder`, and a flat `queries` list. Each finder receives only its own `by_finder` entries and must execute exactly that assigned count.
 
-Every query includes `query_id`, `finder`, `role_family`, `source`, `lane`, `keywords`, `location`, `filters`, and `source_rules`. A `linkedin_public` query also includes `search_url` and `public_index_query`; a `canonical_web` query includes `web_query`. Finders preserve `query_id`, the discovery source, and the original discovery URL in packets and scan events even when they replace the canonical URL with a verified employer or ATS listing.
+Every query includes `query_id`, `finder`, `role_family`, `source`, `lane`, `keywords`, `location`, `filters`, and `source_rules`. A `linkedin_public` query also includes `search_url`, `public_index_query`, and `post_discovery_screening` containing skills, context, relocation terms, and exclusions that must not narrow the discovery query. A `canonical_web` query includes `web_query`. Finders preserve `query_id`, the discovery source, and the original discovery URL in packets and scan events even when they replace the canonical URL with a verified employer or ATS listing.
 
 ## Finder result
 

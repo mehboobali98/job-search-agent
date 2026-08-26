@@ -18,7 +18,7 @@ For discovery, read [workflow.md](references/workflow.md) and [schemas.md](refer
 - Convert eligibility disagreements or unsupported candidate claims to `Needs Human Review`; never alert them. A judge-returned structured `Expired` or `Inaccessible` status remains `Ineligible`.
 - If judging fails, retain viable candidates as `Needs Judge`; never alert them.
 - Continue with partial coverage if one finder fails and record the failure.
-- Public LinkedIn discovery uses only generated query-plan entries and public job pages. Never sign in, reuse an authenticated session, or bypass access controls. Record the query ID and LinkedIn job ID, and prefer the employer or ATS page as canonical evidence.
+- Public LinkedIn discovery uses only generated title-focused query-plan entries and public job pages. Keep technical, exclusion, country-eligibility, sponsorship, and relocation checks in post-discovery screening rather than narrowing the public query. Never sign in, reuse an authenticated session, or bypass access controls. Record the query ID and LinkedIn job ID, and prefer the employer or ATS page as canonical evidence.
 - Only the orchestrator may modify the workbook or publish a digest.
 - Persist exactly one allowed `Best Resume` for every lead. Preparing a lead must copy it to `Applications.Resume Version` and name it in the tailoring guidance and next action.
 - Use only the deterministic tracker scripts for workbook writes. They preserve the tracker table-body convention: Arial 9, wrapped text, thin borders, table banding, and column-specific date formats.
