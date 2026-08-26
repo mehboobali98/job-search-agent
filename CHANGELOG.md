@@ -6,6 +6,18 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-26
+
+### Added
+
+- Add query-plan v3 priority-market lanes, including country-level public LinkedIn searches and city aliases for canonical ATS discovery.
+- Add bounded weekly company-watchlist queries, with Hiring Without Whiteboards available as a reusable public seed source.
+- Persist watchlist interview-process context in tracker Notes as an explicitly unscored signal.
+
+### Changed
+
+- Increase the reusable template's LinkedIn share while preserving the configured 12-search ceiling by replacing canonical slots rather than adding searches.
+
 ## [1.3.0] - 2026-08-26
 
 ### Changed
@@ -62,7 +74,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.0...v1.1.1

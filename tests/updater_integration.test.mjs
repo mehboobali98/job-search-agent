@@ -139,8 +139,16 @@ test("mixed run enforces judging, eligibility, dedupe, partial coverage, and ale
       destination: "Scan Log",
     }],
     candidates: [
-      candidate(),
-      candidate({ canonical_url: "https://jobs.example.test/backend-1?utm_source=linkedin", job_id: null }),
+      candidate({
+        notes: "Canonical vacancy verified.",
+        interview_process_signal: "Listed by Hiring Without Whiteboards; verify the current interview process",
+      }),
+      candidate({
+        canonical_url: "https://jobs.example.test/backend-1?utm_source=linkedin",
+        job_id: null,
+        notes: "Canonical vacancy verified.",
+        interview_process_signal: "Listed by Hiring Without Whiteboards; verify the current interview process",
+      }),
       candidate({
         company: "Blocked Example", title: "Platform Lead", canonical_url: "https://jobs.example.test/blocked",
         job_id: "BLOCK-1", eligibility: "Ineligible", finder_eligibility: "Ineligible", judge_eligibility: "Ineligible",
@@ -188,6 +196,8 @@ test("mixed run enforces judging, eligibility, dedupe, partial coverage, and ale
   assert.equal(leads.filter((row) => row[3] === "Global Example").length, 1, "canonical duplicates must produce one lead");
   assert.equal(byCompany.has("Blocked Example"), false, "hard location blocker must be suppressed");
   assert.equal(byCompany.get("Global Example")[14], "Backend / Platform", "the selected resume must be persisted with the lead");
+  assert.match(byCompany.get("Global Example")[33], /Interview-process signal: Listed by Hiring Without Whiteboards/);
+  assert.match(byCompany.get("Global Example")[33], /does not affect the fit score/);
   assert.equal(byCompany.get("Unclear Example")[11], "Unclear");
   assert.equal(byCompany.get("Evidence Example")[11], "Needs Human Review");
   assert.equal(byCompany.get("Disagreement Example")[11], "Needs Human Review");

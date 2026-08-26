@@ -2,13 +2,28 @@
   "version": 1,
   "linkedin_public": {
     "enabled": true,
-    "query_share": 0.5,
+    "query_share": 0.67,
     "freshness_days": 7,
     "remote_locations": ["Worldwide"],
+    "priority_market_locations": [],
     "relocation_locations": ["Europe", "United Kingdom", "Canada"],
     "relocation_terms": ["relocation", "visa sponsorship", "work permit"],
     "exclude_terms": ["junior", "intern", "internship", "frontend only", "mobile"]
   },
+  "company_watchlists": [
+    {
+      "id": "hiring-without-whiteboards",
+      "enabled": true,
+      "name": "Hiring Without Whiteboards",
+      "url": "https://raw.githubusercontent.com/poteto/hiring-without-whiteboards/main/README.md",
+      "finder": "backend_finder",
+      "role_family": "Backend / Platform",
+      "weekday": "Friday",
+      "max_companies_per_run": 5,
+      "market_terms": ["Remote"],
+      "interview_process_signal": "Listed by Hiring Without Whiteboards; verify that the current interview process still uses job-relevant exercises"
+    }
+  ],
   "role_families": {
     "Backend / Platform": {
       "titles": ["Senior Backend Engineer", "Backend Engineer", "Platform Engineer", "Senior Software Engineer"],

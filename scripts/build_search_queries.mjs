@@ -16,6 +16,13 @@ const searchTermsPath = resolveProjectPath(projectRoot, argumentValue(
   "--search-terms",
   config.raw.search_terms_path ?? "profile/search-terms.json",
 ));
+const runDateArgument = argumentValue(process.argv, "--run-date");
+const runDate = runDateArgument ? new Date(runDateArgument) : new Date();
+if (!Number.isFinite(runDate.getTime())) throw new Error("--run-date must be a valid ISO-8601 date or timestamp");
+const runWeekday = new Intl.DateTimeFormat("en-US", {
+  weekday: "long",
+  timeZone: config.timezone,
+}).format(runDate);
 
 const workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
 const sheet = workbook.worksheets.getItem("Search Config");
@@ -27,10 +34,12 @@ const plan = buildSearchPlan({
   rawTerms,
   roleQueryBudget,
   targetGeography: config.raw.target_geography,
+  runWeekday,
 });
 
 console.log(JSON.stringify({
-  generated_at: new Date().toISOString(),
+  generated_at: runDate.toISOString(),
+  timezone: config.timezone,
   search_terms_path: path.relative(projectRoot, searchTermsPath),
   ...plan,
 }, null, 2));

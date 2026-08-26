@@ -18,6 +18,8 @@ This project is a reusable, single-candidate-per-clone job-discovery system. Rea
 
 Invoke `$job-search`. Resolve the project from the user's prompt or current working directory, load `.job-search.local.json`, and export the workbook configuration with `scripts/export_search_config.mjs`. Spawn `backend_finder` and `ai_product_finder` in parallel with the normalized profile, packet schema, exported configuration, and exact budgets. Combine and deduplicate their packets, then send the configured number of preliminary candidates to `job_judge` without finder scores or recommendations. Only records with `judge_status=Judged` may trigger priority alerts.
 
+Execute every generated priority-market lane exactly as configured. A `company_watchlist` plan entry is a bounded seed check, not a job listing: require an active canonical vacancy before returning a packet, never award fit points for the directory's interview-process signal, and never count a directory row alone as a job examination.
+
 ## Project files
 
 - `.job-search.local.json` resolves the ignored tracker, candidate profile, resume directory, state directory, timezone, and geography.

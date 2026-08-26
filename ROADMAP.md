@@ -50,6 +50,16 @@ Status: partially delivered in v1.3.0.
 - Explainable score breakdowns with tighter links between job evidence and candidate evidence IDs.
 - Search-quality metrics that support evidence-based query and threshold tuning.
 
+## v1.4 — Priority markets and curated company discovery
+
+Status: released in v1.4.0.
+
+- Dedicated, budget-preserving priority-market lanes with country searches and city aliases.
+- Explicit UAE and Saudi Arabia coverage in the maintainer's candidate-local configuration.
+- Bounded weekly company-watchlist sources that require active canonical vacancies.
+- Unscored interview-process signals recorded in tracker Notes with freshness caveats.
+- Additional public-source adapters remain future work and must preserve the canonical-source and access-control policies.
+
 ## v2 — Opt-in ingestion and notifications
 
 Status: exploratory.

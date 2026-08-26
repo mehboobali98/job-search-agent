@@ -44,6 +44,10 @@ Prefer employer career pages and canonical ATS listings. Public aggregators may 
 
 Public LinkedIn discovery is supported through the deterministic plan produced by `npm run queries`. LinkedIn queries are deliberately broad and title-focused, using straight-quoted title phrases with uppercase `OR`, parentheses, date freshness, location, and remote-work filters. Skills, technical context, exclusions, seniority, country eligibility, sponsorship, and relocation are applied after a vacancy is discovered; do not add them back into the public discovery query. Finder agents may read public job-detail pages without signing in. They must record the query ID and LinkedIn job ID, reject 404/410 or no-longer-accepting pages, and resolve the employer or ATS listing before judging whenever it exists. A LinkedIn-only lead cannot receive High source confidence under the canonical-source policy.
 
+Candidate-local priority markets receive dedicated country-level LinkedIn lanes. Their configured city aliases are added to canonical employer/ATS discovery and post-discovery screening, while the LinkedIn title query itself remains broad. The query plan must stay within the workbook's maximum-search budget.
+
+Public company directories may be configured as bounded weekly watchlists. A directory entry is only a company seed and never proves that a vacancy exists. The finder must follow the public careers link, inspect at most the configured company cap, and return only active canonical vacancies that pass the normal screening rules. Interview-process information from a directory is recorded in Notes as an unscored, potentially stale signal; it does not affect eligibility, confidence, or fit scoring.
+
 Do not automate authenticated LinkedIn use, bypass access controls, populate forms, or submit applications.
 
 ## Scoring

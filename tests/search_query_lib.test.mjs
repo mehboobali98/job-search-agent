@@ -43,9 +43,10 @@ test("builds exact-budget public LinkedIn and canonical query lanes", () => {
     targetGeography: "Worldwide remote plus credible relocation or sponsorship",
   });
 
-  assert.equal(plan.version, 2);
+  assert.equal(plan.version, 3);
   assert.equal(plan.query_count, 12);
   assert.equal(plan.linkedin_query_count, 7);
+  assert.equal(plan.company_watchlist_query_count, 0);
   assert.equal(plan.by_finder.backend_finder.length, 8);
   assert.equal(plan.by_finder.ai_product_finder.length, 4);
   for (const role of ROLE_FAMILIES) {
@@ -91,6 +92,86 @@ test("retains detailed Boolean syntax for canonical employer and ATS searches", 
   assert.doesNotMatch(keywords, /[\[\]{}<>*“”]/);
 });
 
+test("reserves explicit UAE and Saudi market lanes without exceeding the search budget", () => {
+  const terms = termsFixture();
+  terms.linkedin_public.query_share = 0.67;
+  terms.linkedin_public.remote_locations = ["Worldwide", "Pakistan"];
+  terms.linkedin_public.priority_market_locations = [
+    { location: "United Arab Emirates", city_aliases: ["Dubai", "Abu Dhabi"] },
+    { location: "Saudi Arabia", city_aliases: ["Riyadh", "Jeddah"] },
+  ];
+  const plan = buildSearchPlan({
+    rawTerms: terms,
+    roleQueryBudget: {
+      "Backend / Platform": 6,
+      "Staff / Principal / Tech Lead": 2,
+      "Applied AI / LLM": 2,
+      "Developer Productivity / AI Enablement": 1,
+      "Full-stack / Product": 1,
+    },
+    targetGeography: "Worldwide remote, Pakistan, UAE, Saudi Arabia, and relocation",
+    runWeekday: "Wednesday",
+  });
+
+  assert.equal(plan.query_count, 12);
+  assert.equal(plan.linkedin_query_count, 8);
+  assert.deepEqual(
+    plan.queries.filter((query) => query.lane === "priority_market_recent").map((query) => query.location),
+    ["United Arab Emirates", "Saudi Arabia"],
+  );
+  const uae = plan.queries.find((query) => query.location === "United Arab Emirates");
+  const saudi = plan.queries.find((query) => query.location === "Saudi Arabia");
+  assert.deepEqual(uae.post_discovery_screening.city_aliases, ["Dubai", "Abu Dhabi"]);
+  assert.deepEqual(saudi.post_discovery_screening.city_aliases, ["Riyadh", "Jeddah"]);
+  assert.equal(new URL(uae.search_url).searchParams.has("f_WT"), false);
+  assert.ok(plan.queries.some((query) => query.source === "linkedin_public" && query.location === "Pakistan"));
+  const canonical = plan.queries.find((query) => query.source === "canonical_web");
+  assert.match(canonical.web_query, /"United Arab Emirates"/);
+  assert.match(canonical.web_query, /Dubai/);
+  assert.match(canonical.web_query, /"Saudi Arabia"/);
+  assert.match(canonical.web_query, /Riyadh/);
+});
+
+test("replaces one Friday canonical query with a bounded company watchlist", () => {
+  const terms = termsFixture();
+  terms.linkedin_public.query_share = 0.67;
+  terms.company_watchlists = [{
+    id: "hiring-without-whiteboards",
+    enabled: true,
+    name: "Hiring Without Whiteboards",
+    url: "https://raw.githubusercontent.com/poteto/hiring-without-whiteboards/main/README.md",
+    finder: "backend_finder",
+    role_family: "Backend / Platform",
+    weekday: "Friday",
+    max_companies_per_run: 5,
+    market_terms: ["UAE", "Saudi Arabia", "Pakistan", "Remote"],
+    interview_process_signal: "Listed by Hiring Without Whiteboards; verify the current process",
+  }];
+  const roleQueryBudget = {
+    "Backend / Platform": 6,
+    "Staff / Principal / Tech Lead": 2,
+    "Applied AI / LLM": 2,
+    "Developer Productivity / AI Enablement": 1,
+    "Full-stack / Product": 1,
+  };
+  const thursday = buildSearchPlan({ rawTerms: terms, roleQueryBudget, targetGeography: "Configured", runWeekday: "Thursday" });
+  const friday = buildSearchPlan({ rawTerms: terms, roleQueryBudget, targetGeography: "Configured", runWeekday: "Friday" });
+
+  assert.equal(thursday.query_count, 12);
+  assert.equal(thursday.company_watchlist_query_count, 0);
+  assert.equal(friday.query_count, 12);
+  assert.equal(friday.company_watchlist_query_count, 1);
+  assert.equal(friday.queries.filter((query) => query.source === "canonical_web").length, thursday.queries.filter((query) => query.source === "canonical_web").length - 1);
+  const watchlist = friday.queries.find((query) => query.source === "company_watchlist");
+  assert.equal(watchlist.finder, "backend_finder");
+  assert.equal(watchlist.filters.max_companies_per_run, 5);
+  assert.match(watchlist.source_rules.join(" "), /never a vacancy or lead by itself/);
+  assert.match(watchlist.source_rules.join(" "), /currently active canonical vacancy/);
+  for (const role of ROLE_FAMILIES) {
+    assert.equal(friday.queries.filter((query) => query.role_family === role).length, roleQueryBudget[role]);
+  }
+});
+
 test("rejects malformed or pre-composed Boolean search terms", () => {
   const wildcard = termsFixture();
   wildcard.role_families["Backend / Platform"].titles[0] = "Backend*";
@@ -99,4 +180,14 @@ test("rejects malformed or pre-composed Boolean search terms", () => {
   const composed = termsFixture();
   composed.role_families["Backend / Platform"].skills[0] = "Ruby OR Rails";
   assert.throws(() => validateSearchTerms(composed), /raw terms/);
+
+  const insecureWatchlist = termsFixture();
+  insecureWatchlist.company_watchlists = [{
+    id: "example",
+    name: "Example",
+    url: "http://example.test/watchlist",
+    market_terms: ["Remote"],
+    interview_process_signal: "Example signal",
+  }];
+  assert.throws(() => validateSearchTerms(insecureWatchlist), /must use https/);
 });

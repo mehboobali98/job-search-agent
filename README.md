@@ -39,6 +39,8 @@ Complete the candidate profile, add resume files, and then tell Codex: `Run $job
 
 Before the first run, edit `profile/search-terms.json` so each role family uses the candidate's actual titles and technologies. Keep terms atomic; the query builder adds LinkedIn-supported Boolean operators and quoting.
 
+Priority markets belong in `linkedin_public.priority_market_locations`, with country-level LinkedIn locations and optional city aliases for canonical ATS discovery. `company_watchlists` defines bounded, public company directories that can replace one normal query on a configured weekday. Use `npm run queries -- --run-date 2026-08-28T08:00:00+05:00` to preview a specific scheduled day without running discovery.
+
 ## Tracker
 
 The local workbook has `Dashboard`, `Search Config`, `Leads`, `Applications`, `Scan Log`, `Run Log`, and `Form Runs`. `Search Config` is authoritative for budgets, scoring, thresholds, and alert limits. `Form Runs` stores compact inspection summaries while full answers remain in private local packets. There are no daily worksheets; timestamps and IDs preserve history.
@@ -57,6 +59,12 @@ Local scheduled work requires the computer and Codex desktop to be running.
 Run `npm run queries` to preview the exact discovery plan. It allocates the workbook's search budget across role families and produces a mix of public LinkedIn and canonical employer/ATS queries. LinkedIn discovery uses short title-only Boolean searches with exact phrases and uppercase `OR`, plus a seven-day freshness window by default and explicit remote or relocation lanes. Skills, technical context, exclusions, country eligibility, sponsorship, and relocation are evaluated after discovery so public indexing is not over-constrained.
 
 Finder agents may read public LinkedIn job-detail pages without signing in. They record the query ID and LinkedIn job ID, classify unavailable or closed pages as expired, and resolve an employer or public ATS listing before judging whenever possible. The workflow never automates an authenticated LinkedIn session or submits an application.
+
+## Priority markets and company watchlists
+
+Priority markets receive dedicated country-level LinkedIn searches while configured city aliases are included in canonical employer/ATS searches. The query builder still honors the workbook's maximum-search limit; increasing LinkedIn coverage replaces canonical queries instead of adding unbounded work.
+
+The default template includes a Friday [Hiring Without Whiteboards](https://github.com/poteto/hiring-without-whiteboards) watchlist. It is a company and interview-process directory, not a vacancy feed. The finder checks at most the configured number of matching companies, follows public career links, and returns only active canonical vacancies. Directory interview details are stored as an explicitly unscored Notes signal and must be reverified during the application process.
 
 ## Useful commands
 

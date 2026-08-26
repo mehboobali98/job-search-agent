@@ -4,6 +4,7 @@ import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import {
   canonicalKey,
   candidateIdentityKeys,
+  candidateNotes,
   descriptionHash,
   ELIGIBILITY_DECISIONS,
   isAlertable,
@@ -146,7 +147,7 @@ function rowValues(candidate, previous, alert) {
     payload.run_id,
     candidate.judge_status ?? (candidate.eligibility === "Needs Judge" ? "Needs Judge" : "Judged"),
     Boolean(candidate.unsupported_evidence),
-    candidate.notes ?? null,
+    candidateNotes(candidate),
     candidate.next_action ?? null,
     previous?.detail_sheet ?? null,
     previous?.legacy_source_row ?? null,

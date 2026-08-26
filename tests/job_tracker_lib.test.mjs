@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   canonicalKey,
+  candidateNotes,
   candidateIdentityKeys,
   descriptionHash,
   isAlertable,
@@ -74,6 +75,21 @@ test("judge validation derives final score and recommendation", () => {
   assert.equal(validated.recommendation, "Strong match");
   assert.match(validated.canonical_key, /^url:/);
   assert.throws(() => validateJudgedCandidate({ ...strong, listing_status: "Expired" }), /must be Ineligible/);
+});
+
+test("interview-process watchlist signals are preserved as unscored notes", () => {
+  assert.equal(
+    candidateNotes({
+      notes: "Canonical vacancy verified.",
+      interview_process_signal: "Listed by Hiring Without Whiteboards; verify the current process",
+    }),
+    "Canonical vacancy verified.\nInterview-process signal: Listed by Hiring Without Whiteboards; verify the current process. This signal does not affect the fit score.",
+  );
+  assert.equal(candidateNotes({ notes: "Canonical vacancy verified." }), "Canonical vacancy verified.");
+  assert.throws(
+    () => validateJudgedCandidate({ ...strong, interview_process_signal: "  " }),
+    /interview_process_signal/,
+  );
 });
 
 test("hard eligibility blocks alerts", () => {

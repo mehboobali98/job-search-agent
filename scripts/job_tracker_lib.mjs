@@ -122,6 +122,16 @@ export function isAlertable(candidate, alertThreshold = 80) {
     && candidate.unsupported_evidence === false;
 }
 
+export function candidateNotes(candidate) {
+  const notes = normalizeText(candidate?.notes);
+  const interviewSignal = normalizeText(candidate?.interview_process_signal);
+  if (!interviewSignal) return notes || null;
+  return [
+    notes,
+    "Interview-process signal: " + interviewSignal + ". This signal does not affect the fit score.",
+  ].filter(Boolean).join("\n");
+}
+
 export function validateJudgedCandidate(candidate) {
   const required = [
     "company", "title", "location", "work_type", "canonical_url", "source", "eligibility", "eligibility_evidence",
@@ -141,6 +151,9 @@ export function validateJudgedCandidate(candidate) {
   if (!JUDGE_STATUS.has(candidate.judge_status)) throw new Error("Invalid judge_status: " + candidate.judge_status);
   if (candidate.judge_status !== "Judged") throw new Error("A scored candidate must have judge_status Judged");
   if (typeof candidate.unsupported_evidence !== "boolean") throw new Error("unsupported_evidence must be an explicit boolean");
+  if (candidate.interview_process_signal !== undefined && !normalizeText(candidate.interview_process_signal)) {
+    throw new Error("interview_process_signal must be a non-empty string when provided");
+  }
   if (!RESUMES.has(candidate.best_resume)) throw new Error("Invalid best_resume: " + candidate.best_resume);
   if (!(Array.isArray(candidate.strengths) ? candidate.strengths.length : normalizeText(candidate.strengths))) {
     throw new Error("strengths must contain at least one evidence-backed item");

@@ -22,6 +22,8 @@ const CANONICAL_ATS_SITES = [
   "jobs.smartrecruiters.com",
 ];
 
+const FINDERS = new Set(Object.values(FINDER_BY_ROLE));
+
 function requiredString(value, label) {
   const text = String(value ?? "").trim();
   if (!text) throw new Error(label + " must be a non-empty string");
@@ -46,6 +48,73 @@ function stringList(value, label, { allowEmpty = false } = {}) {
     if (term.includes('"')) throw new Error(label + " entries must not contain quotation marks: " + term);
   }
   return result;
+}
+
+function priorityMarketList(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error("linkedin_public.priority_market_locations must be an array");
+  const markets = value.map((entry, index) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error("linkedin_public.priority_market_locations[" + index + "] must be an object");
+    }
+    return {
+      location: requiredString(entry.location, "linkedin_public.priority_market_locations[" + index + "].location"),
+      city_aliases: stringList(
+        entry.city_aliases ?? [],
+        "linkedin_public.priority_market_locations[" + index + "].city_aliases",
+        { allowEmpty: true },
+      ),
+    };
+  });
+  if (new Set(markets.map((entry) => entry.location.toLowerCase())).size !== markets.length) {
+    throw new Error("linkedin_public.priority_market_locations contains duplicate locations");
+  }
+  return markets;
+}
+
+function watchlistList(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error("company_watchlists must be an array");
+  const watchlists = value.map((entry, index) => {
+    const label = "company_watchlists[" + index + "]";
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error(label + " must be an object");
+    }
+    const id = requiredString(entry.id, label + ".id");
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) throw new Error(label + ".id must be a lowercase slug");
+    const url = requiredString(entry.url, label + ".url");
+    let parsedUrl;
+    try { parsedUrl = new URL(url); } catch { throw new Error(label + ".url must be a valid URL"); }
+    if (parsedUrl.protocol !== "https:") throw new Error(label + ".url must use https");
+    const finder = requiredString(entry.finder ?? "backend_finder", label + ".finder");
+    if (!FINDERS.has(finder)) throw new Error(label + ".finder is invalid");
+    const roleFamily = requiredString(entry.role_family ?? "Backend / Platform", label + ".role_family");
+    if (!ROLE_FAMILIES.includes(roleFamily)) throw new Error(label + ".role_family is invalid");
+    const weekday = requiredString(entry.weekday ?? "Friday", label + ".weekday");
+    if (!new Set(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]).has(weekday)) {
+      throw new Error(label + ".weekday is invalid");
+    }
+    const maximum = Number(entry.max_companies_per_run ?? 5);
+    if (!Number.isInteger(maximum) || maximum < 1 || maximum > 25) {
+      throw new Error(label + ".max_companies_per_run must be an integer from 1 to 25");
+    }
+    return {
+      id,
+      enabled: entry.enabled !== false,
+      name: requiredString(entry.name, label + ".name"),
+      url,
+      finder,
+      role_family: roleFamily,
+      weekday,
+      max_companies_per_run: maximum,
+      market_terms: stringList(entry.market_terms, label + ".market_terms"),
+      interview_process_signal: requiredString(entry.interview_process_signal, label + ".interview_process_signal"),
+    };
+  });
+  if (new Set(watchlists.map((entry) => entry.id)).size !== watchlists.length) {
+    throw new Error("company_watchlists contains duplicate ids");
+  }
+  return watchlists;
 }
 
 export function validateSearchTerms(raw) {
@@ -84,10 +153,12 @@ export function validateSearchTerms(raw) {
       query_share: queryShare,
       freshness_days: freshnessDays,
       remote_locations: stringList(linkedin.remote_locations, "linkedin_public.remote_locations"),
+      priority_market_locations: priorityMarketList(linkedin.priority_market_locations),
       relocation_locations: stringList(linkedin.relocation_locations ?? [], "linkedin_public.relocation_locations", { allowEmpty: true }),
       relocation_terms: stringList(linkedin.relocation_terms ?? [], "linkedin_public.relocation_terms", { allowEmpty: true }),
       exclude_terms: stringList(linkedin.exclude_terms ?? [], "linkedin_public.exclude_terms", { allowEmpty: true }),
     },
+    company_watchlists: watchlistList(raw.company_watchlists),
     role_families: roleFamilies,
   };
 }
@@ -140,12 +211,18 @@ function slug(value) {
 }
 
 function linkedInQuery({ role, finder, roleTerms, settings, index }) {
-  const hasRelocationLane = settings.relocation_locations.length > 0 && settings.relocation_terms.length > 0;
+  const marketLocations = [
+    ...settings.priority_market_locations.map((entry) => ({ ...entry, priority: true })),
+    ...settings.relocation_locations.map((location) => ({ location, city_aliases: [], priority: false })),
+  ];
+  const hasRelocationLane = marketLocations.length > 0 && settings.relocation_terms.length > 0;
   const relocation = hasRelocationLane && index % 2 === 1;
-  const locations = relocation ? settings.relocation_locations : settings.remote_locations;
   // Rotate locations once per remote/relocation pair so the first query in
   // each lane starts with the first configured location.
-  const location = locations[Math.floor(index / 2) % locations.length];
+  const market = relocation ? marketLocations[Math.floor(index / 2) % marketLocations.length] : null;
+  const location = relocation
+    ? market.location
+    : settings.remote_locations[Math.floor(index / 2) % settings.remote_locations.length];
   const keywords = buildTitleKeywords(roleTerms, { variant: index });
   const searchUrl = buildLinkedInPublicUrl({
     keywords,
@@ -158,7 +235,7 @@ function linkedInQuery({ role, finder, roleTerms, settings, index }) {
     finder,
     role_family: role,
     source: "linkedin_public",
-    lane: relocation ? "relocation_recent" : "remote_recent",
+    lane: relocation ? (market.priority ? "priority_market_recent" : "relocation_recent") : "remote_recent",
     keywords,
     location,
     filters: {
@@ -170,6 +247,7 @@ function linkedInQuery({ role, finder, roleTerms, settings, index }) {
       skills: roleTerms.skills,
       context: roleTerms.context,
       relocation_terms: relocation ? settings.relocation_terms : [],
+      city_aliases: relocation ? market.city_aliases : [],
       exclude_terms: settings.exclude_terms,
     },
     search_url: searchUrl,
@@ -183,6 +261,10 @@ function linkedInQuery({ role, finder, roleTerms, settings, index }) {
   };
 }
 
+function priorityMarketTerms(settings) {
+  return settings.priority_market_locations.flatMap((entry) => [entry.location, ...entry.city_aliases]);
+}
+
 function canonicalQuery({ role, finder, roleTerms, settings, index }) {
   const keywords = buildBooleanKeywords(roleTerms, {
     variant: index,
@@ -190,6 +272,8 @@ function canonicalQuery({ role, finder, roleTerms, settings, index }) {
   });
   const sites = "(" + CANONICAL_ATS_SITES.map((site) => "site:" + site).join(" OR ") + ")";
   const location = settings.remote_locations[index % settings.remote_locations.length];
+  const marketTerms = priorityMarketTerms(settings);
+  const accessTerms = ["remote", "relocation", "sponsorship", ...marketTerms];
   return {
     query_id: "canonical-" + slug(role) + "-" + String(index + 1).padStart(2, "0"),
     finder,
@@ -199,12 +283,40 @@ function canonicalQuery({ role, finder, roleTerms, settings, index }) {
     keywords,
     location,
     filters: { freshness_days: settings.freshness_days },
-    web_query: sites + " " + keywords + " (remote OR relocation OR sponsorship)",
+    market_terms: marketTerms,
+    web_query: sites + " " + keywords + " " + expression(accessTerms),
     source_rules: ["Prefer the employer or ATS listing as the canonical URL and verify that it is active."],
   };
 }
 
-export function buildSearchPlan({ rawTerms, roleQueryBudget, targetGeography }) {
+function companyWatchlistQuery({ watchlist, roleTerms, index }) {
+  return {
+    query_id: "watchlist-" + watchlist.id + "-" + String(index + 1).padStart(2, "0"),
+    finder: watchlist.finder,
+    role_family: watchlist.role_family,
+    source: "company_watchlist",
+    lane: "weekly_company_watchlist",
+    keywords: buildTitleKeywords(roleTerms),
+    location: watchlist.market_terms.join(", "),
+    filters: {
+      weekday: watchlist.weekday,
+      max_companies_per_run: watchlist.max_companies_per_run,
+    },
+    watchlist_name: watchlist.name,
+    watchlist_url: watchlist.url,
+    market_terms: watchlist.market_terms,
+    interview_process_signal: watchlist.interview_process_signal,
+    source_rules: [
+      "Treat each directory entry only as a company seed; it is never a vacancy or lead by itself.",
+      "Inspect at most the configured company limit and open only public career or ATS pages.",
+      "Return a packet only for a currently active canonical vacancy that satisfies the normal eligibility and scoring rules.",
+      "Record the configured interview-process signal in the candidate packet, but do not add scoring points for it.",
+      "Do not rely on a directory entry as evidence that a company is currently hiring or that its interview process is unchanged.",
+    ],
+  };
+}
+
+export function buildSearchPlan({ rawTerms, roleQueryBudget, targetGeography, runWeekday = null }) {
   const terms = validateSearchTerms(rawTerms);
   if (!roleQueryBudget || typeof roleQueryBudget !== "object" || Array.isArray(roleQueryBudget)) {
     throw new Error("roleQueryBudget must be an object");
@@ -223,15 +335,35 @@ export function buildSearchPlan({ rawTerms, roleQueryBudget, targetGeography }) 
         : canonicalQuery({ role, finder, roleTerms: terms.role_families[role], settings: terms.linkedin_public, index }));
     }
   }
+  const dueWatchlists = terms.company_watchlists.filter((entry) => entry.enabled && entry.weekday === runWeekday);
+  for (let index = 0; index < dueWatchlists.length; index += 1) {
+    const watchlist = dueWatchlists[index];
+    const replaceIndex = queries.findLastIndex((query) => (
+      query.finder === watchlist.finder
+      && query.role_family === watchlist.role_family
+      && query.source === "canonical_web"
+    ));
+    if (replaceIndex < 0) {
+      throw new Error("No canonical query slot is available for company watchlist: " + watchlist.id);
+    }
+    queries[replaceIndex] = companyWatchlistQuery({
+      watchlist,
+      roleTerms: terms.role_families[watchlist.role_family],
+      index,
+    });
+  }
   const byFinder = Object.fromEntries(["backend_finder", "ai_product_finder"].map((finder) => [
     finder,
     queries.filter((query) => query.finder === finder),
   ]));
   return {
-    version: 2,
+    version: 3,
     target_geography: requiredString(targetGeography, "targetGeography"),
+    run_weekday: runWeekday,
     query_count: queries.length,
     linkedin_query_count: queries.filter((query) => query.source === "linkedin_public").length,
+    company_watchlist_query_count: queries.filter((query) => query.source === "company_watchlist").length,
+    priority_markets: terms.linkedin_public.priority_market_locations,
     role_query_budget: Object.fromEntries(ROLE_FAMILIES.map((role) => [role, Number(roleQueryBudget[role] ?? 0)])),
     by_finder: byFinder,
     queries,
