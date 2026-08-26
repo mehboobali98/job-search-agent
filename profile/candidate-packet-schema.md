@@ -4,9 +4,9 @@
 
 Each finder returns an object with `agent`, `status`, `query_count`, `packets`, `scan_events`, and optional `error`. `packets` contains only deeply evaluated viable jobs. `scan_events` records every other examined listing, including inaccessible, expired, duplicate, shallow-rejected, preliminary-suppressed, and hard-blocked jobs.
 
-A finder packet contains company, title, location, work type, canonical URL, source, employer job ID when published, posted date when published, normalized canonical description text, its exact SHA-256 description hash, structured `listing_status: Active|Expired|Inaccessible`, job-description evidence by rubric component, `finder_eligibility`, `finder_eligibility_evidence`, preliminary component scores and exact total, strengths, gaps, best resume, and stable `candidate_evidence_ids` from `candidate-profile.md`.
+A finder packet contains company, title, location, work type, canonical URL, source, employer job ID when published, posted date when published, normalized canonical description text, its exact SHA-256 description hash, structured `listing_status: Active|Expired|Inaccessible`, job-description evidence by rubric component, `finder_eligibility`, `finder_eligibility_evidence`, preliminary component scores and exact total, strengths, gaps, best resume, and stable `candidate_evidence_ids` from `candidate-profile.md`. When a query plan discovered the job, also include `discovery_query_id`, `discovery_source`, and the original discovery URL; the canonical URL may differ after resolving an employer or ATS copy.
 
-A scan event contains company/title/location when known, URL, source, job ID when known, finder, examined time, outcome, reason, preliminary score when calculated, eligibility when determined, description hash when available, `counts_toward_unique` and `deep_evaluated` booleans, and `destination: Scan Log`.
+A scan event contains company/title/location when known, URL, source, job ID when known, finder, examined time, outcome, reason, preliminary score when calculated, eligibility when determined, description hash when available, `counts_toward_unique` and `deep_evaluated` booleans, and `destination: Scan Log`. Query-driven examinations also include `discovery_query_id` and `discovery_source` in the raw scan packet.
 
 ## Blind judge input
 

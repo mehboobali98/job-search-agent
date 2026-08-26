@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "linkedin_public": {
+    "enabled": true,
+    "query_share": 0.5,
+    "freshness_days": 7,
+    "remote_locations": ["Worldwide"],
+    "relocation_locations": ["Europe", "United Kingdom", "Canada"],
+    "relocation_terms": ["relocation", "visa sponsorship", "work permit"],
+    "exclude_terms": ["junior", "intern", "internship", "frontend only", "mobile"]
+  },
+  "role_families": {
+    "Backend / Platform": {
+      "titles": ["Senior Backend Engineer", "Backend Engineer", "Platform Engineer", "Senior Software Engineer"],
+      "skills": ["primary backend language", "database", "SaaS"],
+      "context": ["API", "platform", "distributed systems"]
+    },
+    "Staff / Principal / Tech Lead": {
+      "titles": ["Staff Engineer", "Principal Engineer", "Tech Lead", "Lead Backend Engineer"],
+      "skills": ["primary backend language", "architecture", "database"],
+      "context": ["technical leadership", "platform", "SaaS"]
+    },
+    "Applied AI / LLM": {
+      "titles": ["Applied AI Engineer", "AI Engineer", "LLM Engineer", "AI Product Engineer"],
+      "skills": ["LLM", "RAG", "AI agents"],
+      "context": ["production", "evaluation", "product"]
+    },
+    "Developer Productivity / AI Enablement": {
+      "titles": ["Developer Productivity Engineer", "Developer Experience Engineer", "Engineering Productivity Engineer", "AI Enablement Engineer"],
+      "skills": ["developer tooling", "AI", "platform"],
+      "context": ["CI", "automation", "engineering enablement"]
+    },
+    "Full-stack / Product": {
+      "titles": ["Senior Full Stack Engineer", "Senior Full-Stack Engineer", "Product Engineer"],
+      "skills": ["backend framework", "React", "JavaScript"],
+      "context": ["SaaS", "product", "API"]
+    }
+  }
+}

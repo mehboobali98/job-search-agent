@@ -29,6 +29,9 @@ export function validateProjectConfig(raw) {
   if (raw.application_packages_directory !== undefined && !String(raw.application_packages_directory).trim()) {
     throw new Error("application_packages_directory must be non-empty when provided");
   }
+  if (raw.search_terms_path !== undefined && !String(raw.search_terms_path).trim()) {
+    throw new Error("search_terms_path must be non-empty when provided");
+  }
   try {
     new Intl.DateTimeFormat("en", { timeZone: raw.timezone }).format(new Date());
   } catch {
@@ -55,6 +58,7 @@ export async function loadProjectConfig({ projectRoot = process.cwd(), configPat
     raw,
     trackerPath: resolveProjectPath(absoluteRoot, raw.tracker_path),
     candidateProfilePath: resolveProjectPath(absoluteRoot, raw.candidate_profile_path),
+    searchTermsPath: resolveProjectPath(absoluteRoot, raw.search_terms_path ?? "profile/search-terms.json"),
     resumesDirectory: resolveProjectPath(absoluteRoot, raw.resumes_directory),
     stateDirectory: resolveProjectPath(absoluteRoot, raw.state_directory),
     applicationPackagesDirectory: resolveProjectPath(absoluteRoot, raw.application_packages_directory ?? "application-packages"),

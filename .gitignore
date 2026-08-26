@@ -5,6 +5,7 @@ node_modules
 .job-search.local.json
 Job_Application_Tracker.xlsx
 profile/candidate-profile.md
+profile/search-terms.json
 profile/resumes/
 state/
 application-packages/

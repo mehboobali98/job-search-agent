@@ -97,6 +97,42 @@ test("Friday expiry recheck expires a moved lead and stops preparation", async (
   assert.equal(runs.filter((row) => row[0] === "TEST-RECHECK-001").length, 1);
 });
 
+test("expiry recheck expires a newly discovered lead", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "job-expiry-new-"));
+  const workbookPath = path.join(tempDir, "Tracker.xlsx");
+  const stateDir = path.join(tempDir, "state");
+  const inputPath = path.join(tempDir, "recheck.json");
+  await fs.copyFile(sourceWorkbook, workbookPath);
+
+  const seedWorkbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
+  const seedRows = seedWorkbook.worksheets.getItem("Leads").tables.getItem("LeadsTable").getDataRows();
+  const seedIndex = seedRows.findIndex((row) => row[0] === FIXTURE_LEAD_ID);
+  seedWorkbook.worksheets.getItem("Leads").getRange("AA" + (4 + seedIndex)).values = [["New"]];
+  await (await SpreadsheetFile.exportXlsx(seedWorkbook)).save(workbookPath);
+
+  await fs.writeFile(inputPath, JSON.stringify({
+    run_id: "TEST-RECHECK-NEW-001",
+    started_at: "2026-08-26T08:00:00+05:00",
+    completed_at: "2026-08-26T08:05:00+05:00",
+    notes: "Ad-hoc expiry recheck for a newly discovered lead.",
+    checks: [{
+      lead_id: FIXTURE_LEAD_ID,
+      result: "Expired",
+      canonical_url: FIXTURE_URL,
+      evidence: "Canonical listing reports that the page is no longer available.",
+    }],
+  }));
+
+  const result = run("recheck_expiry.mjs", ["--workbook", workbookPath, "--input", inputPath, "--state-dir", stateDir]);
+  assert.equal(result.status, 0, result.stderr);
+
+  const workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
+  const leads = workbook.worksheets.getItem("Leads").tables.getItem("LeadsTable").getDataRows();
+  const lead = leads.find((row) => row[0] === FIXTURE_LEAD_ID);
+  assert.equal(lead[26], "Expired");
+  assert.match(lead[34], /expired/i);
+});
+
 test("Friday expiry recheck requires source evidence and never regresses an applied application", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "job-expiry-guard-"));
   const workbookPath = path.join(tempDir, "Tracker.xlsx");

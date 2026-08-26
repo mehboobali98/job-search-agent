@@ -1,6 +1,6 @@
 {
   "name": "job-search-agent",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Reusable multi-agent job discovery, form assistance, judging, and local tracking for Codex",
   "license": "MIT",
   "private": true,
@@ -10,6 +10,7 @@
     "create-tracker": "node scripts/create_tracker.mjs",
     "install-skill": "node scripts/install_skill.mjs",
     "config": "node scripts/export_search_config.mjs",
+    "queries": "node scripts/build_search_queries.mjs",
     "refresh-dashboard": "node scripts/refresh_dashboard.mjs Job_Application_Tracker.xlsx",
     "migrate-tracker": "node scripts/migrate_tracker.mjs --workbook Job_Application_Tracker.xlsx --state-dir state",
     "lead": "node scripts/manage_lead.mjs",

@@ -11,13 +11,14 @@ For discovery, read [workflow.md](references/workflow.md) and [schemas.md](refer
 
 ## Invariants
 
-- Export the authoritative configuration with `scripts/export_search_config.mjs`, then read the configured candidate profile, search policy, packet schema, prior leads, and prior run state.
+- Export the authoritative configuration with `scripts/export_search_config.mjs` and generate the exact discovery plan with `scripts/build_search_queries.mjs`, then read the configured candidate profile, search terms, search policy, packet schema, prior leads, and prior run state.
 - Delegate discovery to `backend_finder` and `ai_product_finder` in parallel when both are available.
 - Remove finder scores and recommendations before sending candidates to `job_judge`.
 - Use the judge component total as the final score.
 - Convert eligibility disagreements or unsupported candidate claims to `Needs Human Review`; never alert them. A judge-returned structured `Expired` or `Inaccessible` status remains `Ineligible`.
 - If judging fails, retain viable candidates as `Needs Judge`; never alert them.
 - Continue with partial coverage if one finder fails and record the failure.
+- Public LinkedIn discovery uses only generated query-plan entries and public job pages. Never sign in, reuse an authenticated session, or bypass access controls. Record the query ID and LinkedIn job ID, and prefer the employer or ATS page as canonical evidence.
 - Only the orchestrator may modify the workbook or publish a digest.
 - Persist exactly one allowed `Best Resume` for every lead. Preparing a lead must copy it to `Applications.Resume Version` and name it in the tailoring guidance and next action.
 - Use only the deterministic tracker scripts for workbook writes. They preserve the tracker table-body convention: Arial 9, wrapped text, thin borders, table banding, and column-specific date formats.

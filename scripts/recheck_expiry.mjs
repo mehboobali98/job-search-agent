@@ -53,7 +53,7 @@ try {
     if (normalizeUrl(check.canonical_url) !== normalizeUrl(lead[8])) {
       throw new Error("Expiry check canonical_url does not match lead " + check.lead_id);
     }
-    const wasActive = ["Shortlisted", "Preparing", "Moved to Applications"].includes(String(lead[26] ?? ""));
+    const wasActive = !["Dismissed", "Expired"].includes(String(lead[26] ?? ""));
     const expired = check.result === "Expired";
     if (expired && wasActive) {
       leadsSheet.getRange("AA" + (4 + leadIndex)).values = [["Expired"]];

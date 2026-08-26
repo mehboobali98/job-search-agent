@@ -6,6 +6,17 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-26
+
+### Added
+
+- Deterministic reusable search-query plans with candidate-local terms, public LinkedIn Boolean searches, freshness and location filters, and canonical employer/ATS fallback lanes.
+- Query provenance for finder packets and scan events, including LinkedIn query and job IDs.
+
+### Fixed
+
+- Allow expiry rechecks to mark newly discovered and review-stage leads as expired while preserving dismissed and already-expired terminal states.
+
 ## [1.1.1] - 2026-08-25
 
 ### Fixed
@@ -45,7 +56,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/mehboobali98/job-search-agent/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/mehboobali98/job-search-agent/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mehboobali98/job-search-agent/releases/tag/v1.0.0

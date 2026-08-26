@@ -2,13 +2,19 @@
 
 All packets are JSON-compatible. Text evidence is concise and source-specific.
 
+## Search query plan
+
+The deterministic query planner returns a versioned JSON object with `target_geography`, exact `query_count`, `linkedin_query_count`, `role_query_budget`, `by_finder`, and a flat `queries` list. Each finder receives only its own `by_finder` entries and must execute exactly that assigned count.
+
+Every query includes `query_id`, `finder`, `role_family`, `source`, `lane`, `keywords`, `location`, `filters`, and `source_rules`. A `linkedin_public` query also includes `search_url` and `public_index_query`; a `canonical_web` query includes `web_query`. Finders preserve `query_id`, the discovery source, and the original discovery URL in packets and scan events even when they replace the canonical URL with a verified employer or ATS listing.
+
 ## Finder result
 
 Each finder returns `{ agent, status, query_count, packets, scan_events, error? }`. Packets are deeply evaluated viable jobs. Scan events contain every duplicate, inaccessible, expired, shallow-rejected, preliminary-suppressed, or hard-blocked examination.
 
-A finder packet requires identity and source fields, normalized job description with exact SHA-256 hash, `listing_status`, rubric evidence, finder eligibility and evidence, seven preliminary component scores, total, strengths, gaps, best resume, and stable candidate evidence IDs.
+A finder packet requires identity and source fields, normalized job description with exact SHA-256 hash, `listing_status`, rubric evidence, finder eligibility and evidence, seven preliminary component scores, total, strengths, gaps, best resume, and stable candidate evidence IDs. Query-plan discoveries also carry `discovery_query_id`, `discovery_source`, and their original discovery URL before canonical-source resolution.
 
-A scan event includes identity when known, finder, examination timestamp, outcome, reason, optional score/eligibility/hash, `counts_toward_unique`, `deep_evaluated`, and `destination: Scan Log`.
+A scan event includes identity when known, finder, examination timestamp, outcome, reason, optional score/eligibility/hash, `counts_toward_unique`, `deep_evaluated`, and `destination: Scan Log`. It also retains query-plan provenance in its raw JSON when applicable.
 
 ## Blind judge input
 

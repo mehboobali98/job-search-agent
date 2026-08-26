@@ -40,7 +40,11 @@ Suppress:
 
 ## Sources
 
-Prefer employer career pages and canonical ATS listings. Public aggregators may be used to discover a role, but the canonical listing should be opened before judging whenever possible. Do not automate authenticated LinkedIn use or application submission.
+Prefer employer career pages and canonical ATS listings. Public aggregators may be used to discover a role, but the canonical listing should be opened before judging whenever possible.
+
+Public LinkedIn discovery is supported through the deterministic plan produced by `npm run queries`. Queries use straight-quoted phrases, uppercase `AND`/`OR`/`NOT`, parentheses, date freshness, location, and remote-work filters. Finder agents may read public job-detail pages without signing in. They must record the query ID and LinkedIn job ID, reject 404/410 or no-longer-accepting pages, and resolve the employer or ATS listing before judging whenever it exists. A LinkedIn-only lead cannot receive High source confidence under the canonical-source policy.
+
+Do not automate authenticated LinkedIn use, bypass access controls, populate forms, or submit applications.
 
 ## Scoring
 

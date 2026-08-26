@@ -31,10 +31,13 @@ Setup creates these private, ignored artifacts:
 - `profile/candidate-profile.md` — verified candidate evidence
 - `profile/resumes/` — resume files
 - `Job_Application_Tracker.xlsx` — the seven-sheet tracker
+- `profile/search-terms.json` — private role titles, skills, exclusions, locations, and LinkedIn query settings
 - `state/` — run payloads and updater state
 - `application-packages/` — private form-response packets and required cover-letter files
 
 Complete the candidate profile, add resume files, and then tell Codex: `Run $job-search now`.
+
+Before the first run, edit `profile/search-terms.json` so each role family uses the candidate's actual titles and technologies. Keep terms atomic; the query builder adds LinkedIn-supported Boolean operators and quoting.
 
 ## Tracker
 
@@ -49,10 +52,17 @@ The local workbook has `Dashboard`, `Search Config`, `Leads`, `Applications`, `S
 
 Local scheduled work requires the computer and Codex desktop to be running.
 
+## Public LinkedIn discovery
+
+Run `npm run queries` to preview the exact discovery plan. It allocates the workbook's search budget across role families and produces a mix of public LinkedIn and canonical employer/ATS queries. LinkedIn queries use exact phrases, uppercase Boolean operators, parentheses, a seven-day freshness window by default, and explicit remote or relocation lanes.
+
+Finder agents may read public LinkedIn job-detail pages without signing in. They record the query ID and LinkedIn job ID, classify unavailable or closed pages as expired, and resolve an employer or public ATS listing before judging whenever possible. The workflow never automates an authenticated LinkedIn session or submits an application.
+
 ## Useful commands
 
 ```sh
 npm run config
+npm run queries
 npm test
 npm run create-tracker
 npm run migrate-tracker
