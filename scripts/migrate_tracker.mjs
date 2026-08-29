@@ -3,6 +3,7 @@ import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { ensureFormRunsSheet, FORM_RUN_HEADERS } from "./form_runs_sheet.mjs";
 import { ensureQueryMetricsSheet, QUERY_METRIC_HEADERS } from "./query_metrics_sheet.mjs";
+import { ensureEligibilityReviewSheet, ELIGIBILITY_REVIEW_HEADERS } from "./eligibility_review_sheet.mjs";
 import { argumentValue } from "./project_config.mjs";
 import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
@@ -18,6 +19,7 @@ try {
   const workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
   const { changed: formRunsChanged } = ensureFormRunsSheet(workbook);
   const { changed: queryMetricsChanged } = ensureQueryMetricsSheet(workbook);
+  const { changed: eligibilityReviewChanged } = ensureEligibilityReviewSheet(workbook);
   const formulaErrors = await workbook.inspect({
     kind: "match",
     searchTerm: "#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A",
@@ -33,14 +35,18 @@ try {
   const queryMetricsTable = verified.worksheets.getItem("Query Metrics").tables.getItem("QueryMetricsTable");
   const queryMetricHeaders = queryMetricsTable.getHeaderRowRange().values[0].map((value) => String(value ?? ""));
   if (queryMetricHeaders.join("\u0000") !== QUERY_METRIC_HEADERS.join("\u0000")) throw new Error("Query Metrics migration verification failed");
+  const eligibilityReviewTable = verified.worksheets.getItem("Eligibility Review").tables.getItem("EligibilityReviewTable");
+  const eligibilityReviewHeaders = eligibilityReviewTable.getHeaderRowRange().values[0].map((value) => String(value ?? ""));
+  if (eligibilityReviewHeaders.join("\u0000") !== ELIGIBILITY_REVIEW_HEADERS.join("\u0000")) throw new Error("Eligibility Review migration verification failed");
   await fs.rename(tempPath, workbookPath);
   try { await removeWorkbookInspection(tempPath); } catch { /* Workbook commit already succeeded. */ }
   await fs.rm(pendingPath, { force: true });
   console.log(JSON.stringify({
-    migrated: formRunsChanged || queryMetricsChanged,
+    migrated: formRunsChanged || queryMetricsChanged || eligibilityReviewChanged,
     workbook: workbookPath,
     form_runs_sheet: true,
     query_metrics_sheet: true,
+    eligibility_review_sheet: true,
   }, null, 2));
 } catch (error) {
   try { await removeTemporaryWorkbook(tempPath, workbookPath); } catch { /* Keep the original workbook. */ }

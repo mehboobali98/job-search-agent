@@ -6,6 +6,7 @@ import { applyDashboardFormulas, DASHBOARD_CARD_FORMULAS } from "./dashboard_for
 import { argumentValue, loadProjectConfig } from "./project_config.mjs";
 import { ensureFormRunsSheet } from "./form_runs_sheet.mjs";
 import { ensureQueryMetricsSheet } from "./query_metrics_sheet.mjs";
+import { ensureEligibilityReviewSheet } from "./eligibility_review_sheet.mjs";
 import { removeWorkbookInspection, resolveXlsxWorkbookPath } from "./workbook_io.mjs";
 
 const NAVY = "#1F3864";
@@ -257,6 +258,7 @@ export async function createTracker({ outputPath, candidateName, timezone, targe
   setWidths(dashboard, [8,24,34,12,28,20,18,38]);
   ensureFormRunsSheet(workbook);
   ensureQueryMetricsSheet(workbook);
+  ensureEligibilityReviewSheet(workbook);
 
   const formulaErrors = await workbook.inspect({
     kind: "match",

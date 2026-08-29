@@ -209,6 +209,13 @@ test("mixed run enforces judging, eligibility, dedupe, partial coverage, and ale
   const lastRun = JSON.parse(await fs.readFile(path.join(stateDir, "last-run.json"), "utf8"));
   assert.equal(lastRun.alerts.length, 2, "only judged strong and unclear matches should alert");
   assert.deepEqual(new Set(lastRun.alerts.map((item) => item.company)), new Set(["Global Example", "Unclear Example"]));
+  assert.equal(lastRun.reviews.length, 3, "strong unclear and human-review roles should enter the persistent inbox");
+  const reviewRows = persistedWorkbook.worksheets.getItem("Eligibility Review").tables.getItem("EligibilityReviewTable").getDataRows();
+  const reviewsByCompany = new Map(reviewRows.filter((row) => row[0]).map((row) => [row[5], row]));
+  assert.deepEqual(new Set(reviewsByCompany.keys()), new Set(["Unclear Example", "Evidence Example", "Disagreement Example"]));
+  assert.equal(reviewsByCompany.get("Evidence Example")[9], "Evidence");
+  assert.equal(reviewsByCompany.get("Disagreement Example")[9], "Eligibility disagreement");
+  assert.equal(reviewsByCompany.get("Unclear Example")[12], "Open");
 
   const runSheet = persistedWorkbook.worksheets.getItem("Run Log");
   const runRows = runSheet.tables.getItem("RunLogTable").getDataRows();

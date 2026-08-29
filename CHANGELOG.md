@@ -6,6 +6,18 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-08-29
+
+### Added
+
+- Add query-plan v4 with deterministic, public-read-only canonical-source adapters for Ashby, Greenhouse, Workable, Lever, and SmartRecruiters.
+- Add canonical URL normalization, source identification, and published job-ID extraction without private APIs, authentication, access-control bypasses, or submission endpoints.
+- Add a migratable `Eligibility Review` tracker sheet that persists strong unclear, eligibility-disagreement, and unsupported-evidence cases while preserving manual status and resolution fields.
+
+### Changed
+
+- Have the tracker updater annotate canonical-source evidence, infer missing public ATS job IDs, upsert review cases, and resolve open reviews when later eligibility evidence becomes decisive.
+
 ## [1.5.0] - 2026-08-29
 
 ### Added
@@ -92,7 +104,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.3.0...v1.4.0

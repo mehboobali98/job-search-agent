@@ -1,3 +1,5 @@
+import { canonicalAtsSites, canonicalSourceAdapterPlan } from "./canonical_source_adapters.mjs";
+
 export const ROLE_FAMILIES = [
   "Backend / Platform",
   "Staff / Principal / Tech Lead",
@@ -13,14 +15,6 @@ export const FINDER_BY_ROLE = {
   "Developer Productivity / AI Enablement": "ai_product_finder",
   "Full-stack / Product": "ai_product_finder",
 };
-
-const CANONICAL_ATS_SITES = [
-  "jobs.ashbyhq.com",
-  "job-boards.greenhouse.io",
-  "jobs.lever.co",
-  "apply.workable.com",
-  "jobs.smartrecruiters.com",
-];
 
 const FINDERS = new Set(Object.values(FINDER_BY_ROLE));
 
@@ -270,7 +264,7 @@ function canonicalQuery({ role, finder, roleTerms, settings, index }) {
     variant: index,
     excludeTerms: settings.exclude_terms,
   });
-  const sites = "(" + CANONICAL_ATS_SITES.map((site) => "site:" + site).join(" OR ") + ")";
+  const sites = "(" + canonicalAtsSites().map((site) => "site:" + site).join(" OR ") + ")";
   const location = settings.remote_locations[index % settings.remote_locations.length];
   const marketTerms = priorityMarketTerms(settings);
   const accessTerms = ["remote", "relocation", "sponsorship", ...marketTerms];
@@ -285,7 +279,13 @@ function canonicalQuery({ role, finder, roleTerms, settings, index }) {
     filters: { freshness_days: settings.freshness_days },
     market_terms: marketTerms,
     web_query: sites + " " + keywords + " " + expression(accessTerms),
-    source_rules: ["Prefer the employer or ATS listing as the canonical URL and verify that it is active."],
+    source_adapters: canonicalSourceAdapterPlan(),
+    source_rules: [
+      "Prefer the employer or ATS listing as the canonical URL and verify that it is active.",
+      "Use the supplied adapter registry only for public, read-only source identification and job-ID extraction.",
+      "Never use private APIs, authenticated sessions, access-control bypasses, or application submission endpoints.",
+      "Record the recognized canonical_source_adapter and evidence-backed canonical_source_status in retained packets.",
+    ],
   };
 }
 
@@ -357,13 +357,14 @@ export function buildSearchPlan({ rawTerms, roleQueryBudget, targetGeography, ru
     queries.filter((query) => query.finder === finder),
   ]));
   return {
-    version: 3,
+    version: 4,
     target_geography: requiredString(targetGeography, "targetGeography"),
     run_weekday: runWeekday,
     query_count: queries.length,
     linkedin_query_count: queries.filter((query) => query.source === "linkedin_public").length,
     company_watchlist_query_count: queries.filter((query) => query.source === "company_watchlist").length,
     priority_markets: terms.linkedin_public.priority_market_locations,
+    canonical_source_adapters: canonicalSourceAdapterPlan(),
     role_query_budget: Object.fromEntries(ROLE_FAMILIES.map((role) => [role, Number(roleQueryBudget[role] ?? 0)])),
     by_finder: byFinder,
     queries,

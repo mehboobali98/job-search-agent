@@ -44,7 +44,7 @@ Status: planned.
 
 Status: partially delivered in v1.3.0.
 
-- Reusable candidate-local query packs with broad title-first public LinkedIn searches and post-discovery fit screening are implemented; pluggable public-source adapters remain planned.
+- Reusable candidate-local query packs with broad title-first public LinkedIn searches and post-discovery fit screening are implemented; the first deterministic public ATS adapters shipped in v1.6.0.
 - Better source-health, freshness, canonicalization, and description-change signals.
 - Evaluation fixtures for judge calibration, eligibility disagreements, and score drift.
 - Explainable score breakdowns with tighter links between job evidence and candidate evidence IDs.
@@ -58,7 +58,7 @@ Status: released in v1.4.0.
 - Explicit UAE and Saudi Arabia coverage in the maintainer's candidate-local configuration.
 - Bounded weekly company-watchlist sources that require active canonical vacancies.
 - Unscored interview-process signals recorded in tracker Notes with freshness caveats.
-- Additional public-source adapters remain future work and must preserve the canonical-source and access-control policies.
+- Additional public-source adapters remain future work and must preserve the canonical-source and access-control policies established in v1.6.0.
 
 ## v1.5 — Search observability and recall
 
@@ -68,14 +68,14 @@ Status: partially delivered in v1.5.0.
 - Persistent per-query and per-source effectiveness metrics, including duplicate, blocker, expiry, and priority-lead yields, are implemented.
 - Explicit thin-coverage and no-discovery signals are implemented so an empty digest is never presented as evidence that no suitable jobs exist.
 - Deterministic query-budget recommendations based on rolling evidence remain planned; configuration changes will remain user-controlled.
-- Pluggable canonical ATS adapters remain planned and must preserve public-access, source-verification, and read-only finder policies.
+- Deterministic public ATS adapters for Ashby, Greenhouse, Workable, Lever, and SmartRecruiters are implemented in v1.6.0; additional adapters remain evidence-driven future work.
 
 ## v1.6 — Evidence, eligibility, and review quality
 
-Status: planned.
+Status: partially delivered in v1.6.0.
 
 - A cited, expiring eligibility-evidence registry for supported hiring countries, remote regions, sponsorship, and relocation, with human overrides.
-- A focused review inbox for promising roles blocked only by unclear eligibility, compensation, or a moderate evidence gap.
+- A persistent, idempotent review inbox for strong roles blocked by unclear eligibility, finder/judge disagreement, or unsupported candidate evidence is implemented. User-entered review status and resolution are preserved.
 - Change monitoring for shortlisted and prepared roles, including description, location, eligibility, compensation, and closure changes.
 
 ## v1.7 — Application intelligence and operations

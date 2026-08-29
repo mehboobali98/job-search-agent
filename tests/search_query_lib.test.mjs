@@ -51,7 +51,7 @@ test("builds exact-budget public LinkedIn and canonical query lanes", () => {
     targetGeography: "Worldwide remote plus credible relocation or sponsorship",
   });
 
-  assert.equal(plan.version, 3);
+  assert.equal(plan.version, 4);
   assert.equal(plan.query_count, 12);
   assert.equal(plan.linkedin_query_count, 7);
   assert.equal(plan.company_watchlist_query_count, 0);
@@ -81,6 +81,13 @@ test("builds exact-budget public LinkedIn and canonical query lanes", () => {
   assert.doesNotMatch(relocation.keywords, /relocation|sponsorship|permit/i);
   assert.deepEqual(relocation.post_discovery_screening.relocation_terms, ["relocation", "visa sponsorship", "work permit"]);
   assert.equal(new URL(relocation.search_url).searchParams.has("f_WT"), false);
+  assert.deepEqual(plan.canonical_source_adapters.map((adapter) => adapter.id), [
+    "ashby", "greenhouse", "workable", "lever", "smartrecruiters",
+  ]);
+  const canonical = plan.queries.find((query) => query.source === "canonical_web");
+  assert.equal(canonical.source_adapters.length, 5);
+  assert.match(canonical.web_query, /site:boards\.greenhouse\.io/);
+  assert.match(canonical.source_rules.join(" "), /Never use private APIs/);
 });
 
 test("retains detailed Boolean syntax for canonical employer and ATS searches", () => {

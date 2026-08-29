@@ -16,6 +16,8 @@ import {
   shouldRepeatAlert,
   validateJudgedCandidate,
 } from "./job_tracker_lib.mjs";
+import { identifyCanonicalSource } from "./canonical_source_adapters.mjs";
+import { ensureEligibilityReviewSheet, syncEligibilityReview } from "./eligibility_review_sheet.mjs";
 import { argumentValue } from "./project_config.mjs";
 import { ensureQueryMetricsSheet } from "./query_metrics_sheet.mjs";
 import { buildRunDiagnostics, validateQueryAttempts } from "./run_diagnostics.mjs";
@@ -242,6 +244,7 @@ try {
   const runSheet = workbook.worksheets.getItem("Run Log");
   const configSheet = workbook.worksheets.getItem("Search Config");
   const { sheet: queryMetricsSheet, table: queryMetricsTable } = ensureQueryMetricsSheet(workbook);
+  const { sheet: eligibilityReviewSheet, table: eligibilityReviewTable } = ensureEligibilityReviewSheet(workbook);
   const leadsTable = leadsSheet.tables.items.find((table) => table.name === "LeadsTable");
   const scanTable = scanSheet.tables.items.find((table) => table.name === "ScanLogTable");
   const runTable = runSheet.tables.items.find((table) => table.name === "RunLogTable");
@@ -297,6 +300,7 @@ try {
   const alertCandidates = new Map();
   const writtenRows = new Map();
   const outcomes = [];
+  const reviews = [];
   const diagnosticCandidates = [];
 
   for (const event of payload.scan_events) {
@@ -360,6 +364,17 @@ try {
         };
       }
     }
+    const canonicalSource = identifyCanonicalSource(candidate.canonical_url);
+    if (raw.canonical_source_adapter && canonicalSource.recognized && raw.canonical_source_adapter !== canonicalSource.adapter_id) {
+      throw new Error(`canonical_source_adapter ${raw.canonical_source_adapter} does not match ${canonicalSource.adapter_id} for ${candidate.canonical_url}`);
+    }
+    candidate.canonical_url = canonicalSource.canonical_url;
+    candidate.canonical_source_adapter = canonicalSource.adapter_id;
+    candidate.canonical_source_status = candidate.listing_status === "Active"
+      ? "Verified Active"
+      : candidate.listing_status === "Expired" ? "Verified Expired" : "Verified Inaccessible";
+    if (!candidate.job_id && canonicalSource.inferred_job_id) candidate.job_id = canonicalSource.inferred_job_id;
+    candidate.canonical_key = canonicalKey(candidate);
     const identityKeys = candidateIdentityKeys(candidate);
     const existing = identityKeys.map((key) => byIdentity.get(key)).find(Boolean);
     if (!candidate.job_id && existing?.job_id) candidate.job_id = existing.job_id;
@@ -412,6 +427,34 @@ try {
     } else {
       outcome = "Suppressed";
     }
+
+    const shouldReview = viable && (
+      candidate.eligibility === "Needs Human Review"
+      || (candidate.eligibility === "Unclear" && Number(candidate.final_score) >= alertThreshold)
+    );
+    const eligibilityDisagreement = raw.finder_eligibility && raw.judge_eligibility
+      && raw.finder_eligibility !== raw.judge_eligibility;
+    const reviewType = candidate.unsupported_evidence
+      ? "Evidence"
+      : eligibilityDisagreement ? "Eligibility disagreement" : "Eligibility clarification";
+    const reviewReason = candidate.unsupported_evidence
+      ? normalizeText(raw.unsupported_evidence_details) || "Independent judge flagged unsupported candidate evidence."
+      : eligibilityDisagreement
+        ? `Finder concluded ${raw.finder_eligibility}; judge concluded ${raw.judge_eligibility}.`
+        : "Strong role has unresolved country, sponsorship, relocation, or work-authorization evidence.";
+    const review = syncEligibilityReview({
+      sheet: eligibilityReviewSheet,
+      table: eligibilityReviewTable,
+      candidate,
+      runId: payload.run_id,
+      now,
+      shouldReview,
+      reviewType,
+      reviewReason,
+      canonicalSource: canonicalSource.adapter_name ?? "Employer-hosted / unrecognized",
+      sourceStatus: candidate.canonical_source_status,
+    });
+    if (review) reviews.push(review);
 
     const reason = candidate.eligibility === "Ineligible"
       ? candidate.eligibility_evidence ?? "Explicit eligibility blocker"
@@ -509,7 +552,7 @@ try {
   });
   if (/#[A-Z0-9/]+[!?]/.test(formulaErrors.ndjson)) throw new Error("Formula validation failed: " + formulaErrors.ndjson);
 
-  const result = { run_id: payload.run_id, outcomes, alerts: selectedAlerts, diagnostics };
+  const result = { run_id: payload.run_id, outcomes, reviews, alerts: selectedAlerts, diagnostics };
   const resultTempPath = path.join(stateDir, ".last-run-" + String(payload.run_id).replace(/[^a-z0-9_-]/gi, "_") + ".tmp.json");
   const exported = await SpreadsheetFile.exportXlsx(workbook);
   await exported.save(tempPath);
