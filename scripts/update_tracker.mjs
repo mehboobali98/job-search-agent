@@ -20,9 +20,12 @@ import { identifyCanonicalSource } from "./canonical_source_adapters.mjs";
 import { ensureEligibilityReviewSheet, syncEligibilityReview } from "./eligibility_review_sheet.mjs";
 import { assessEligibilityEvidence, eligibilityAssessmentText, loadEligibilityRegistry } from "./eligibility_evidence_lib.mjs";
 import { ensureLeadMonitorSheet } from "./lead_monitor_sheet.mjs";
+import { ensureApplicationOutcomesSheet } from "./application_outcomes_sheet.mjs";
+import { refreshActionDashboard } from "./action_dashboard_sheet.mjs";
 import { argumentValue } from "./project_config.mjs";
 import { ensureQueryMetricsSheet } from "./query_metrics_sheet.mjs";
 import { buildRunDiagnostics, validateQueryAttempts } from "./run_diagnostics.mjs";
+import { buildReplaySnapshot } from "./run_replay_lib.mjs";
 import { appendStyledRow } from "./tracker_rows.mjs";
 import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
@@ -84,6 +87,14 @@ function validateRunPayload(run) {
   if (run.notes !== undefined && typeof run.notes !== "string") throw new Error("notes must be a string");
   if (!Array.isArray(run.scan_events)) throw new Error("Run payload requires scan_events[]");
   if (!Array.isArray(run.candidates)) throw new Error("Run payload requires candidates[]");
+  if (run.replay_context !== undefined) {
+    if (!run.replay_context || typeof run.replay_context !== "object" || Array.isArray(run.replay_context)) throw new Error("replay_context must be an object");
+    for (const field of ["config", "filters", "evidence"]) {
+      const value = run.replay_context[field];
+      if (value !== undefined && (!value || typeof value !== "object" || Array.isArray(value))) throw new Error(`replay_context.${field} must be an object`);
+    }
+    if (run.replay_context.query_plan !== undefined && !Array.isArray(run.replay_context.query_plan)) throw new Error("replay_context.query_plan must be an array");
+  }
   for (let index = 0; index < run.scan_events.length; index += 1) {
     const event = run.scan_events[index];
     if (typeof event.counts_toward_unique !== "boolean" || typeof event.deep_evaluated !== "boolean") {
@@ -250,6 +261,7 @@ try {
   const { sheet: queryMetricsSheet, table: queryMetricsTable } = ensureQueryMetricsSheet(workbook);
   const { sheet: eligibilityReviewSheet, table: eligibilityReviewTable } = ensureEligibilityReviewSheet(workbook);
   ensureLeadMonitorSheet(workbook);
+  ensureApplicationOutcomesSheet(workbook);
   const leadsTable = leadsSheet.tables.items.find((table) => table.name === "LeadsTable");
   const scanTable = scanSheet.tables.items.find((table) => table.name === "ScanLogTable");
   const runTable = runSheet.tables.items.find((table) => table.name === "RunLogTable");
@@ -581,6 +593,8 @@ try {
   });
   if (/#[A-Z0-9/]+[!?]/.test(formulaErrors.ndjson)) throw new Error("Formula validation failed: " + formulaErrors.ndjson);
 
+  const replay = buildReplaySnapshot(payload);
+  const actions = refreshActionDashboard(workbook, { asOf: now });
   const result = {
     run_id: payload.run_id,
     outcomes,
@@ -588,6 +602,8 @@ try {
     registry_warnings: [...new Set(registryWarnings)],
     alerts: selectedAlerts,
     diagnostics,
+    replay: { schema_version: replay.schema_version, replay_hash: replay.replay_hash },
+    actions,
   };
   const resultTempPath = path.join(stateDir, ".last-run-" + String(payload.run_id).replace(/[^a-z0-9_-]/gi, "_") + ".tmp.json");
   const exported = await SpreadsheetFile.exportXlsx(workbook);
@@ -605,6 +621,21 @@ try {
     await fs.rename(resultTempPath, path.join(stateDir, "last-run.json"));
   } catch (error) {
     stateWarnings.push("Workbook committed; last-run state remains at " + resultTempPath + ": " + String(error));
+  }
+  try {
+    const runsDir = path.join(stateDir, "runs");
+    const archiveName = encodeURIComponent(String(payload.run_id));
+    await fs.mkdir(runsDir, { recursive: true });
+    const inputArchive = path.join(runsDir, archiveName + ".input.json");
+    const resultArchive = path.join(runsDir, archiveName + ".result.json");
+    const inputTemp = inputArchive + `.tmp-${process.pid}`;
+    const archiveResultTemp = resultArchive + `.tmp-${process.pid}`;
+    await fs.writeFile(inputTemp, JSON.stringify(payload, null, 2) + "\n");
+    await fs.writeFile(archiveResultTemp, JSON.stringify(result, null, 2) + "\n");
+    await fs.rename(inputTemp, inputArchive);
+    await fs.rename(archiveResultTemp, resultArchive);
+  } catch (error) {
+    stateWarnings.push("Workbook committed; deterministic run archive could not be written: " + String(error));
   }
   try {
     await fs.rm(pendingPath, { force: true });

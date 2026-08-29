@@ -54,6 +54,8 @@ test("every workbook writer rejects a non-xlsx target without changing it", asyn
     ["scripts/recheck_expiry.mjs", "--workbook", workbook, "--input", input, "--state-dir", state],
     ["scripts/migrate_tracker.mjs", "--workbook", workbook, "--state-dir", state],
     ["scripts/monitor_leads.mjs", "--workbook", workbook, "--input", input, "--state-dir", state],
+    ["scripts/record_application_outcome.mjs", "--workbook", workbook, "--input", input, "--state-dir", state],
+    ["scripts/refresh_actions.mjs", "--workbook", workbook, "--state-dir", state],
     ["scripts/refresh_dashboard.mjs", workbook],
   ];
   for (const args of commands) {

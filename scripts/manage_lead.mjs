@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
+import { refreshActionDashboard } from "./action_dashboard_sheet.mjs";
 import { argumentValue } from "./project_config.mjs";
 import { appendStyledRow } from "./tracker_rows.mjs";
 import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
@@ -188,6 +189,7 @@ try {
     applicationStage = firstAppliedTransition ? "Applied" : (compactText(existing[20]) || null);
   }
 
+  const actions = refreshActionDashboard(workbook, { asOf: now });
   const exported = await SpreadsheetFile.exportXlsx(workbook);
   await exported.save(tempPath);
   await fs.rename(tempPath, workbookPath);
@@ -202,6 +204,7 @@ try {
     application_changed: applicationChanged,
     applied_at: appliedAt ? dateLabel(appliedAt) : null,
     follow_up_at: followUpAt ? dateLabel(followUpAt) : null,
+    actions,
   }, null, 2));
 } catch (error) {
   try {

@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
+import { refreshActionDashboard } from "./action_dashboard_sheet.mjs";
 import { applyDashboardFormulas, synchronizeTrackerLabels } from "./dashboard_formulas.mjs";
 import { loadProjectConfig } from "./project_config.mjs";
 import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
@@ -18,6 +19,7 @@ try {
   const configSheet = workbook.worksheets.getItem("Search Config");
   applyDashboardFormulas(dashboard);
   synchronizeTrackerLabels(configSheet);
+  refreshActionDashboard(workbook);
 
   const errors = await workbook.inspect({
     kind: "match",

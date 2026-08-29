@@ -5,6 +5,8 @@ import { ensureFormRunsSheet, FORM_RUN_HEADERS } from "./form_runs_sheet.mjs";
 import { ensureQueryMetricsSheet, QUERY_METRIC_HEADERS } from "./query_metrics_sheet.mjs";
 import { ensureEligibilityReviewSheet, ELIGIBILITY_REVIEW_HEADERS } from "./eligibility_review_sheet.mjs";
 import { ensureLeadMonitorSheet, LEAD_MONITOR_HEADERS } from "./lead_monitor_sheet.mjs";
+import { ensureApplicationOutcomesSheet, APPLICATION_OUTCOME_HEADERS } from "./application_outcomes_sheet.mjs";
+import { ACTION_DASHBOARD_HEADERS, refreshActionDashboard } from "./action_dashboard_sheet.mjs";
 import { argumentValue } from "./project_config.mjs";
 import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
@@ -22,6 +24,8 @@ try {
   const { changed: queryMetricsChanged } = ensureQueryMetricsSheet(workbook);
   const { changed: eligibilityReviewChanged } = ensureEligibilityReviewSheet(workbook);
   const { changed: leadMonitorChanged } = ensureLeadMonitorSheet(workbook);
+  const { changed: applicationOutcomesChanged } = ensureApplicationOutcomesSheet(workbook);
+  const { changed: actionDashboardChanged } = refreshActionDashboard(workbook);
   const formulaErrors = await workbook.inspect({
     kind: "match",
     searchTerm: "#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A",
@@ -43,16 +47,24 @@ try {
   const leadMonitorTable = verified.worksheets.getItem("Lead Monitor").tables.getItem("LeadMonitorTable");
   const leadMonitorHeaders = leadMonitorTable.getHeaderRowRange().values[0].map((value) => String(value ?? ""));
   if (leadMonitorHeaders.join("\u0000") !== LEAD_MONITOR_HEADERS.join("\u0000")) throw new Error("Lead Monitor migration verification failed");
+  const applicationOutcomesTable = verified.worksheets.getItem("Application Outcomes").tables.getItem("ApplicationOutcomesTable");
+  const applicationOutcomeHeaders = applicationOutcomesTable.getHeaderRowRange().values[0].map((value) => String(value ?? ""));
+  if (applicationOutcomeHeaders.join("\u0000") !== APPLICATION_OUTCOME_HEADERS.join("\u0000")) throw new Error("Application Outcomes migration verification failed");
+  const actionDashboardTable = verified.worksheets.getItem("Action Dashboard").tables.getItem("ActionDashboardTable");
+  const actionDashboardHeaders = actionDashboardTable.getHeaderRowRange().values[0].map((value) => String(value ?? ""));
+  if (actionDashboardHeaders.join("\u0000") !== ACTION_DASHBOARD_HEADERS.join("\u0000")) throw new Error("Action Dashboard migration verification failed");
   await fs.rename(tempPath, workbookPath);
   try { await removeWorkbookInspection(tempPath); } catch { /* Workbook commit already succeeded. */ }
   await fs.rm(pendingPath, { force: true });
   console.log(JSON.stringify({
-    migrated: formRunsChanged || queryMetricsChanged || eligibilityReviewChanged || leadMonitorChanged,
+    migrated: formRunsChanged || queryMetricsChanged || eligibilityReviewChanged || leadMonitorChanged || applicationOutcomesChanged || actionDashboardChanged,
     workbook: workbookPath,
     form_runs_sheet: true,
     query_metrics_sheet: true,
     eligibility_review_sheet: true,
     lead_monitor_sheet: true,
+    application_outcomes_sheet: true,
+    action_dashboard_sheet: true,
   }, null, 2));
 } catch (error) {
   try { await removeTemporaryWorkbook(tempPath, workbookPath); } catch { /* Keep the original workbook. */ }

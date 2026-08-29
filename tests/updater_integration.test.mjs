@@ -503,6 +503,15 @@ test("persists attributed query metrics and returns funnel diagnostics", async (
       { query_id: "Q-BACKEND-1", finder: "backend_finder", source: "linkedin_public", lane: "remote_recent", status: "Completed" },
       { query_id: "Q-AI-1", finder: "ai_product_finder", source: "canonical_web", lane: "canonical", status: "Completed" },
     ],
+    replay_context: {
+      query_plan: [
+        { query_id: "Q-BACKEND-1", finder: "backend_finder", source: "linkedin_public", lane: "remote_recent", query: "backend engineer" },
+        { query_id: "Q-AI-1", finder: "ai_product_finder", source: "canonical_web", lane: "canonical", query: "AI product engineer" },
+      ],
+      filters: { geography: "Worldwide remote" },
+      config: { alert_threshold: 80 },
+      evidence: { candidate_profile_hash: "fixture-profile" },
+    },
     candidates: [attributedCandidate],
     scan_events: [duplicateEvent],
   });
@@ -515,6 +524,9 @@ test("persists attributed query metrics and returns funnel diagnostics", async (
   assert.equal(lastRun.diagnostics.funnel.attempts_completed, 2);
   assert.equal(lastRun.diagnostics.funnel.found, 2);
   assert.equal(lastRun.diagnostics.query_metrics.find((metric) => metric.query_id === "Q-AI-1").duplicates, 1);
+  assert.match(lastRun.replay.replay_hash, /^[a-f0-9]{64}$/);
+  const archivedInput = JSON.parse(await fs.readFile(path.join(stateDir, "runs", "TEST-METRICS-001.input.json"), "utf8"));
+  assert.equal(archivedInput.replay_context.query_plan[0].query, "backend engineer");
 
   const queryRows = (await workbookRows(workbook, "Query Metrics", "QueryMetricsTable")).filter((row) => row[0]);
   assert.equal(queryRows.length, 2);

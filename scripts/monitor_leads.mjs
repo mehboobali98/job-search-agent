@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
+import { refreshActionDashboard } from "./action_dashboard_sheet.mjs";
 import { identifyCanonicalSource } from "./canonical_source_adapters.mjs";
 import { ensureEligibilityReviewSheet, syncEligibilityReview } from "./eligibility_review_sheet.mjs";
 import {
@@ -209,6 +210,7 @@ try {
     numberFormats: { B: "yyyy-mm-dd hh:mm", C: "yyyy-mm-dd hh:mm", "H:P": "0" },
   });
 
+  const actions = refreshActionDashboard(workbook, { asOf: now });
   const formulaErrors = await workbook.inspect({
     kind: "match",
     searchTerm: "#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A",
@@ -216,7 +218,7 @@ try {
     summary: "lead monitor formula validation",
   });
   if (/#[A-Z0-9/]+[!?]/.test(formulaErrors.ndjson)) throw new Error("Formula validation failed: " + formulaErrors.ndjson);
-  const result = { run_id: payload.run_id, outcomes, reviews, registry_warnings: [...new Set(registryWarnings)] };
+  const result = { run_id: payload.run_id, outcomes, reviews, registry_warnings: [...new Set(registryWarnings)], actions };
   const resultTempPath = path.join(stateDir, ".last-monitor-" + payload.run_id.replace(/[^a-z0-9_-]/gi, "_") + ".tmp.json");
   await (await SpreadsheetFile.exportXlsx(workbook)).save(tempPath);
   await fs.writeFile(resultTempPath, JSON.stringify(result, null, 2) + "\n");

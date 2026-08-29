@@ -47,6 +47,12 @@ A failed-judge candidate restores the finder packet with `listing_status: Active
   },
   "queries": 0,
   "query_attempts": [],
+  "replay_context": {
+    "query_plan": [],
+    "filters": {},
+    "config": {},
+    "evidence": {}
+  },
   "found": 0,
   "unique": 0,
   "evaluated": 0,
@@ -58,7 +64,15 @@ A failed-judge candidate restores the finder packet with `listing_status: Active
 }
 ```
 
-The updater validates the envelope, timestamps, agent states, count relationships, Search Config limits, query-attempt attribution, scan events, candidate hashes, eligibility, referenced registry IDs, canonical-source adapter claims, and alert rules before mutation. It ignores stale and out-of-scope registry entries, converts active registry conflicts to `Needs Human Review`, writes one `Query Metrics` row per attempt, upserts strong unresolved cases in `Eligibility Review`, and returns review outcomes plus deterministic funnel, per-query, per-source, and coverage diagnostics. Payloads created before query-attempt, registry, or adapter tracking remain accepted.
+The updater validates the envelope, timestamps, agent states, count relationships, Search Config limits, query-attempt attribution, replay context, scan events, candidate hashes, eligibility, referenced registry IDs, canonical-source adapter claims, and alert rules before mutation. It ignores stale and out-of-scope registry entries, converts active registry conflicts to `Needs Human Review`, writes one `Query Metrics` row per attempt, upserts strong unresolved cases in `Eligibility Review`, refreshes the Action Dashboard, and returns review outcomes plus deterministic funnel, per-query, per-source, coverage, and replay diagnostics. The exact input and result are archived privately under `state_directory/runs/`. Payloads created before query-attempt, registry, adapter, or replay-context tracking remain accepted.
+
+## Application outcome payload
+
+`{ schema_version: 1, event_id, lead_id, occurred_at, outcome, stage, reason_category?, notes?, user_confirmed: true }`. Outcome is `Applied|Screening|Interview|Rejected|Offer|Withdrawn|Accepted|Ghosted`. Stage is one allowed application pipeline stage. The writer requires an existing application, appends one idempotent event to `Application Outcomes`, advances but never regresses the application, and never infers an event without explicit user confirmation.
+
+## Tailoring report payload
+
+A schema-version-1 tailoring packet contains job identity and description hash, one allowed resume version, source-backed job requirements and ATS keywords, exactly one coverage record per keyword, evidence-backed bullet recommendations, gaps, prohibited claims, and a completed independent `job_judge` review. Every covered or transferable keyword and every bullet cites stable candidate-evidence IDs. An approved packet supports every bullet and contains no unsupported bullet IDs. The builder emits private Markdown only; it never edits a resume or application.
 
 ## Lead monitor payload
 

@@ -29,8 +29,8 @@ function updateDashboardCommands(workbook) {
   const dashboard = existingSheet(workbook, "Dashboard");
   if (!dashboard) return;
   dashboard.getRange("A34:H35").values = [[
-    "Commands: shortlist L-…  |  dismiss L-…  |  prepare L-…  |  form L-…  |  applied L-…\n" +
-    "Form inspection drafts evidence-backed answers for review; application submission remains manual.",
+    "Commands: shortlist L-…  |  dismiss L-…  |  prepare L-…  |  tailor L-…  |  form L-…  |  applied L-…  |  outcome L-…\n" +
+    "Action Dashboard tracks manual work. Tailoring and form inspection are evidence-backed; submission remains manual.",
   ]];
   dashboard.getRange("A34:H35").format = {
     fill: LIGHT_GRAY,

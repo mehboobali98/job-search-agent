@@ -1,0 +1,23 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { extractCandidateEvidence, renderTailoringReportMarkdown, validateTailoringReport } from "./tailoring_report_lib.mjs";
+import { argumentValue, loadProjectConfig } from "./project_config.mjs";
+
+const config = process.argv.includes("--candidate-profile") ? null : await loadProjectConfig();
+const inputArgument = argumentValue(process.argv, "--input");
+const profileArgument = argumentValue(process.argv, "--candidate-profile", config?.candidateProfilePath);
+const outputArgument = argumentValue(process.argv, "--output");
+if (!inputArgument || !profileArgument || !outputArgument) throw new Error("Usage: node scripts/build_tailoring_report.mjs --input <report.json> --candidate-profile <profile.md> --output <report.md>");
+const inputPath = path.resolve(inputArgument);
+const profilePath = path.resolve(profileArgument);
+const outputPath = path.resolve(outputArgument);
+if (path.extname(outputPath).toLowerCase() !== ".md") throw new Error("--output must end with .md");
+if (inputPath === outputPath || profilePath === outputPath) throw new Error("Tailoring report output must be distinct from its inputs");
+const evidence = extractCandidateEvidence(await fs.readFile(profilePath, "utf8"));
+const report = validateTailoringReport(JSON.parse(await fs.readFile(inputPath, "utf8")), evidence);
+const markdown = renderTailoringReportMarkdown(report, evidence);
+await fs.mkdir(path.dirname(outputPath), { recursive: true });
+const temporaryPath = outputPath + `.tmp-${process.pid}-${Date.now()}`;
+await fs.writeFile(temporaryPath, markdown);
+await fs.rename(temporaryPath, outputPath);
+console.log(JSON.stringify({ lead_id: report.job.lead_id, review: report.review.decision, bullets: report.bullet_recommendations.length, gaps: report.gaps.length, output: outputPath }, null, 2));

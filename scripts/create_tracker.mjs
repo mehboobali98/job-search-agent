@@ -8,6 +8,8 @@ import { ensureFormRunsSheet } from "./form_runs_sheet.mjs";
 import { ensureQueryMetricsSheet } from "./query_metrics_sheet.mjs";
 import { ensureEligibilityReviewSheet } from "./eligibility_review_sheet.mjs";
 import { ensureLeadMonitorSheet } from "./lead_monitor_sheet.mjs";
+import { ensureApplicationOutcomesSheet } from "./application_outcomes_sheet.mjs";
+import { refreshActionDashboard } from "./action_dashboard_sheet.mjs";
 import { removeWorkbookInspection, resolveXlsxWorkbookPath } from "./workbook_io.mjs";
 
 const NAVY = "#1F3864";
@@ -261,6 +263,8 @@ export async function createTracker({ outputPath, candidateName, timezone, targe
   ensureQueryMetricsSheet(workbook);
   ensureEligibilityReviewSheet(workbook);
   ensureLeadMonitorSheet(workbook);
+  ensureApplicationOutcomesSheet(workbook);
+  refreshActionDashboard(workbook);
 
   const formulaErrors = await workbook.inspect({
     kind: "match",

@@ -1,6 +1,6 @@
 # Multi-Agent Job Search Agent
 
-A reusable Codex workflow that discovers jobs with two parallel finders, independently judges candidate fit, inspects prepared application forms, drafts evidence-backed responses, safely updates a local Excel tracker, and returns a small priority digest. It never submits applications or sends outreach.
+A reusable Codex workflow that discovers jobs with two parallel finders, independently judges candidate fit, monitors shortlisted roles, prepares claim-safe application guidance, tracks confirmed outcomes, and safely updates a local Excel tracker. It never submits applications or sends outreach.
 
 ## How it works
 
@@ -8,7 +8,8 @@ A reusable Codex workflow that discovers jobs with two parallel finders, indepen
 - `ai_product_finder` searches applied AI, developer productivity, and selective product roles.
 - `application_form_agent` reads the current prepared application-form step and drafts responses without typing or submitting.
 - `change_monitor` rechecks shortlisted and prepared canonical listings for material changes without writing to the tracker.
-- `job_judge` scores canonical listings without finder anchoring and separately audits form responses against candidate evidence.
+- `tailoring_agent` maps canonical job requirements and ATS keywords to stable candidate evidence without editing resumes.
+- `job_judge` scores canonical listings without finder anchoring and separately audits form responses and tailoring reports against candidate evidence.
 - The orchestrator is the only writer. Deterministic scripts validate and atomically update the workbook.
 
 Each clone is configured for one person. Their name, profile, resumes, workbook, and run history stay in Git-ignored local files.
@@ -31,11 +32,11 @@ Setup creates these private, ignored artifacts:
 - `.job-search.local.json` — local paths, timezone, and target geography
 - `profile/candidate-profile.md` — verified candidate evidence
 - `profile/resumes/` — resume files
-- `Job_Application_Tracker.xlsx` — the ten-sheet tracker
+- `Job_Application_Tracker.xlsx` — the twelve-sheet tracker
 - `profile/search-terms.json` — private role titles, skills, exclusions, locations, and LinkedIn query settings
 - `profile/eligibility-evidence.json` — private, cited, expiring eligibility-policy evidence and human overrides
-- `state/` — run payloads and updater state
-- `application-packages/` — private form-response packets and required cover-letter files
+- `state/` — run payloads, deterministic replay archives, and updater state
+- `application-packages/` — private tailoring reports, form-response packets, and required cover-letter files
 
 Complete the candidate profile, add resume files, and then tell Codex: `Run $job-search now`.
 
@@ -45,12 +46,13 @@ Priority markets belong in `linkedin_public.priority_market_locations`, with cou
 
 ## Tracker
 
-The local workbook has `Dashboard`, `Search Config`, `Leads`, `Applications`, `Scan Log`, `Run Log`, `Form Runs`, `Query Metrics`, `Eligibility Review`, and `Lead Monitor`. `Search Config` is authoritative for budgets, scoring, thresholds, and alert limits. `Form Runs` stores compact inspection summaries while full answers remain in private local packets. `Query Metrics` records deterministic discovery-funnel counts for every attributed query attempt. `Eligibility Review` is a persistent inbox for strong roles whose eligibility or candidate evidence still needs a human decision; its Status and Resolution fields remain user-controlled. `Lead Monitor` stores the latest source-backed snapshot of shortlisted and prepared roles while `Scan Log` preserves change history. There are no daily worksheets; timestamps and IDs preserve history.
+The local workbook has `Dashboard`, `Search Config`, `Leads`, `Applications`, `Scan Log`, `Run Log`, `Form Runs`, `Query Metrics`, `Eligibility Review`, `Lead Monitor`, `Application Outcomes`, and `Action Dashboard`. `Search Config` is authoritative for budgets, scoring, thresholds, and alert limits. `Form Runs` stores compact inspection summaries while full answers remain in private local packets. `Query Metrics` records deterministic discovery-funnel counts for every attributed query attempt. `Eligibility Review` is a persistent inbox for strong roles whose eligibility or candidate evidence still needs a human decision; its Status and Resolution fields remain user-controlled. `Lead Monitor` stores the latest source-backed snapshot of shortlisted and prepared roles while `Scan Log` preserves change history. `Application Outcomes` is append-only and user-confirmed. `Action Dashboard` is a derived queue for reviews, manual submissions, due follow-ups, and stale leads. There are no daily worksheets; timestamps and IDs preserve history.
 
 ## Manual and scheduled runs
 
 - Manual: open the project in Codex and say `Run $job-search now`.
 - Lead actions: `shortlist L-…`, `dismiss L-…`, `prepare L-…`, or `applied L-…`.
+- Application intelligence: `tailor L-…`, `outcome L-…`, or `calibrate outcomes`.
 - Form help: prepare the lead, open the application page in a supported browser, then say `form L-…`.
 - Scheduled: create a Codex scheduled task for this project and ask it to run `$job-search`. Each user creates their own schedule; schedules are not stored in this repository.
 
@@ -65,6 +67,8 @@ Finder agents may read public LinkedIn job-detail pages without signing in. They
 Query-plan v4 supplies a deterministic public-source adapter registry for Ashby, Greenhouse, Workable, Lever, and SmartRecruiters. Adapters identify canonical hosts and published job IDs from public URLs only; they do not use private APIs, authenticated sessions, access-control bypasses, or submission endpoints. Listing status and eligibility always require page evidence and are never inferred from the URL.
 
 Every new run records one attempt per generated query and attributes each discovery or scan event back to it. The updater persists query-level yields in `Query Metrics` and returns a funnel summary that distinguishes an adequate no-match run from no discoveries, partial query coverage, or insufficient deep evaluation.
+
+Each discovery payload also records the exact query plan, screening filters, relevant configuration, and evidence-snapshot identifiers. The updater stores immutable private input/result archives with a canonical replay hash. `npm run replay -- --input state/runs/RUN-ID.input.json` normalizes one run, while `npm run compare-runs -- --before-run RUN-A --after-run RUN-B --state-dir state` explains query, filter, evidence, count, and candidate-decision changes without rerunning searches or modifying the tracker.
 
 ## Eligibility evidence and lead monitoring
 
@@ -90,8 +94,21 @@ npm run migrate-tracker
 npm run inspect -- Job_Application_Tracker.xlsx renders
 npm run update -- --workbook Job_Application_Tracker.xlsx --input state/RUN.json --state-dir state
 npm run monitor -- --workbook Job_Application_Tracker.xlsx --input state/MONITOR.json --eligibility-registry profile/eligibility-evidence.json --state-dir state
+npm run actions -- --workbook Job_Application_Tracker.xlsx --state-dir state
+npm run outcome -- --workbook Job_Application_Tracker.xlsx --input state/OUTCOME.json --state-dir state
+npm run calibrate -- --workbook Job_Application_Tracker.xlsx
+npm run tailor -- --input state/TAILORING.json --candidate-profile profile/candidate-profile.md --output application-packages/L-ID/tailoring.md
+npm run compare-runs -- --before-run RUN-A --after-run RUN-B --state-dir state
 npm run verify-public
 ```
+
+## Application intelligence and operations
+
+After `prepare L-…`, say `tailor L-…` for an advisory report. The read-only tailoring agent maps canonical job requirements and ATS keywords to stable candidate-evidence IDs, and the independent judge must approve every suggested bullet. The deterministic builder rejects unknown evidence, incomplete keyword coverage, and false approvals. It emits Markdown under the private application-packages directory but never edits the resume.
+
+When the candidate reports a screening, interview, rejection, offer, withdrawal, acceptance, or ghosting outcome, say `outcome L-…`. Only explicitly confirmed events are recorded. The append-only history drives advisory conversion summaries by score band and resume; small samples are labeled insufficient and the system never changes weights, thresholds, queries, or resumes automatically.
+
+`Action Dashboard` is refreshed by every supported writer and can be rebuilt with `npm run actions`. It lists work to perform manually; it never sends a follow-up, submits an application, resolves eligibility, or performs outreach.
 
 ## Application-form assistant
 

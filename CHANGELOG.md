@@ -6,6 +6,20 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-08-29
+
+### Added
+
+- Add append-only, user-confirmed `Application Outcomes` tracking and advisory conversion calibration that never mutates scoring policy.
+- Add a read-only `tailoring_agent`, complete ATS keyword coverage, stable candidate-evidence citations, independent judge review, and a deterministic claim-safe Markdown report builder.
+- Add private deterministic discovery-run archives, canonical replay hashes, and read-only comparison across queries, filters, configuration, evidence, counts, and candidate decisions.
+- Add a derived `Action Dashboard` for eligibility reviews, manual submissions, due follow-ups, and stale leads.
+
+### Changed
+
+- Refresh the action queue after every supported tracker writer and add both new sheets to fresh trackers and safe migrations.
+- Extend the job-search skill, judge task modes, run schema, public documentation, and application operations for v1.8 workflows.
+
 ## [1.7.0] - 2026-08-29
 
 ### Added
@@ -118,7 +132,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.1...v1.5.0

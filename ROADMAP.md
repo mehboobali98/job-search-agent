@@ -31,7 +31,7 @@ Status: released.
 
 ## v1.2 — Onboarding and reliability
 
-Status: planned.
+Status: rescheduled; remaining scope is consolidated in v1.9.
 
 - Guided dependency and workspace setup for a fresh clone.
 - Candidate-profile and resume-inventory validation before the first search.
@@ -67,7 +67,7 @@ Status: partially delivered in v1.5.0.
 - Search-funnel diagnostics from attempted query through discovery, deduplication, deep evaluation, judging, eligibility, and alerting are implemented.
 - Persistent per-query and per-source effectiveness metrics, including duplicate, blocker, expiry, and priority-lead yields, are implemented.
 - Explicit thin-coverage and no-discovery signals are implemented so an empty digest is never presented as evidence that no suitable jobs exist.
-- Deterministic query-budget recommendations based on rolling evidence remain planned; configuration changes will remain user-controlled.
+- Deterministic query-budget recommendations based on rolling evidence are planned for v1.9; configuration changes will remain user-controlled.
 - Deterministic public ATS adapters for Ashby, Greenhouse, Workable, Lever, and SmartRecruiters are implemented in v1.6.0; additional adapters remain evidence-driven future work.
 
 ## v1.6 — Eligibility review inbox
@@ -87,12 +87,22 @@ Status: released in v1.7.0.
 
 ## v1.8 — Application intelligence and operations
 
+Status: released in v1.8.0.
+
+- Append-only, user-confirmed application outcomes and advisory conversion calibration by score band and resume, with explicit small-sample warnings and no automatic policy mutation.
+- Claim-safe tailoring reports with complete ATS keyword coverage, stable candidate-evidence citations, gaps, prohibited claims, and independent judge approval.
+- Private deterministic run archives, canonical replay hashes, and read-only comparison of queries, filters, configuration, evidence, counts, and candidate decisions.
+- A derived `Action Dashboard` for eligibility reviews, manual submissions, due follow-ups, and stale leads; every listed external action remains manual.
+
+## v1.9 — Reliability and adaptive search guidance
+
 Status: planned.
 
-- Outcome-driven calibration across applications, screenings, interviews, and rejections without automatically rewriting scoring policy.
-- Claim-safe tailoring reports with ATS keyword coverage, evidence-backed bullet selection, gaps, and prohibited unsupported claims.
-- Deterministic run replay and comparison explaining changes in queries, filters, evidence, and decisions.
-- An action dashboard for reviews, manual submissions, follow-ups, stale leads, and unresolved eligibility questions.
+- Guided dependency, candidate-profile, and resume-inventory validation for fresh clones.
+- Dry-run discovery payloads, clearer pending-update recovery, and versioned configuration upgrades.
+- Judge-calibration fixtures and score-drift reports tied to stable job and candidate evidence.
+- Evidence-based query-budget recommendations that require explicit user approval before changing configuration.
+- Continuous integration across supported Node.js versions.
 
 ## v2 — Opt-in ingestion and notifications
 

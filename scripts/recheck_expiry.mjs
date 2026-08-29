@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
+import { refreshActionDashboard } from "./action_dashboard_sheet.mjs";
 import { normalizeUrl } from "./job_tracker_lib.mjs";
 import { argumentValue } from "./project_config.mjs";
 import { appendStyledRow } from "./tracker_rows.mjs";
@@ -92,12 +93,13 @@ try {
     numberFormats: { B: "yyyy-mm-dd hh:mm", C: "yyyy-mm-dd hh:mm", "H:P": "0" },
   });
 
+  const actions = refreshActionDashboard(workbook, { asOf: now });
   const exported = await SpreadsheetFile.exportXlsx(workbook);
   await exported.save(tempPath);
   await fs.rename(tempPath, workbookPath);
   try { await removeWorkbookInspection(tempPath); } catch { /* Workbook commit already succeeded. */ }
   try { await fs.rm(pendingPath, { force: true }); } catch { /* Workbook commit already succeeded. */ }
-  console.log(JSON.stringify({ run_id: payload.run_id, outcomes }, null, 2));
+  console.log(JSON.stringify({ run_id: payload.run_id, outcomes, actions }, null, 2));
 } catch (error) {
   try {
     await removeTemporaryWorkbook(tempPath, workbookPath);

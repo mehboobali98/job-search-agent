@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
+import { refreshActionDashboard } from "./action_dashboard_sheet.mjs";
 import {
   applicationFormSummary,
   renderApplicationFormMarkdown,
@@ -128,6 +129,7 @@ try {
     mergeFormNextAction(application[21], summary, packet.form.form_id, responseVisible),
   ]];
   applicationsSheet.getRange(`W${applicationRowNumber}`).values = [[now]];
+  const actions = refreshActionDashboard(workbook, { asOf: now });
 
   const formulaErrors = await workbook.inspect({
     kind: "match",
@@ -166,6 +168,7 @@ try {
     cover_letter_status: summary.cover_letter_status,
     response_packet: responsePath,
     validated_packet: packetJsonPath,
+    actions,
   }, null, 2));
 } catch (error) {
   try { await removeTemporaryWorkbook(tempWorkbookPath, workbookPath); } catch { /* Preserve the original workbook. */ }
