@@ -9,7 +9,7 @@ A reusable Codex workflow that discovers jobs with two parallel finders, indepen
 - `application_form_agent` reads the current prepared application-form step and drafts responses without typing or submitting.
 - `change_monitor` rechecks shortlisted and prepared canonical listings for material changes without writing to the tracker.
 - `tailoring_agent` maps canonical job requirements and ATS keywords to stable candidate evidence without editing resumes.
-- `job_judge` scores canonical listings without finder anchoring and separately audits form responses and tailoring reports against candidate evidence.
+- `job_judge` scores canonical listings without finder anchoring, runs blind synthetic calibration fixtures, and separately audits form responses and tailoring reports against candidate evidence.
 - The orchestrator is the only writer. Deterministic scripts validate and atomically update the workbook.
 
 Each clone is configured for one person. Their name, profile, resumes, workbook, and run history stay in Git-ignored local files.
@@ -25,6 +25,7 @@ Each clone is configured for one person. Their name, profile, resumes, workbook,
 ```sh
 npm run setup -- --name "Candidate Name" --timezone "Etc/UTC" --geography "Worldwide remote"
 npm run install-skill
+npm run preflight
 ```
 
 Setup creates these private, ignored artifacts:
@@ -43,6 +44,14 @@ Complete the candidate profile, add resume files, and then tell Codex: `Run $job
 Before the first run, edit `profile/search-terms.json` so each role family uses the candidate's actual titles and technologies. Keep terms atomic; the query builder adds LinkedIn-supported Boolean operators and quoting.
 
 Priority markets belong in `linkedin_public.priority_market_locations`, with country-level LinkedIn locations and optional city aliases for canonical ATS discovery. `company_watchlists` defines bounded, public company directories that can replace one normal query on a configured weekday. Use `npm run queries -- --run-date 2026-08-28T08:00:00+05:00` to preview a specific scheduled day without running discovery.
+
+## Reliability checks and recovery
+
+`npm run preflight` returns one machine-readable report for the Node runtime, bundled workbook dependency, local config version, twelve-sheet tracker contract, stable candidate evidence, five-variant PDF/DOCX resume inventory, search terms, eligibility registry, writable private directories, and pending recovery markers. Failed checks block discovery; warnings remain visible.
+
+Local config version 4 adds reliability settings while older versions remain readable. `npm run upgrade-config` previews every change without writing. Apply only with `npm run upgrade-config -- --apply`; the upgrader saves the prior config under the ignored state directory, initializes missing generic support files and private directories without overwriting anything, then atomically replaces the config.
+
+`npm run dry-run -- --input state/RUN.json` validates a proposed discovery payload against an isolated workbook copy and verifies that the live workbook hash is unchanged. If a writer previously failed, `npm run pending` reports its marker checksum, age, failure summary, and exact recovery steps without deleting it. Extraction for replay is explicit and remains inside the private state directory.
 
 ## Tracker
 
@@ -68,6 +77,8 @@ Query-plan v4 supplies a deterministic public-source adapter registry for Ashby,
 
 Every new run records one attempt per generated query and attributes each discovery or scan event back to it. The updater persists query-level yields in `Query Metrics` and returns a funnel summary that distinguishes an adequate no-match run from no discoveries, partial query coverage, or insufficient deep evaluation.
 
+`npm run recommend-budgets` reads only the rolling private run archives and compares conservative per-role utility after a minimum sample. It can recommend moving at most one query while preserving the total budget. Recommendations never apply themselves: the separate atomic writer requires `npm run apply-budget -- --recommendation state/RECOMMENDATION.json --approve QBUD-…` with the exact generated ID and rejects stale or modified evidence.
+
 Each discovery payload also records the exact query plan, screening filters, relevant configuration, and evidence-snapshot identifiers. The updater stores immutable private input/result archives with a canonical replay hash. `npm run replay -- --input state/runs/RUN-ID.input.json` normalizes one run, while `npm run compare-runs -- --before-run RUN-A --after-run RUN-B --state-dir state` explains query, filter, evidence, count, and candidate-decision changes without rerunning searches or modifying the tracker.
 
 ## Eligibility evidence and lead monitoring
@@ -86,8 +97,14 @@ The default template includes a Friday [Hiring Without Whiteboards](https://gith
 
 ```sh
 npm run config
+npm run preflight
+npm run upgrade-config
+npm run pending
+npm run dry-run -- --input state/RUN.json
 npm run queries
 npm run eligibility
+npm run calibrate-judge
+npm run recommend-budgets
 npm test
 npm run create-tracker
 npm run migrate-tracker
@@ -110,6 +127,8 @@ When the candidate reports a screening, interview, rejection, offer, withdrawal,
 
 `Action Dashboard` is refreshed by every supported writer and can be rebuilt with `npm run actions`. It lists work to perform manually; it never sends a follow-up, submits an application, resolves eligibility, or performs outreach.
 
+Judge calibration uses only versioned synthetic fixtures. `npm run calibrate-judge` emits a blind packet that excludes baselines, expected ranges, and unsupported-claim traps. After `job_judge` returns one result per fixture, `npm run calibrate-judge -- --input state/JUDGE-CALIBRATION.json` checks score arithmetic, component and total ranges, required stable citations, unsupported claims, and drift from the baseline. It reports quality without changing scoring policy or candidate data.
+
 ## Application-form assistant
 
 After `prepare L-…`, open the matching application page and say `form L-…`. The form agent inspects only the current step, extracts required-state evidence, drafts supported answers, and sends them to the independent judge. Salary, work authorization, sponsorship, relocation, sensitive demographic questions, attestations, and signatures remain manual unless the user has explicitly confirmed the exact answer.
@@ -123,6 +142,8 @@ After manual submission, say `applied L-…`. The tracker records the date and f
 The repository contains only reusable code, schemas, templates, tests, project agents, and the generic skill. Git ignores the local configuration, live workbook, candidate profile, resumes, state, application packages, renders, PDFs, Word files, and spreadsheets. A pre-commit hook rejects those paths and common private-data patterns if they are staged accidentally.
 
 Run `npm run install-skill` after pulling skill changes. It installs the generic skill into the current user's Codex skill directory.
+
+GitHub CI runs the dependency-free contract suite on Node 20, 22, and 24. The full workbook integration suite remains a release gate in Codex because `@oai/artifact-tool` is a bundled private workspace dependency rather than a public npm dependency.
 
 ## Roadmap
 

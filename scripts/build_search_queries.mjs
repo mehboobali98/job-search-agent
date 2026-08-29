@@ -4,16 +4,8 @@ import { fileURLToPath } from "node:url";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { allocateLargestRemainder } from "./job_tracker_lib.mjs";
 import { argumentValue, loadProjectConfig, resolveProjectPath } from "./project_config.mjs";
+import { configuredRunTiming } from "./run_timing.mjs";
 import { buildSearchPlan } from "./search_query_lib.mjs";
-
-export function configuredRunTiming(config, runDate) {
-  const timezone = String(config?.raw?.timezone ?? "").trim();
-  if (!timezone) throw new Error("Configured timezone is required");
-  return {
-    timezone,
-    runWeekday: new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: timezone }).format(runDate),
-  };
-}
 
 async function main() {
   const projectRoot = path.resolve(argumentValue(process.argv, "--project-root", process.cwd()));

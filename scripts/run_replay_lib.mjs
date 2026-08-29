@@ -47,6 +47,7 @@ export function buildReplaySnapshot(run) {
   const queries = querySource.map((query, index) => ({
     query_id: normalizeText(query.query_id) || `legacy-${index + 1}`,
     finder: normalizeText(query.finder) || null,
+    role_family: normalizeText(query.role_family) || null,
     source: normalizeText(query.source) || null,
     lane: normalizeText(query.lane) || null,
     query: normalizeText(query.query) || null,

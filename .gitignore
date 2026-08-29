@@ -3,6 +3,8 @@ node_modules
 
 # Per-user configuration and evidence. Never commit these.
 .job-search.local.json
+.job-search.local.json.*
+.job-search.local*.bak.json
 Job_Application_Tracker.xlsx
 profile/candidate-profile.md
 profile/search-terms.json

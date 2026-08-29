@@ -1,4 +1,5 @@
 import { candidateIdentityKeys, isAlertable, normalizeText } from "./job_tracker_lib.mjs";
+import { ROLE_FAMILIES } from "./search_query_lib.mjs";
 
 const QUERY_ATTEMPT_STATUSES = new Set(["Completed", "Failed"]);
 const FINDERS = new Set(["backend_finder", "ai_product_finder"]);
@@ -31,10 +32,12 @@ export function validateQueryAttempts(run) {
       finder: requiredText(raw.finder, `query_attempts[${index}].finder`),
       source: requiredText(raw.source, `query_attempts[${index}].source`),
       lane: requiredText(raw.lane, `query_attempts[${index}].lane`),
+      role_family: normalizeText(raw.role_family) || null,
       status: requiredText(raw.status, `query_attempts[${index}].status`),
       error: normalizeText(raw.error) || null,
     };
     if (!FINDERS.has(attempt.finder)) throw new Error(`query_attempts[${index}] has an invalid finder`);
+    if (attempt.role_family && !ROLE_FAMILIES.includes(attempt.role_family)) throw new Error(`query_attempts[${index}] has an invalid role_family`);
     if (!QUERY_ATTEMPT_STATUSES.has(attempt.status)) throw new Error(`query_attempts[${index}] has an invalid status`);
     if (attempt.status === "Failed" && !attempt.error) throw new Error(`query_attempts[${index}] requires error when status is Failed`);
     if (byId.has(attempt.query_id)) throw new Error("Duplicate query_attempts query_id: " + attempt.query_id);
@@ -62,6 +65,7 @@ function emptyMetric(attempt) {
     finder: attempt.finder,
     source: attempt.source,
     lane: attempt.lane,
+    role_family: attempt.role_family,
     status: attempt.status,
     found: 0,
     unique: 0,
@@ -284,6 +288,7 @@ export function buildRunDiagnostics(run, {
     query_metrics: queryMetrics,
     source_metrics: aggregateMetrics(queryMetrics, "source"),
     finder_metrics: aggregateMetrics(queryMetrics, "finder"),
+    role_metrics: aggregateMetrics(queryMetrics.filter((metric) => metric.role_family), "role_family"),
     warnings,
     summary,
   };

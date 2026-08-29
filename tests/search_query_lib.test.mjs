@@ -6,7 +6,7 @@ import {
   buildSearchPlan,
   validateSearchTerms,
 } from "../scripts/search_query_lib.mjs";
-import { configuredRunTiming } from "../scripts/build_search_queries.mjs";
+import { configuredRunTiming } from "../scripts/run_timing.mjs";
 
 function termsFixture() {
   return {

@@ -31,7 +31,7 @@ Status: released.
 
 ## v1.2 — Onboarding and reliability
 
-Status: rescheduled; remaining scope is consolidated in v1.9.
+Status: delivered across v1.2.0 and v1.9.0.
 
 - Guided dependency and workspace setup for a fresh clone.
 - Candidate-profile and resume-inventory validation before the first search.
@@ -46,7 +46,7 @@ Status: partially delivered in v1.3.0.
 
 - Reusable candidate-local query packs with broad title-first public LinkedIn searches and post-discovery fit screening are implemented; the first deterministic public ATS adapters shipped in v1.6.0.
 - Better source-health, freshness, canonicalization, and description-change signals.
-- Evaluation fixtures for judge calibration, eligibility disagreements, and score drift.
+- Evaluation fixtures for blind judge calibration, eligibility decisions, unsupported claims, and score drift are implemented in v1.9.0.
 - Explainable score breakdowns with tighter links between job evidence and candidate evidence IDs.
 - Search-quality metrics that support evidence-based query and threshold tuning.
 
@@ -67,7 +67,7 @@ Status: partially delivered in v1.5.0.
 - Search-funnel diagnostics from attempted query through discovery, deduplication, deep evaluation, judging, eligibility, and alerting are implemented.
 - Persistent per-query and per-source effectiveness metrics, including duplicate, blocker, expiry, and priority-lead yields, are implemented.
 - Explicit thin-coverage and no-discovery signals are implemented so an empty digest is never presented as evidence that no suitable jobs exist.
-- Deterministic query-budget recommendations based on rolling evidence are planned for v1.9; configuration changes will remain user-controlled.
+- Deterministic query-budget recommendations based on rolling evidence are implemented in v1.9.0; configuration changes require an exact explicit approval ID.
 - Deterministic public ATS adapters for Ashby, Greenhouse, Workable, Lever, and SmartRecruiters are implemented in v1.6.0; additional adapters remain evidence-driven future work.
 
 ## v1.6 — Eligibility review inbox
@@ -96,13 +96,13 @@ Status: released in v1.8.0.
 
 ## v1.9 — Reliability and adaptive search guidance
 
-Status: planned.
+Status: released in v1.9.0.
 
-- Guided dependency, candidate-profile, and resume-inventory validation for fresh clones.
-- Dry-run discovery payloads, clearer pending-update recovery, and versioned configuration upgrades.
-- Judge-calibration fixtures and score-drift reports tied to stable job and candidate evidence.
-- Evidence-based query-budget recommendations that require explicit user approval before changing configuration.
-- Continuous integration across supported Node.js versions.
+- Guided dependency, twelve-sheet tracker, candidate-profile, eligibility, and resume-inventory validation for fresh clones.
+- Isolated dry-run discovery payloads, checksummed pending-update recovery guidance, and explicitly applied versioned configuration upgrades with private backups.
+- Blind synthetic judge-calibration fixtures and component/total score-drift reports tied to stable job and candidate evidence.
+- Rolling evidence-based, one-query budget recommendations with a separate atomic writer that requires the exact user-approved recommendation ID.
+- Portable continuous integration across Node.js 20, 22, and 24, with the bundled workbook suite retained as a local release gate.
 
 ## v2 — Opt-in ingestion and notifications
 

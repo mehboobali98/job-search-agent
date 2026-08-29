@@ -1,0 +1,25 @@
+# Reliability and adaptive guidance
+
+## Preflight
+
+Run `node scripts/preflight.mjs` before discovery when the local version-4 config has `reliability.require_preflight: true`. A failed check blocks discovery. Warnings do not block, but report them and resolve pending recovery markers before another workbook write. The report is intentionally compact and never includes candidate-profile or resume content.
+
+Older local config versions remain readable. `npm run upgrade-config` is preview-only. Apply only after the user requests it with `npm run upgrade-config -- --apply`; the script writes a private backup, initializes missing generic support files and directories without overwriting existing data, and then atomically replaces the config.
+
+## Dry-run and pending recovery
+
+Use `npm run dry-run -- --input <run.json>` to validate a discovery payload on an isolated workbook copy. The command must report `workbook_unchanged: true` and never writes project state.
+
+Use `npm run pending` to inspect checksums, age, failure summaries, and guided recovery commands. Inspection is read-only. If extraction is needed, use the exact `--marker` and `--extract` command from the report; extracted material must remain under the private state directory. Never delete a marker merely to silence preflight. A successful replay removes its own marker.
+
+## Adaptive query budgets
+
+`npm run recommend-budgets` reads rolling private run archives and uses attributed role-family metrics only. Insufficient samples produce no recommendation. An eligible recommendation transfers at most one query, preserves the total budget, and never changes thresholds, scoring, resumes, or search terms.
+
+Recommendation output is advisory and has `requires_explicit_approval: true` and `applied: false`. Do not apply it unless the user explicitly approves the exact `recommendation_id`. Then save the recommendation in private state and call:
+
+```sh
+npm run apply-budget -- --recommendation state/RECOMMENDATION.json --approve QBUD-EXACT-ID
+```
+
+The writer rejects a stale workbook budget, modified recommendation, wrong ID, or changed total. It commits through a verified atomic workbook replacement and preserves a pending marker on failure.

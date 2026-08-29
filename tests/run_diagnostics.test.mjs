@@ -8,6 +8,7 @@ function attempt(queryId, finder = "backend_finder", overrides = {}) {
     finder,
     source: "linkedin_public",
     lane: "remote_recent",
+    role_family: "Backend / Platform",
     status: "Completed",
     ...overrides,
   };
@@ -72,6 +73,7 @@ test("derives attributed query metrics and flags thin deep-evaluation coverage",
   assert.equal(diagnostics.funnel.alerted, 1);
   assert.equal(diagnostics.query_metrics.find((metric) => metric.query_id === "Q-1").priority, 1);
   assert.equal(diagnostics.query_metrics.find((metric) => metric.query_id === "Q-2").hard_blocked, 5);
+  assert.equal(diagnostics.role_metrics[0].role_family, "Backend / Platform");
   assert.match(diagnostics.summary, /Thin coverage/);
   assert.ok(diagnostics.warnings.some((warning) => /deeply evaluated/.test(warning)));
 });

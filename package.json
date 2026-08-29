@@ -1,12 +1,16 @@
 {
   "name": "job-search-agent",
-  "version": "1.8.0",
-  "description": "Reusable multi-agent job discovery, monitoring, claim-safe application intelligence, outcome calibration, and local tracking for Codex",
+  "version": "1.9.0",
+  "description": "Reusable multi-agent job discovery, reliability checks, adaptive search guidance, claim-safe application intelligence, and local tracking for Codex",
   "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {
     "setup": "node scripts/setup.mjs",
+    "upgrade-config": "node scripts/upgrade_config.mjs",
+    "preflight": "node scripts/preflight.mjs",
+    "pending": "node scripts/inspect_pending.mjs",
+    "dry-run": "node scripts/dry_run_update.mjs",
     "create-tracker": "node scripts/create_tracker.mjs",
     "install-skill": "node scripts/install_skill.mjs",
     "config": "node scripts/export_search_config.mjs",
@@ -19,13 +23,20 @@
     "lead": "node scripts/manage_lead.mjs",
     "outcome": "node scripts/record_application_outcome.mjs",
     "calibrate": "node scripts/calibrate_outcomes.mjs",
+    "calibrate-judge": "node scripts/calibrate_judge.mjs",
     "tailor": "node scripts/build_tailoring_report.mjs",
     "replay": "node scripts/replay_run.mjs",
     "compare-runs": "node scripts/compare_runs.mjs",
+    "recommend-budgets": "node scripts/recommend_query_budget.mjs",
+    "apply-budget": "node scripts/apply_query_budget.mjs",
     "record-form": "node scripts/record_form_packet.mjs",
     "update": "node scripts/update_tracker.mjs",
     "inspect": "node scripts/inspect_workbook.mjs",
     "test": "node --test tests/*.test.mjs",
+    "test:portable": "node --test tests/action_dashboard_lib.test.mjs tests/application_form_lib.test.mjs tests/application_outcomes_lib.test.mjs tests/canonical_source_adapters.test.mjs tests/eligibility_evidence_lib.test.mjs tests/file_transaction.test.mjs tests/form_runs_sheet.test.mjs tests/job_tracker_lib.test.mjs tests/judge_calibration.test.mjs tests/lead_monitor_lib.test.mjs tests/pending_recovery.test.mjs tests/preflight_lib.test.mjs tests/project_config.test.mjs tests/query_budget.test.mjs tests/query_metrics_sheet.test.mjs tests/run_diagnostics.test.mjs tests/run_replay_lib.test.mjs tests/search_query_lib.test.mjs tests/tailoring_report_lib.test.mjs tests/tracker_rows.test.mjs",
     "verify-public": "node scripts/verify_public_repo.mjs"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

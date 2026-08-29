@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "fixture_id": "CAL-BACKEND-STRONG",
+      "candidate_evidence": [
+        { "id": "CAL-BE-01", "statement": "Designed and operated versioned HTTP APIs backed by PostgreSQL." },
+        { "id": "CAL-REL-01", "statement": "Reduced verified background-job failure rates through idempotency and retry controls." },
+        { "id": "CAL-LEAD-01", "statement": "Led architecture reviews for a four-person delivery team." }
+      ],
+      "eligibility_evidence": [
+        { "id": "CAL-ELIG-01", "statement": "The synthetic candidate may work in the listed worldwide-remote region." }
+      ],
+      "job": {
+        "company": "Synthetic Systems",
+        "title": "Senior Backend Engineer",
+        "canonical_url": "https://jobs.example.test/calibration/backend-strong",
+        "description": "Build and operate versioned APIs, PostgreSQL data services, and reliable background processing. Guide design reviews for a small team. Worldwide remote. Compensation is not published.",
+        "source_evidence": [
+          { "id": "CAL-JOB-01", "statement": "The canonical synthetic listing is active and worldwide remote." }
+        ]
+      },
+      "expected": {
+        "allowed_listing_statuses": ["Active"],
+        "allowed_eligibility": ["Eligible"],
+        "score_ranges": {
+          "responsibilities": [20, 24], "technical": [15, 19], "seniority": [10, 14], "evidence": [11, 15],
+          "domain": [6, 10], "location": [8, 10], "compensation": [2, 4]
+        },
+        "baseline_scores": {
+          "responsibilities": 22, "technical": 17, "seniority": 12, "evidence": 13,
+          "domain": 8, "location": 9, "compensation": 3
+        },
+        "total_range": [78, 90],
+        "required_evidence_ids": ["CAL-BE-01", "CAL-REL-01", "CAL-ELIG-01"],
+        "forbidden_claims": ["kubernetes", "millions of users"],
+        "unsupported_evidence": false
+      }
+    },
+    {
+      "fixture_id": "CAL-AI-TRANSFERABLE",
+      "candidate_evidence": [
+        { "id": "CAL-AI-01", "statement": "Built a private retrieval prototype and evaluated answer grounding on a synthetic test set." },
+        { "id": "CAL-DX-01", "statement": "Automated repeatable developer checks in continuous integration." },
+        { "id": "CAL-BE-02", "statement": "Shipped production web services, but no production LLM ownership is established." }
+      ],
+      "eligibility_evidence": [
+        { "id": "CAL-ELIG-02", "statement": "The listing gives no sponsorship or hiring-country detail for the synthetic candidate." }
+      ],
+      "job": {
+        "company": "Synthetic AI Studio",
+        "title": "Applied AI Product Engineer",
+        "canonical_url": "https://jobs.example.test/calibration/ai-transferable",
+        "description": "Build production retrieval and evaluation systems for an AI product. Partner across backend and product teams. Remote region is stated, but sponsorship and hiring countries are not. Published compensation is within the target range.",
+        "source_evidence": [
+          { "id": "CAL-JOB-02", "statement": "The canonical synthetic listing is active; sponsorship and hiring-country coverage are unclear." }
+        ]
+      },
+      "expected": {
+        "allowed_listing_statuses": ["Active"],
+        "allowed_eligibility": ["Unclear"],
+        "score_ranges": {
+          "responsibilities": [14, 19], "technical": [12, 17], "seniority": [7, 12], "evidence": [8, 13],
+          "domain": [5, 9], "location": [3, 6], "compensation": [4, 5]
+        },
+        "baseline_scores": {
+          "responsibilities": 17, "technical": 15, "seniority": 9, "evidence": 10,
+          "domain": 7, "location": 5, "compensation": 5
+        },
+        "total_range": [60, 76],
+        "required_evidence_ids": ["CAL-AI-01", "CAL-DX-01", "CAL-ELIG-02"],
+        "forbidden_claims": ["production llm ownership", "owned model training"],
+        "unsupported_evidence": false
+      }
+    },
+    {
+      "fixture_id": "CAL-EXPIRED-LISTING",
+      "candidate_evidence": [
+        { "id": "CAL-BE-03", "statement": "Implemented service integrations and relational database changes." }
+      ],
+      "eligibility_evidence": [],
+      "job": {
+        "company": "Synthetic Closed Company",
+        "title": "Backend Engineer",
+        "canonical_url": "https://jobs.example.test/calibration/expired",
+        "description": "The archived role requested service integration and relational database experience. The canonical page explicitly says applications are closed.",
+        "source_evidence": [
+          { "id": "CAL-LISTING-01", "statement": "The canonical synthetic listing explicitly says applications are closed." }
+        ]
+      },
+      "expected": {
+        "allowed_listing_statuses": ["Expired"],
+        "allowed_eligibility": ["Ineligible"],
+        "score_ranges": {
+          "responsibilities": [14, 20], "technical": [12, 18], "seniority": [5, 11], "evidence": [7, 12],
+          "domain": [4, 8], "location": [0, 2], "compensation": [2, 4]
+        },
+        "baseline_scores": {
+          "responsibilities": 17, "technical": 15, "seniority": 8, "evidence": 10,
+          "domain": 6, "location": 1, "compensation": 3
+        },
+        "total_range": [53, 69],
+        "required_evidence_ids": ["CAL-BE-03", "CAL-LISTING-01"],
+        "forbidden_claims": ["currently accepting applications", "active listing"],
+        "unsupported_evidence": false
+      }
+    }
+  ]
+}

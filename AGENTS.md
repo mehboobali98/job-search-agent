@@ -5,7 +5,7 @@ This project is a reusable, single-candidate-per-clone job-discovery system. Rea
 ## Safety and scope
 
 - Never submit an application, send outreach, or change an application status without the configured candidate's explicit request.
-- Finder, monitor, tailoring, form, and judge agents are read-only. Only the orchestrator may call `scripts/update_tracker.mjs`, `scripts/monitor_leads.mjs`, `scripts/manage_lead.mjs`, `scripts/record_form_packet.mjs`, `scripts/record_application_outcome.mjs`, `scripts/refresh_actions.mjs`, `scripts/migrate_tracker.mjs`, or `scripts/recheck_expiry.mjs`.
+- Finder, monitor, tailoring, form, and judge agents are read-only. Only the orchestrator may call `scripts/update_tracker.mjs`, `scripts/monitor_leads.mjs`, `scripts/manage_lead.mjs`, `scripts/record_form_packet.mjs`, `scripts/record_application_outcome.mjs`, `scripts/refresh_actions.mjs`, `scripts/migrate_tracker.mjs`, `scripts/recheck_expiry.mjs`, or the explicitly approved `scripts/apply_query_budget.mjs` writer.
 - Use only evidence in the configured candidate profile; do not infer experience from a job description.
 - Treat explicit residency, work-authorization, and unsupported-country restrictions as hard blockers.
 - Preserve the configured canonical workbook through atomic writes. If an update fails, keep it unchanged and retain a pending JSON payload in the configured state directory.
@@ -15,6 +15,7 @@ This project is a reusable, single-candidate-per-clone job-discovery system. Rea
 - Draft a cover letter only when the inspected form explicitly requires one; optional, absent, or unclear fields receive no draft.
 - Record outcomes only when the candidate explicitly confirms them. Calibration is advisory and never rewrites scoring policy.
 - Tailoring reports cite stable candidate-evidence IDs and require independent review; they never edit resumes or application forms.
+- Run preflight before discovery when the current local configuration requires it. Query-budget recommendations are advisory until the user supplies the exact approval ID to the dedicated writer.
 
 ## Recurring workflow
 

@@ -6,6 +6,22 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-30
+
+### Added
+
+- Add one guided preflight report for runtime dependencies, config freshness, the complete tracker contract, candidate evidence, resume inventory, search terms, eligibility evidence, private directories, and pending recovery state.
+- Add read-only config-upgrade previews, explicit atomic upgrades with private backups and non-overwriting support-artifact initialization, isolated discovery dry-runs, and checksummed pending-marker inspection with guided extraction and replay commands.
+- Add blind synthetic judge-calibration fixtures with deterministic eligibility, evidence-citation, unsupported-claim, arithmetic, score-range, and component/total drift checks.
+- Add rolling per-role query-utility recommendations and a separate atomic workbook writer that accepts only an unchanged recommendation with the exact explicit approval ID.
+- Add a portable CI matrix for Node.js 20, 22, and 24 while retaining the bundled workbook integration suite as a local release gate.
+
+### Changed
+
+- Upgrade new local configurations to schema version 4 with reliability controls while preserving read compatibility for versions 1 through 3.
+- Preserve optional role-family attribution in query attempts and private run diagnostics so new evidence can support adaptive guidance without changing the public tracker schema.
+- Extend the reusable skill, project agents, schemas, setup guide, privacy boundary, and recovery guidance for the v1.9 reliability workflow.
+
 ## [1.8.0] - 2026-08-29
 
 ### Added
@@ -132,7 +148,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.5.0...v1.6.0

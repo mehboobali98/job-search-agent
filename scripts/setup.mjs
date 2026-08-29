@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createTracker } from "./create_tracker.mjs";
-import { argumentValue, LOCAL_CONFIG_NAME, resolveProjectPath, validateProjectConfig } from "./project_config.mjs";
+import { argumentValue, CURRENT_CONFIG_VERSION, DEFAULT_RELIABILITY, LOCAL_CONFIG_NAME, resolveProjectPath, validateProjectConfig } from "./project_config.mjs";
 
 const projectRoot = path.resolve(argumentValue(process.argv, "--project-root", process.cwd()));
 const candidateName = argumentValue(process.argv, "--name");
@@ -11,7 +11,7 @@ const force = process.argv.includes("--force");
 if (!candidateName) throw new Error("Usage: npm run setup -- --name \"Candidate Name\" [--timezone \"Etc/UTC\"] [--geography \"Worldwide remote\"] [--force]");
 
 const config = validateProjectConfig({
-  version: 3,
+  version: CURRENT_CONFIG_VERSION,
   candidate_name: candidateName,
   timezone,
   target_geography: targetGeography,
@@ -22,6 +22,7 @@ const config = validateProjectConfig({
   resumes_directory: "profile/resumes",
   state_directory: "state",
   application_packages_directory: "application-packages",
+  reliability: { ...DEFAULT_RELIABILITY },
 });
 const configPath = path.join(projectRoot, LOCAL_CONFIG_NAME);
 const trackerPath = resolveProjectPath(projectRoot, config.tracker_path);
@@ -59,5 +60,5 @@ console.log(JSON.stringify({
   eligibility_evidence: config.eligibility_evidence_path,
   resumes_directory: config.resumes_directory,
   application_packages_directory: config.application_packages_directory,
-  next: "Complete the candidate profile, add resume files, then run npm run install-skill.",
+  next: "Complete the candidate profile, add resume files, run npm run install-skill, then run npm run preflight.",
 }, null, 2));

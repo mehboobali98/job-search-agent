@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-tests:
+    name: Node ${{ matrix.node }} portable tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm run test:portable
+      - run: npm run verify-public
+
+  local-workbook-gate:
+    name: Workbook-suite contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --check scripts/update_tracker.mjs
+      - run: node --check scripts/preflight.mjs
+      - run: node --check scripts/apply_query_budget.mjs
+      - run: echo "Full workbook integration tests run in the Codex release environment with the bundled @oai/artifact-tool dependency."

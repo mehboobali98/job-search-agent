@@ -51,6 +51,8 @@ test("every workbook writer rejects a non-xlsx target without changing it", asyn
     ["scripts/manage_lead.mjs", "--workbook", workbook, "--lead-id", "L-TEST", "--action", "prepare", "--state-dir", state],
     ["scripts/record_form_packet.mjs", "--workbook", workbook, "--lead-id", "L-TEST", "--input", input, "--state-dir", state],
     ["scripts/update_tracker.mjs", "--workbook", workbook, "--input", input, "--state-dir", state],
+    ["scripts/dry_run_update.mjs", "--workbook", workbook, "--input", input],
+    ["scripts/apply_query_budget.mjs", "--workbook", workbook, "--recommendation", input, "--approve", "QBUD-TEST", "--state-dir", state],
     ["scripts/recheck_expiry.mjs", "--workbook", workbook, "--input", input, "--state-dir", state],
     ["scripts/migrate_tracker.mjs", "--workbook", workbook, "--state-dir", state],
     ["scripts/monitor_leads.mjs", "--workbook", workbook, "--input", input, "--state-dir", state],

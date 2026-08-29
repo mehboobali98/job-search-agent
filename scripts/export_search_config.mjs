@@ -38,4 +38,5 @@ console.log(JSON.stringify({
   agent_query_budget: agentQueryBudget,
   scoring,
   policies,
+  reliability: config.reliability,
 }, null, 2));
