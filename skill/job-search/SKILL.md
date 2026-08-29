@@ -19,6 +19,7 @@ For discovery, read [workflow.md](references/workflow.md) and [schemas.md](refer
 - Convert eligibility disagreements or unsupported candidate claims to `Needs Human Review`; never alert them. A judge-returned structured `Expired` or `Inaccessible` status remains `Ineligible`.
 - If judging fails, retain viable candidates as `Needs Judge`; never alert them.
 - Continue with partial coverage if one finder fails and record the failure.
+- Preserve one query-attempt record per generated query and keep every candidate and scan event attributed to its discovery query so the updater can produce deterministic coverage metrics.
 - Public LinkedIn discovery uses only generated title-focused query-plan entries and public job pages. Keep technical, exclusion, country-eligibility, sponsorship, and relocation checks in post-discovery screening rather than narrowing the public query. Never sign in, reuse an authenticated session, or bypass access controls. Record the query ID and LinkedIn job ID, and prefer the employer or ATS page as canonical evidence.
 - Priority-market lanes use the exact configured country location and retain configured city aliases for canonical-source discovery and post-discovery checks. Do not silently replace or omit a generated priority-market query.
 - A company-watchlist entry is only a discovery seed. Inspect at most its configured company limit, require a live canonical vacancy before returning a packet, and treat its interview-process signal as unscored context that may be stale. A directory row alone is never a lead or a scan event representing a vacancy.
@@ -31,4 +32,4 @@ For discovery, read [workflow.md](references/workflow.md) and [schemas.md](refer
 
 ## Completion
 
-After the workbook update succeeds, report only updater-returned alerts, capped by Search Config. Include lead ID, company, role, score, resume, location, eligibility, strengths, primary risk, posting date, and canonical link. If none qualify, give a compact no-match message.
+After the workbook update succeeds, report only updater-returned alerts, capped by Search Config. Include lead ID, company, role, score, resume, location, eligibility, strengths, primary risk, posting date, and canonical link. If none qualify, give the updater's compact diagnostics summary and warnings; distinguish no priority leads from no discoveries or thin coverage.

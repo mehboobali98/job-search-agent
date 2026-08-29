@@ -6,6 +6,13 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-29
+
+### Added
+
+- Add backward-compatible query-attempt attribution, deterministic funnel diagnostics, thin-coverage warnings, and persistent per-query metrics.
+- Add a migratable `Query Metrics` tracker sheet with query, finder, source, lane, yield, blocker, expiry, and failure measurements.
+
 ## [1.4.1] - 2026-08-27
 
 ### Fixed
@@ -85,7 +92,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.2.0...v1.3.0

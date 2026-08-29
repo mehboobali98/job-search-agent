@@ -16,7 +16,7 @@ This project is a reusable, single-candidate-per-clone job-discovery system. Rea
 
 ## Recurring workflow
 
-Invoke `$job-search`. Resolve the project from the user's prompt or current working directory, load `.job-search.local.json`, and export the workbook configuration with `scripts/export_search_config.mjs`. Spawn `backend_finder` and `ai_product_finder` in parallel with the normalized profile, packet schema, exported configuration, and exact budgets. Combine and deduplicate their packets, then send the configured number of preliminary candidates to `job_judge` without finder scores or recommendations. Only records with `judge_status=Judged` may trigger priority alerts.
+Invoke `$job-search`. Resolve the project from the user's prompt or current working directory, load `.job-search.local.json`, and export the workbook configuration with `scripts/export_search_config.mjs`. Spawn `backend_finder` and `ai_product_finder` in parallel with the normalized profile, packet schema, exported configuration, and exact budgets. Preserve one query-attempt record per generated query and attribute every candidate and scan event to its discovery query. Combine and deduplicate their packets, then send the configured number of preliminary candidates to `job_judge` without finder scores or recommendations. Only records with `judge_status=Judged` may trigger priority alerts.
 
 Execute every generated priority-market lane exactly as configured. A `company_watchlist` plan entry is a bounded seed check, not a job listing: require an active canonical vacancy before returning a packet, never award fit points for the directory's interview-process signal, and never count a directory row alone as a job examination.
 
@@ -27,6 +27,7 @@ Execute every generated priority-market lane exactly as configured. A `company_w
 - `profile/search-policy.md` defines query allocation and screening policy.
 - `profile/candidate-packet-schema.md` defines finder, scan-event, blind-judge, judged, and failed-judge contracts.
 - `scripts/update_tracker.mjs` is the only supported discovery-run workbook mutation interface.
+- `Query Metrics` stores deterministic per-attempt funnel measurements; the updater also returns aggregate coverage diagnostics and warnings.
 - `scripts/record_form_packet.mjs` is the only supported form-packet workbook mutation interface.
 - `scripts/manage_lead.mjs --action applied` records a submission only after the candidate explicitly says it was submitted.
 - `templates/` contains safe onboarding templates; it must never contain a real candidate's data.

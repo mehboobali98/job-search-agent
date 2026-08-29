@@ -17,6 +17,8 @@ import {
   validateJudgedCandidate,
 } from "./job_tracker_lib.mjs";
 import { argumentValue } from "./project_config.mjs";
+import { ensureQueryMetricsSheet } from "./query_metrics_sheet.mjs";
+import { buildRunDiagnostics, validateQueryAttempts } from "./run_diagnostics.mjs";
 import { appendStyledRow } from "./tracker_rows.mjs";
 import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
@@ -84,6 +86,10 @@ function validateRunPayload(run) {
     if (event.deep_evaluated && !event.counts_toward_unique) {
       throw new Error(`scan_events[${index}] cannot be deep_evaluated when counts_toward_unique is false`);
     }
+  }
+  const queryAttempts = validateQueryAttempts(run);
+  if (queryAttempts.attempts.some((attempt) => attempt.status === "Failed") && run.status !== "Partial") {
+    throw new Error("A run with a failed query attempt must have status Partial");
   }
 }
 
@@ -235,6 +241,7 @@ try {
   const scanSheet = workbook.worksheets.getItem("Scan Log");
   const runSheet = workbook.worksheets.getItem("Run Log");
   const configSheet = workbook.worksheets.getItem("Search Config");
+  const { sheet: queryMetricsSheet, table: queryMetricsTable } = ensureQueryMetricsSheet(workbook);
   const leadsTable = leadsSheet.tables.items.find((table) => table.name === "LeadsTable");
   const scanTable = scanSheet.tables.items.find((table) => table.name === "ScanLogTable");
   const runTable = runSheet.tables.items.find((table) => table.name === "RunLogTable");
@@ -290,6 +297,7 @@ try {
   const alertCandidates = new Map();
   const writtenRows = new Map();
   const outcomes = [];
+  const diagnosticCandidates = [];
 
   for (const event of payload.scan_events) {
     const eventUrl = normalizeUrl(event.canonical_url ?? event.url ?? "");
@@ -359,6 +367,7 @@ try {
       candidate.canonical_key = existing.canonical_key;
     }
     candidate.lead_id = existing?.lead_id ?? ("L-" + now.toISOString().slice(0, 10).replaceAll("-", "") + "-" + String(sequence++).padStart(3, "0"));
+    diagnosticCandidates.push(candidate);
     alertCandidates.delete(candidate.lead_id);
     const alert = existing?.status === "Dismissed" ? false : shouldRepeatAlert(existing, candidate, alertThreshold);
     const thresholdScore = candidate.final_score ?? Number(raw.preliminary_score ?? 0);
@@ -427,7 +436,48 @@ try {
     if (!excelRow) throw new Error("Cannot locate selected alert row: " + selected.lead_id);
     leadsSheet.getRange("AB" + excelRow).values = [[now]];
   }
+  const diagnostics = buildRunDiagnostics({ ...payload, candidates: diagnosticCandidates }, {
+    maxDeepEvaluations: configuredMaxEvaluated,
+    alertThreshold,
+    leadThreshold,
+    alertCount: selectedAlerts.length,
+  });
+  for (const metric of diagnostics.query_metrics) {
+    appendStyledRow(queryMetricsTable, queryMetricsSheet, [
+      payload.run_id,
+      now,
+      metric.query_id,
+      metric.finder,
+      metric.source,
+      metric.lane,
+      metric.status,
+      metric.found,
+      metric.unique,
+      metric.evaluated,
+      metric.judged,
+      metric.eligible,
+      metric.reviewable,
+      metric.needs_review,
+      metric.priority,
+      metric.duplicates,
+      metric.hard_blocked,
+      metric.expired,
+      metric.inaccessible,
+      metric.shallow_rejected,
+      metric.unique_yield,
+      metric.evaluation_rate,
+      metric.priority_yield,
+      metric.error,
+    ], "X", {
+      numberFormats: { B: "yyyy-mm-dd hh:mm", "H:T": "0", "U:W": "0.0%" },
+      validations: { G: ["Completed", "Failed"] },
+      rowHeight: 42,
+    });
+  }
   const errors = Array.isArray(payload.errors) ? payload.errors.join(" | ") : payload.errors ?? null;
+  const diagnosticNote = diagnostics.warnings.length
+    ? diagnostics.summary + " " + diagnostics.warnings.join(" ")
+    : diagnostics.summary;
   appendStyledRow(runTable, runSheet, [
     payload.run_id,
     new Date(payload.started_at),
@@ -446,7 +496,7 @@ try {
     outcomes.filter((item) => item.outcome.startsWith("Suppressed")).length,
     selectedAlerts.length,
     errors,
-    payload.notes ?? null,
+    [normalizeText(payload.notes), diagnosticNote].filter(Boolean).join("\n"),
   ], "R", {
     numberFormats: { B: "yyyy-mm-dd hh:mm", C: "yyyy-mm-dd hh:mm", "H:P": "0" },
   });
@@ -459,7 +509,7 @@ try {
   });
   if (/#[A-Z0-9/]+[!?]/.test(formulaErrors.ndjson)) throw new Error("Formula validation failed: " + formulaErrors.ndjson);
 
-  const result = { run_id: payload.run_id, outcomes, alerts: selectedAlerts };
+  const result = { run_id: payload.run_id, outcomes, alerts: selectedAlerts, diagnostics };
   const resultTempPath = path.join(stateDir, ".last-run-" + String(payload.run_id).replace(/[^a-z0-9_-]/gi, "_") + ".tmp.json");
   const exported = await SpreadsheetFile.exportXlsx(workbook);
   await exported.save(tempPath);

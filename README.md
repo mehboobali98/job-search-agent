@@ -30,7 +30,7 @@ Setup creates these private, ignored artifacts:
 - `.job-search.local.json` — local paths, timezone, and target geography
 - `profile/candidate-profile.md` — verified candidate evidence
 - `profile/resumes/` — resume files
-- `Job_Application_Tracker.xlsx` — the seven-sheet tracker
+- `Job_Application_Tracker.xlsx` — the eight-sheet tracker
 - `profile/search-terms.json` — private role titles, skills, exclusions, locations, and LinkedIn query settings
 - `state/` — run payloads and updater state
 - `application-packages/` — private form-response packets and required cover-letter files
@@ -43,7 +43,7 @@ Priority markets belong in `linkedin_public.priority_market_locations`, with cou
 
 ## Tracker
 
-The local workbook has `Dashboard`, `Search Config`, `Leads`, `Applications`, `Scan Log`, `Run Log`, and `Form Runs`. `Search Config` is authoritative for budgets, scoring, thresholds, and alert limits. `Form Runs` stores compact inspection summaries while full answers remain in private local packets. There are no daily worksheets; timestamps and IDs preserve history.
+The local workbook has `Dashboard`, `Search Config`, `Leads`, `Applications`, `Scan Log`, `Run Log`, `Form Runs`, and `Query Metrics`. `Search Config` is authoritative for budgets, scoring, thresholds, and alert limits. `Form Runs` stores compact inspection summaries while full answers remain in private local packets. `Query Metrics` records deterministic discovery-funnel counts for every attributed query attempt. There are no daily worksheets; timestamps and IDs preserve history.
 
 ## Manual and scheduled runs
 
@@ -59,6 +59,8 @@ Local scheduled work requires the computer and Codex desktop to be running.
 Run `npm run queries` to preview the exact discovery plan. It allocates the workbook's search budget across role families and produces a mix of public LinkedIn and canonical employer/ATS queries. LinkedIn discovery uses short title-only Boolean searches with exact phrases and uppercase `OR`, plus a seven-day freshness window by default and explicit remote or relocation lanes. Skills, technical context, exclusions, country eligibility, sponsorship, and relocation are evaluated after discovery so public indexing is not over-constrained.
 
 Finder agents may read public LinkedIn job-detail pages without signing in. They record the query ID and LinkedIn job ID, classify unavailable or closed pages as expired, and resolve an employer or public ATS listing before judging whenever possible. The workflow never automates an authenticated LinkedIn session or submits an application.
+
+Every new run records one attempt per generated query and attributes each discovery or scan event back to it. The updater persists query-level yields in `Query Metrics` and returns a funnel summary that distinguishes an adequate no-match run from no discoveries, partial query coverage, or insufficient deep evaluation.
 
 ## Priority markets and company watchlists
 

@@ -391,6 +391,23 @@ test("impossible counts and config-cap overruns are rejected", async () => {
   await fs.writeFile(payloadPath, JSON.stringify(overCap));
   result = runUpdater(workbook, stateDir, payloadPath);
   assert.notEqual(result.status, 0);
+
+  const failedAttempt = runPayload({
+    run_id: "TEST-FAILED-ATTEMPT-001",
+    queries: 1,
+    query_attempts: [{
+      query_id: "Q-FAILED-1",
+      finder: "backend_finder",
+      source: "canonical_web",
+      lane: "canonical",
+      status: "Failed",
+      error: "Source timed out",
+    }],
+  });
+  await fs.writeFile(payloadPath, JSON.stringify(failedAttempt));
+  result = runUpdater(workbook, stateDir, payloadPath);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /failed query attempt must have status Partial/);
 });
 
 test("deep scan evaluations must also count as unique vacancies", async () => {
@@ -448,4 +465,53 @@ test("retrying a committed run id is a no-op with no repeated digest", async () 
   assert.deepEqual(retry.alerts, []);
   const runs = await workbookRows(workbook, "Run Log", "RunLogTable");
   assert.equal(runs.filter((row) => row[0] === "TEST-IDEMPOTENT-001").length, 1);
+});
+
+test("persists attributed query metrics and returns funnel diagnostics", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "job-updater-metrics-"));
+  const workbook = path.join(tempDir, "Tracker.xlsx");
+  const stateDir = path.join(tempDir, "state");
+  const payloadPath = path.join(tempDir, "run.json");
+  await fs.copyFile(sourceWorkbook, workbook);
+
+  const attributedCandidate = candidate({ discovery_query_id: "Q-BACKEND-1" });
+  const duplicateEvent = {
+    discovery_query_id: "Q-AI-1",
+    finder: "ai_product_finder",
+    examined_at: "2026-08-24T08:03:00+05:00",
+    company: "Duplicate Metrics Example",
+    title: "Product Engineer",
+    canonical_url: "https://jobs.example.test/metrics-duplicate",
+    counts_toward_unique: false,
+    deep_evaluated: false,
+    outcome: "Duplicate",
+    reason: "The canonical vacancy was already attributed to another query.",
+    destination: "Scan Log",
+  };
+  const payload = runPayload({
+    run_id: "TEST-METRICS-001",
+    queries: 2,
+    query_attempts: [
+      { query_id: "Q-BACKEND-1", finder: "backend_finder", source: "linkedin_public", lane: "remote_recent", status: "Completed" },
+      { query_id: "Q-AI-1", finder: "ai_product_finder", source: "canonical_web", lane: "canonical", status: "Completed" },
+    ],
+    candidates: [attributedCandidate],
+    scan_events: [duplicateEvent],
+  });
+  await fs.writeFile(payloadPath, JSON.stringify(payload));
+  const result = runUpdater(workbook, stateDir, payloadPath);
+  assert.equal(result.status, 0, result.stderr);
+
+  const lastRun = JSON.parse(await fs.readFile(path.join(stateDir, "last-run.json"), "utf8"));
+  assert.equal(lastRun.diagnostics.query_metrics_available, true);
+  assert.equal(lastRun.diagnostics.funnel.attempts_completed, 2);
+  assert.equal(lastRun.diagnostics.funnel.found, 2);
+  assert.equal(lastRun.diagnostics.query_metrics.find((metric) => metric.query_id === "Q-AI-1").duplicates, 1);
+
+  const queryRows = (await workbookRows(workbook, "Query Metrics", "QueryMetricsTable")).filter((row) => row[0]);
+  assert.equal(queryRows.length, 2);
+  assert.equal(queryRows.find((row) => row[2] === "Q-BACKEND-1")[14], 1);
+  assert.equal(queryRows.find((row) => row[2] === "Q-AI-1")[15], 1);
+  const runRows = await workbookRows(workbook, "Run Log", "RunLogTable");
+  assert.match(runRows.find((row) => row[0] === "TEST-METRICS-001")[17], /Adequate coverage/);
 });

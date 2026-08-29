@@ -60,6 +60,33 @@ Status: released in v1.4.0.
 - Unscored interview-process signals recorded in tracker Notes with freshness caveats.
 - Additional public-source adapters remain future work and must preserve the canonical-source and access-control policies.
 
+## v1.5 — Search observability and recall
+
+Status: partially delivered in v1.5.0.
+
+- Search-funnel diagnostics from attempted query through discovery, deduplication, deep evaluation, judging, eligibility, and alerting are implemented.
+- Persistent per-query and per-source effectiveness metrics, including duplicate, blocker, expiry, and priority-lead yields, are implemented.
+- Explicit thin-coverage and no-discovery signals are implemented so an empty digest is never presented as evidence that no suitable jobs exist.
+- Deterministic query-budget recommendations based on rolling evidence remain planned; configuration changes will remain user-controlled.
+- Pluggable canonical ATS adapters remain planned and must preserve public-access, source-verification, and read-only finder policies.
+
+## v1.6 — Evidence, eligibility, and review quality
+
+Status: planned.
+
+- A cited, expiring eligibility-evidence registry for supported hiring countries, remote regions, sponsorship, and relocation, with human overrides.
+- A focused review inbox for promising roles blocked only by unclear eligibility, compensation, or a moderate evidence gap.
+- Change monitoring for shortlisted and prepared roles, including description, location, eligibility, compensation, and closure changes.
+
+## v1.7 — Application intelligence and operations
+
+Status: planned.
+
+- Outcome-driven calibration across applications, screenings, interviews, and rejections without automatically rewriting scoring policy.
+- Claim-safe tailoring reports with ATS keyword coverage, evidence-backed bullet selection, gaps, and prohibited unsupported claims.
+- Deterministic run replay and comparison explaining changes in queries, filters, evidence, and decisions.
+- An action dashboard for reviews, manual submissions, follow-ups, stale leads, and unresolved eligibility questions.
+
 ## v2 — Opt-in ingestion and notifications
 
 Status: exploratory.

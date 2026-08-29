@@ -1,6 +1,6 @@
 {
   "name": "job-search-agent",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Reusable multi-agent job discovery, form assistance, judging, and local tracking for Codex",
   "license": "MIT",
   "private": true,

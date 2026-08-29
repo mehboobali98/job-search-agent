@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { ensureFormRunsSheet, FORM_RUN_HEADERS } from "./form_runs_sheet.mjs";
+import { ensureQueryMetricsSheet, QUERY_METRIC_HEADERS } from "./query_metrics_sheet.mjs";
 import { argumentValue } from "./project_config.mjs";
 import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
@@ -15,7 +16,8 @@ await fs.mkdir(stateDir, { recursive: true });
 
 try {
   const workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
-  const { changed } = ensureFormRunsSheet(workbook);
+  const { changed: formRunsChanged } = ensureFormRunsSheet(workbook);
+  const { changed: queryMetricsChanged } = ensureQueryMetricsSheet(workbook);
   const formulaErrors = await workbook.inspect({
     kind: "match",
     searchTerm: "#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A",
@@ -28,10 +30,18 @@ try {
   const table = verified.worksheets.getItem("Form Runs").tables.getItem("FormRunsTable");
   const headers = table.getHeaderRowRange().values[0].map((value) => String(value ?? ""));
   if (headers.join("\u0000") !== FORM_RUN_HEADERS.join("\u0000")) throw new Error("Form Runs migration verification failed");
+  const queryMetricsTable = verified.worksheets.getItem("Query Metrics").tables.getItem("QueryMetricsTable");
+  const queryMetricHeaders = queryMetricsTable.getHeaderRowRange().values[0].map((value) => String(value ?? ""));
+  if (queryMetricHeaders.join("\u0000") !== QUERY_METRIC_HEADERS.join("\u0000")) throw new Error("Query Metrics migration verification failed");
   await fs.rename(tempPath, workbookPath);
   try { await removeWorkbookInspection(tempPath); } catch { /* Workbook commit already succeeded. */ }
   await fs.rm(pendingPath, { force: true });
-  console.log(JSON.stringify({ migrated: changed, workbook: workbookPath, form_runs_sheet: true }, null, 2));
+  console.log(JSON.stringify({
+    migrated: formRunsChanged || queryMetricsChanged,
+    workbook: workbookPath,
+    form_runs_sheet: true,
+    query_metrics_sheet: true,
+  }, null, 2));
 } catch (error) {
   try { await removeTemporaryWorkbook(tempPath, workbookPath); } catch { /* Keep the original workbook. */ }
   await fs.writeFile(pendingPath, JSON.stringify({
