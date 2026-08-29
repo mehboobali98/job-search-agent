@@ -6,6 +6,14 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-08-30
+
+### Fixed
+
+- Accept tracker detail sheets only when they are referenced by the `Leads`, `Applications`, or `Scan Log` tables, preserving private role-detail worksheets without permitting unrelated schema drift.
+- Recognize stable candidate-evidence IDs in either code or bold Markdown so existing valid profiles pass preflight without evidence rewrites.
+- Report core and referenced-detail sheet counts separately in successful preflight results.
+
 ## [1.9.0] - 2026-08-30
 
 ### Added

@@ -24,10 +24,31 @@ export const TRACKER_TABLES = Object.freeze({
   "Action Dashboard": { name: "ActionDashboardTable", headers: ACTION_DASHBOARD_HEADERS },
 });
 
+const DETAIL_SHEET_TABLES = Object.freeze(["Leads", "Applications", "Scan Log"]);
+
+function referencedDetailSheets(workbook) {
+  const references = new Set();
+  for (const sheetName of DETAIL_SHEET_TABLES) {
+    const expected = TRACKER_TABLES[sheetName];
+    const detailSheetIndex = expected.headers.indexOf("Detail Sheet");
+    const sheet = workbook.worksheets.items.find((item) => item.name === sheetName);
+    const table = sheet?.tables.items.find((item) => item.name === expected.name);
+    if (!table || detailSheetIndex < 0) continue;
+    for (const row of table.getDataRows()) {
+      const name = String(row[detailSheetIndex] ?? "").trim();
+      if (name) references.add(name);
+    }
+  }
+  return references;
+}
+
 export function inspectTrackerContract(workbook) {
   const actualSheets = workbook.worksheets.items.map((sheet) => sheet.name);
   const missingSheets = TRACKER_SHEETS.filter((name) => !actualSheets.includes(name));
-  const extraSheets = actualSheets.filter((name) => !TRACKER_SHEETS.includes(name));
+  const detailSheetReferences = referencedDetailSheets(workbook);
+  const detailSheets = actualSheets.filter((name) => !TRACKER_SHEETS.includes(name) && detailSheetReferences.has(name));
+  const missingDetailSheets = [...detailSheetReferences].filter((name) => !actualSheets.includes(name));
+  const extraSheets = actualSheets.filter((name) => !TRACKER_SHEETS.includes(name) && !detailSheetReferences.has(name));
   const tableErrors = [];
   for (const [sheetName, expected] of Object.entries(TRACKER_TABLES)) {
     const sheet = workbook.worksheets.items.find((item) => item.name === sheetName);
@@ -43,9 +64,12 @@ export function inspectTrackerContract(workbook) {
     }
   }
   return {
-    valid: missingSheets.length === 0 && extraSheets.length === 0 && tableErrors.length === 0,
+    valid: missingSheets.length === 0 && missingDetailSheets.length === 0 && extraSheets.length === 0 && tableErrors.length === 0,
     sheet_count: actualSheets.length,
+    core_sheet_count: TRACKER_SHEETS.length,
+    detail_sheet_count: detailSheets.length,
     missing_sheets: missingSheets,
+    missing_detail_sheets: missingDetailSheets,
     extra_sheets: extraSheets,
     table_errors: tableErrors,
   };

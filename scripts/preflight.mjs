@@ -52,7 +52,7 @@ export async function runPreflight({ projectRoot = process.cwd(), configPath = "
       const workbook = await artifact.SpreadsheetFile.importXlsx(await artifact.FileBlob.load(config.trackerPath));
       const contract = inspectTrackerContract(workbook);
       checks.push(contract.valid
-        ? check("tracker-schema", "Passed", `Tracker has all ${contract.sheet_count} required sheets and current table schemas.`)
+        ? check("tracker-schema", "Passed", `Tracker has all ${contract.core_sheet_count} core sheets, ${contract.detail_sheet_count} referenced detail sheet(s), and current table schemas.`)
         : check("tracker-schema", "Failed", "Tracker schema does not match this release.", "Run `npm run migrate-tracker` after backing up the workbook."));
     } catch (error) {
       checks.push(check("tracker-schema", "Failed", "Tracker workbook could not be validated.", error.message));

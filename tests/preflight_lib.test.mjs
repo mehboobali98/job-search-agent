@@ -25,6 +25,13 @@ test("candidate profile inspection rejects placeholders and duplicate evidence",
   assert.equal(inspectCandidateProfile(completeProfile + "\n[VERIFIED FACTS]").has_placeholders, true);
 });
 
+test("candidate profile inspection accepts stable evidence IDs in bold Markdown", () => {
+  const boldProfile = completeProfile.replaceAll(/`(E-[^`]+)`/g, "**$1**");
+  const inspection = inspectCandidateProfile(boldProfile);
+  assert.equal(inspection.valid, true);
+  assert.equal(inspection.evidence_id_count, 5);
+});
+
 test("resume inventory requires exact supported files for every variant", () => {
   const profile = inspectCandidateProfile(completeProfile);
   const entries = ["backend.pdf", "staff.docx", "ai.pdf", "dx.docx", "product.pdf"].map((name) => ({ name, isFile: true, size: 10 }));

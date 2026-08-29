@@ -13,7 +13,7 @@ export function inspectCandidateProfile(text) {
     /\{\{[^}]+\}\}/,
     /\[(?:VERIFIED|FILE NAME|PUBLIC PROJECT|PUBLIC URL|REMOTE \/ HYBRID|EXAMPLE:)[^\]]*\]/i,
   ];
-  const evidenceIds = [...source.matchAll(/`(E-[A-Z0-9]+(?:-[A-Z0-9]+)*)`/g)].map((match) => match[1]);
+  const evidenceIds = [...source.matchAll(/(`|\*\*)(E-[A-Z0-9]+(?:-[A-Z0-9]+)*)\1/g)].map((match) => match[2]);
   const duplicateEvidenceIds = [...new Set(evidenceIds.filter((id, index) => evidenceIds.indexOf(id) !== index))];
   const inventory = {};
   for (const line of source.split(/\r?\n/)) {

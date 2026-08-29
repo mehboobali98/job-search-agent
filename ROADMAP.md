@@ -96,13 +96,14 @@ Status: released in v1.8.0.
 
 ## v1.9 — Reliability and adaptive search guidance
 
-Status: released in v1.9.0.
+Status: released in v1.9.0, with compatibility fixes in v1.9.1.
 
 - Guided dependency, twelve-sheet tracker, candidate-profile, eligibility, and resume-inventory validation for fresh clones.
 - Isolated dry-run discovery payloads, checksummed pending-update recovery guidance, and explicitly applied versioned configuration upgrades with private backups.
 - Blind synthetic judge-calibration fixtures and component/total score-drift reports tied to stable job and candidate evidence.
 - Rolling evidence-based, one-query budget recommendations with a separate atomic writer that requires the exact user-approved recommendation ID.
 - Portable continuous integration across Node.js 20, 22, and 24, with the bundled workbook suite retained as a local release gate.
+- Referenced private role-detail sheets and existing bold-formatted evidence IDs are accepted without weakening the core tracker or evidence contracts.
 
 ## v2 — Opt-in ingestion and notifications
 
