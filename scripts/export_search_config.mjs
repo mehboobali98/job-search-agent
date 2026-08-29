@@ -27,6 +27,7 @@ console.log(JSON.stringify({
     tracker_path: config.raw.tracker_path,
     candidate_profile_path: config.raw.candidate_profile_path,
     search_terms_path: config.raw.search_terms_path ?? "profile/search-terms.json",
+    eligibility_evidence_path: config.raw.eligibility_evidence_path ?? "profile/eligibility-evidence.json",
     resumes_directory: config.raw.resumes_directory,
     state_directory: config.raw.state_directory,
     application_packages_directory: config.raw.application_packages_directory ?? "application-packages",

@@ -11,13 +11,14 @@ const force = process.argv.includes("--force");
 if (!candidateName) throw new Error("Usage: npm run setup -- --name \"Candidate Name\" [--timezone \"Etc/UTC\"] [--geography \"Worldwide remote\"] [--force]");
 
 const config = validateProjectConfig({
-  version: 2,
+  version: 3,
   candidate_name: candidateName,
   timezone,
   target_geography: targetGeography,
   tracker_path: "Job_Application_Tracker.xlsx",
   candidate_profile_path: "profile/candidate-profile.md",
   search_terms_path: "profile/search-terms.json",
+  eligibility_evidence_path: "profile/eligibility-evidence.json",
   resumes_directory: "profile/resumes",
   state_directory: "state",
   application_packages_directory: "application-packages",
@@ -26,7 +27,8 @@ const configPath = path.join(projectRoot, LOCAL_CONFIG_NAME);
 const trackerPath = resolveProjectPath(projectRoot, config.tracker_path);
 const profilePath = resolveProjectPath(projectRoot, config.candidate_profile_path);
 const searchTermsPath = resolveProjectPath(projectRoot, config.search_terms_path);
-for (const target of [configPath, trackerPath, profilePath, searchTermsPath]) {
+const eligibilityEvidencePath = resolveProjectPath(projectRoot, config.eligibility_evidence_path);
+for (const target of [configPath, trackerPath, profilePath, searchTermsPath, eligibilityEvidencePath]) {
   if (!force) {
     try {
       await fs.access(target);
@@ -45,6 +47,7 @@ await fs.writeFile(profilePath, profileTemplate
   .replaceAll("{{CANDIDATE_NAME}}", candidateName)
   .replaceAll("{{TARGET_GEOGRAPHY}}", targetGeography));
 await fs.copyFile(path.join(projectRoot, "templates/search-terms.template.json"), searchTermsPath);
+await fs.copyFile(path.join(projectRoot, "templates/eligibility-evidence.template.json"), eligibilityEvidencePath);
 await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n");
 await createTracker({ outputPath: trackerPath, candidateName, timezone, targetGeography });
 console.log(JSON.stringify({
@@ -53,6 +56,7 @@ console.log(JSON.stringify({
   tracker: config.tracker_path,
   candidate_profile: config.candidate_profile_path,
   search_terms: config.search_terms_path,
+  eligibility_evidence: config.eligibility_evidence_path,
   resumes_directory: config.resumes_directory,
   application_packages_directory: config.application_packages_directory,
   next: "Complete the candidate profile, add resume files, then run npm run install-skill.",

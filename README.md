@@ -7,6 +7,7 @@ A reusable Codex workflow that discovers jobs with two parallel finders, indepen
 - `backend_finder` searches backend/platform and staff/leadership roles.
 - `ai_product_finder` searches applied AI, developer productivity, and selective product roles.
 - `application_form_agent` reads the current prepared application-form step and drafts responses without typing or submitting.
+- `change_monitor` rechecks shortlisted and prepared canonical listings for material changes without writing to the tracker.
 - `job_judge` scores canonical listings without finder anchoring and separately audits form responses against candidate evidence.
 - The orchestrator is the only writer. Deterministic scripts validate and atomically update the workbook.
 
@@ -30,8 +31,9 @@ Setup creates these private, ignored artifacts:
 - `.job-search.local.json` — local paths, timezone, and target geography
 - `profile/candidate-profile.md` — verified candidate evidence
 - `profile/resumes/` — resume files
-- `Job_Application_Tracker.xlsx` — the nine-sheet tracker
+- `Job_Application_Tracker.xlsx` — the ten-sheet tracker
 - `profile/search-terms.json` — private role titles, skills, exclusions, locations, and LinkedIn query settings
+- `profile/eligibility-evidence.json` — private, cited, expiring eligibility-policy evidence and human overrides
 - `state/` — run payloads and updater state
 - `application-packages/` — private form-response packets and required cover-letter files
 
@@ -43,7 +45,7 @@ Priority markets belong in `linkedin_public.priority_market_locations`, with cou
 
 ## Tracker
 
-The local workbook has `Dashboard`, `Search Config`, `Leads`, `Applications`, `Scan Log`, `Run Log`, `Form Runs`, `Query Metrics`, and `Eligibility Review`. `Search Config` is authoritative for budgets, scoring, thresholds, and alert limits. `Form Runs` stores compact inspection summaries while full answers remain in private local packets. `Query Metrics` records deterministic discovery-funnel counts for every attributed query attempt. `Eligibility Review` is a persistent inbox for strong roles whose eligibility or candidate evidence still needs a human decision; its Status and Resolution fields remain user-controlled. There are no daily worksheets; timestamps and IDs preserve history.
+The local workbook has `Dashboard`, `Search Config`, `Leads`, `Applications`, `Scan Log`, `Run Log`, `Form Runs`, `Query Metrics`, `Eligibility Review`, and `Lead Monitor`. `Search Config` is authoritative for budgets, scoring, thresholds, and alert limits. `Form Runs` stores compact inspection summaries while full answers remain in private local packets. `Query Metrics` records deterministic discovery-funnel counts for every attributed query attempt. `Eligibility Review` is a persistent inbox for strong roles whose eligibility or candidate evidence still needs a human decision; its Status and Resolution fields remain user-controlled. `Lead Monitor` stores the latest source-backed snapshot of shortlisted and prepared roles while `Scan Log` preserves change history. There are no daily worksheets; timestamps and IDs preserve history.
 
 ## Manual and scheduled runs
 
@@ -64,6 +66,12 @@ Query-plan v4 supplies a deterministic public-source adapter registry for Ashby,
 
 Every new run records one attempt per generated query and attributes each discovery or scan event back to it. The updater persists query-level yields in `Query Metrics` and returns a funnel summary that distinguishes an adequate no-match run from no discoveries, partial query coverage, or insufficient deep evaluation.
 
+## Eligibility evidence and lead monitoring
+
+Run `npm run eligibility` to validate and preview the candidate-local eligibility registry. Entries cover hiring countries, remote regions, sponsorship, relocation, or work authorization and require a conservative scope, HTTPS citation, observation date, expiry date, confidence, and optional expiring human override. Only fresh, in-scope entries may be referenced. Stale or conflicting evidence never automatically rejects a job; conflicts go to `Eligibility Review`.
+
+The weekly monitoring workflow gives `change_monitor` only `Shortlisted` and `Moved to Applications` roles. `npm run monitor -- --workbook Job_Application_Tracker.xlsx --input state/MONITOR.json --eligibility-registry profile/eligibility-evidence.json --state-dir state` atomically compares closure, location, work model, description, compensation, and eligibility. It records the latest snapshot in `Lead Monitor`, appends every check to `Scan Log`, and stops preparation for unavailable listings without regressing later application stages.
+
 ## Priority markets and company watchlists
 
 Priority markets receive dedicated country-level LinkedIn searches while configured city aliases are included in canonical employer/ATS searches. The query builder still honors the workbook's maximum-search limit; increasing LinkedIn coverage replaces canonical queries instead of adding unbounded work.
@@ -75,11 +83,13 @@ The default template includes a Friday [Hiring Without Whiteboards](https://gith
 ```sh
 npm run config
 npm run queries
+npm run eligibility
 npm test
 npm run create-tracker
 npm run migrate-tracker
 npm run inspect -- Job_Application_Tracker.xlsx renders
 npm run update -- --workbook Job_Application_Tracker.xlsx --input state/RUN.json --state-dir state
+npm run monitor -- --workbook Job_Application_Tracker.xlsx --input state/MONITOR.json --eligibility-registry profile/eligibility-evidence.json --state-dir state
 npm run verify-public
 ```
 

@@ -92,12 +92,13 @@ function runPayload(overrides = {}) {
   };
 }
 
-function runUpdater(workbook, stateDir, payloadPath) {
+function runUpdater(workbook, stateDir, payloadPath, extraArgs = []) {
   return spawnSync(nodeBinary, [
     path.join(projectRoot, "scripts/update_tracker.mjs"),
     "--workbook", workbook,
     "--input", payloadPath,
     "--state-dir", stateDir,
+    ...extraArgs,
   ], { cwd: projectRoot, encoding: "utf8" });
 }
 
@@ -521,4 +522,41 @@ test("persists attributed query metrics and returns funnel diagnostics", async (
   assert.equal(queryRows.find((row) => row[2] === "Q-AI-1")[15], 1);
   const runRows = await workbookRows(workbook, "Run Log", "RunLogTable");
   assert.match(runRows.find((row) => row[0] === "TEST-METRICS-001")[17], /Adequate coverage/);
+});
+
+test("fresh registry conflicts suppress alerts and persist a cited human-review case", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "job-updater-registry-"));
+  const workbook = path.join(tempDir, "Tracker.xlsx");
+  const stateDir = path.join(tempDir, "state");
+  const payloadPath = path.join(tempDir, "run.json");
+  const registryPath = path.join(tempDir, "eligibility.json");
+  await fs.copyFile(sourceWorkbook, workbook);
+  await fs.writeFile(registryPath, JSON.stringify({
+    version: 1,
+    entries: [{
+      id: "global-example-block",
+      topic: "Hiring country",
+      applies_to: { companies: ["Global Example"], locations: ["Worldwide remote"] },
+      conclusion: "Blocks",
+      statement: "Current employer policy excludes this hiring location.",
+      source_url: "https://policy.example.test/hiring",
+      observed_at: "2026-08-01",
+      expires_at: "2026-10-01",
+      confidence: "High",
+      status: "Active"
+    }],
+  }));
+  const conflicted = candidate({ eligibility_evidence_ids: ["global-example-block"] });
+  await fs.writeFile(payloadPath, JSON.stringify(runPayload({ run_id: "TEST-REGISTRY-001", candidates: [conflicted] })));
+  const result = runUpdater(workbook, stateDir, payloadPath, ["--eligibility-registry", registryPath]);
+  assert.equal(result.status, 0, result.stderr);
+  const lastRun = JSON.parse(await fs.readFile(path.join(stateDir, "last-run.json"), "utf8"));
+  assert.equal(lastRun.alerts.length, 0);
+  assert.equal(lastRun.reviews[0].outcome, "Added");
+  const leads = await workbookRows(workbook, "Leads", "LeadsTable");
+  assert.equal(leads.find((row) => row[3] === "Global Example")[11], "Needs Human Review");
+  const reviews = await workbookRows(workbook, "Eligibility Review", "EligibilityReviewTable");
+  const review = reviews.find((row) => row[5] === "Global Example");
+  assert.equal(review[9], "Registry conflict");
+  assert.match(review[10], /global-example-block/);
 });

@@ -70,15 +70,22 @@ Status: partially delivered in v1.5.0.
 - Deterministic query-budget recommendations based on rolling evidence remain planned; configuration changes will remain user-controlled.
 - Deterministic public ATS adapters for Ashby, Greenhouse, Workable, Lever, and SmartRecruiters are implemented in v1.6.0; additional adapters remain evidence-driven future work.
 
-## v1.6 — Evidence, eligibility, and review quality
+## v1.6 — Eligibility review inbox
 
-Status: partially delivered in v1.6.0.
+Status: released in v1.6.0.
 
-- A cited, expiring eligibility-evidence registry for supported hiring countries, remote regions, sponsorship, and relocation, with human overrides.
 - A persistent, idempotent review inbox for strong roles blocked by unclear eligibility, finder/judge disagreement, or unsupported candidate evidence is implemented. User-entered review status and resolution are preserved.
-- Change monitoring for shortlisted and prepared roles, including description, location, eligibility, compensation, and closure changes.
 
-## v1.7 — Application intelligence and operations
+## v1.7 — Eligibility evidence and change monitoring
+
+Status: released in v1.7.0.
+
+- A candidate-local, cited, expiring eligibility-evidence registry for hiring countries, remote regions, sponsorship, relocation, and work authorization, with scoped and expiring human overrides.
+- Conservative registry matching that excludes stale, superseded, and out-of-scope evidence and routes conflicts to human review instead of auto-rejecting roles.
+- Weekly source-backed monitoring for shortlisted and prepared roles, including closure, location, work model, description, compensation, and eligibility changes.
+- A latest-snapshot `Lead Monitor` sheet with append-only material-change history in `Scan Log` and preparation-safe closure handling.
+
+## v1.8 — Application intelligence and operations
 
 Status: planned.
 

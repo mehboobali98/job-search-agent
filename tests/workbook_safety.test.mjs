@@ -5,13 +5,30 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
-import { argumentValue } from "../scripts/project_config.mjs";
+import { argumentValue, validateProjectConfig } from "../scripts/project_config.mjs";
 import { createTracker } from "../scripts/create_tracker.mjs";
 import { resolveXlsxWorkbookPath, workbookInspectionPath, workbookTemporaryPath } from "../scripts/workbook_io.mjs";
 
 test("strict arguments reject a flag without a value", () => {
   assert.throws(() => argumentValue(["node", "script", "--salary"], "--salary"), /requires a value/);
   assert.throws(() => argumentValue(["node", "script", "--salary", "--cover-letter"], "--salary"), /requires a value/);
+});
+
+test("local configuration v3 accepts a private eligibility registry path", () => {
+  const config = validateProjectConfig({
+    version: 3,
+    candidate_name: "Example",
+    timezone: "Etc/UTC",
+    target_geography: "Worldwide remote",
+    tracker_path: "Tracker.xlsx",
+    candidate_profile_path: "profile/candidate-profile.md",
+    search_terms_path: "profile/search-terms.json",
+    eligibility_evidence_path: "profile/eligibility-evidence.json",
+    resumes_directory: "profile/resumes",
+    state_directory: "state",
+  });
+  assert.equal(config.eligibility_evidence_path, "profile/eligibility-evidence.json");
+  assert.throws(() => validateProjectConfig({ ...config, eligibility_evidence_path: "" }), /must be non-empty/);
 });
 
 test("workbook paths require xlsx and always derive a distinct temporary path", () => {
@@ -36,6 +53,7 @@ test("every workbook writer rejects a non-xlsx target without changing it", asyn
     ["scripts/update_tracker.mjs", "--workbook", workbook, "--input", input, "--state-dir", state],
     ["scripts/recheck_expiry.mjs", "--workbook", workbook, "--input", input, "--state-dir", state],
     ["scripts/migrate_tracker.mjs", "--workbook", workbook, "--state-dir", state],
+    ["scripts/monitor_leads.mjs", "--workbook", workbook, "--input", input, "--state-dir", state],
     ["scripts/refresh_dashboard.mjs", workbook],
   ];
   for (const args of commands) {

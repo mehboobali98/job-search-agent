@@ -4,6 +4,7 @@ import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { ensureFormRunsSheet, FORM_RUN_HEADERS } from "./form_runs_sheet.mjs";
 import { ensureQueryMetricsSheet, QUERY_METRIC_HEADERS } from "./query_metrics_sheet.mjs";
 import { ensureEligibilityReviewSheet, ELIGIBILITY_REVIEW_HEADERS } from "./eligibility_review_sheet.mjs";
+import { ensureLeadMonitorSheet, LEAD_MONITOR_HEADERS } from "./lead_monitor_sheet.mjs";
 import { argumentValue } from "./project_config.mjs";
 import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookPath, workbookTemporaryPath } from "./workbook_io.mjs";
 
@@ -20,6 +21,7 @@ try {
   const { changed: formRunsChanged } = ensureFormRunsSheet(workbook);
   const { changed: queryMetricsChanged } = ensureQueryMetricsSheet(workbook);
   const { changed: eligibilityReviewChanged } = ensureEligibilityReviewSheet(workbook);
+  const { changed: leadMonitorChanged } = ensureLeadMonitorSheet(workbook);
   const formulaErrors = await workbook.inspect({
     kind: "match",
     searchTerm: "#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A",
@@ -38,15 +40,19 @@ try {
   const eligibilityReviewTable = verified.worksheets.getItem("Eligibility Review").tables.getItem("EligibilityReviewTable");
   const eligibilityReviewHeaders = eligibilityReviewTable.getHeaderRowRange().values[0].map((value) => String(value ?? ""));
   if (eligibilityReviewHeaders.join("\u0000") !== ELIGIBILITY_REVIEW_HEADERS.join("\u0000")) throw new Error("Eligibility Review migration verification failed");
+  const leadMonitorTable = verified.worksheets.getItem("Lead Monitor").tables.getItem("LeadMonitorTable");
+  const leadMonitorHeaders = leadMonitorTable.getHeaderRowRange().values[0].map((value) => String(value ?? ""));
+  if (leadMonitorHeaders.join("\u0000") !== LEAD_MONITOR_HEADERS.join("\u0000")) throw new Error("Lead Monitor migration verification failed");
   await fs.rename(tempPath, workbookPath);
   try { await removeWorkbookInspection(tempPath); } catch { /* Workbook commit already succeeded. */ }
   await fs.rm(pendingPath, { force: true });
   console.log(JSON.stringify({
-    migrated: formRunsChanged || queryMetricsChanged || eligibilityReviewChanged,
+    migrated: formRunsChanged || queryMetricsChanged || eligibilityReviewChanged || leadMonitorChanged,
     workbook: workbookPath,
     form_runs_sheet: true,
     query_metrics_sheet: true,
     eligibility_review_sheet: true,
+    lead_monitor_sheet: true,
   }, null, 2));
 } catch (error) {
   try { await removeTemporaryWorkbook(tempPath, workbookPath); } catch { /* Keep the original workbook. */ }

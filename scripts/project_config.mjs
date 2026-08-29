@@ -19,7 +19,7 @@ export function resolveProjectPath(projectRoot, value) {
 
 export function validateProjectConfig(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Local configuration must be a JSON object");
-  if (![1, 2].includes(raw.version)) throw new Error("Unsupported local configuration version: " + raw.version);
+  if (![1, 2, 3].includes(raw.version)) throw new Error("Unsupported local configuration version: " + raw.version);
   for (const field of [
     "candidate_name", "timezone", "target_geography", "tracker_path",
     "candidate_profile_path", "resumes_directory", "state_directory",
@@ -31,6 +31,9 @@ export function validateProjectConfig(raw) {
   }
   if (raw.search_terms_path !== undefined && !String(raw.search_terms_path).trim()) {
     throw new Error("search_terms_path must be non-empty when provided");
+  }
+  if (raw.eligibility_evidence_path !== undefined && !String(raw.eligibility_evidence_path).trim()) {
+    throw new Error("eligibility_evidence_path must be non-empty when provided");
   }
   try {
     new Intl.DateTimeFormat("en", { timeZone: raw.timezone }).format(new Date());
@@ -59,6 +62,7 @@ export async function loadProjectConfig({ projectRoot = process.cwd(), configPat
     trackerPath: resolveProjectPath(absoluteRoot, raw.tracker_path),
     candidateProfilePath: resolveProjectPath(absoluteRoot, raw.candidate_profile_path),
     searchTermsPath: resolveProjectPath(absoluteRoot, raw.search_terms_path ?? "profile/search-terms.json"),
+    eligibilityEvidencePath: resolveProjectPath(absoluteRoot, raw.eligibility_evidence_path ?? "profile/eligibility-evidence.json"),
     resumesDirectory: resolveProjectPath(absoluteRoot, raw.resumes_directory),
     stateDirectory: resolveProjectPath(absoluteRoot, raw.state_directory),
     applicationPackagesDirectory: resolveProjectPath(absoluteRoot, raw.application_packages_directory ?? "application-packages"),

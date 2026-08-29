@@ -18,6 +18,8 @@ import {
 } from "./job_tracker_lib.mjs";
 import { identifyCanonicalSource } from "./canonical_source_adapters.mjs";
 import { ensureEligibilityReviewSheet, syncEligibilityReview } from "./eligibility_review_sheet.mjs";
+import { assessEligibilityEvidence, eligibilityAssessmentText, loadEligibilityRegistry } from "./eligibility_evidence_lib.mjs";
+import { ensureLeadMonitorSheet } from "./lead_monitor_sheet.mjs";
 import { argumentValue } from "./project_config.mjs";
 import { ensureQueryMetricsSheet } from "./query_metrics_sheet.mjs";
 import { buildRunDiagnostics, validateQueryAttempts } from "./run_diagnostics.mjs";
@@ -26,12 +28,14 @@ import { removeTemporaryWorkbook, removeWorkbookInspection, resolveXlsxWorkbookP
 
 const workbookArgument = argumentValue(process.argv, "--workbook");
 const inputArgument = argumentValue(process.argv, "--input");
+const registryArgument = argumentValue(process.argv, "--eligibility-registry");
 
 if (!workbookArgument || !inputArgument) {
   throw new Error("Usage: node scripts/update_tracker.mjs --workbook <xlsx> --input <run.json> [--state-dir <dir>]");
 }
 const workbookPath = resolveXlsxWorkbookPath(workbookArgument, "--workbook");
 const inputPath = path.resolve(inputArgument);
+const eligibilityRegistry = registryArgument ? await loadEligibilityRegistry(path.resolve(registryArgument)) : null;
 const stateDir = path.resolve(argumentValue(process.argv, "--state-dir", path.join(path.dirname(workbookPath), "state")));
 
 const payload = JSON.parse(await fs.readFile(inputPath, "utf8"));
@@ -245,6 +249,7 @@ try {
   const configSheet = workbook.worksheets.getItem("Search Config");
   const { sheet: queryMetricsSheet, table: queryMetricsTable } = ensureQueryMetricsSheet(workbook);
   const { sheet: eligibilityReviewSheet, table: eligibilityReviewTable } = ensureEligibilityReviewSheet(workbook);
+  ensureLeadMonitorSheet(workbook);
   const leadsTable = leadsSheet.tables.items.find((table) => table.name === "LeadsTable");
   const scanTable = scanSheet.tables.items.find((table) => table.name === "ScanLogTable");
   const runTable = runSheet.tables.items.find((table) => table.name === "RunLogTable");
@@ -301,6 +306,7 @@ try {
   const writtenRows = new Map();
   const outcomes = [];
   const reviews = [];
+  const registryWarnings = [];
   const diagnosticCandidates = [];
 
   for (const event of payload.scan_events) {
@@ -329,6 +335,7 @@ try {
 
   for (const raw of payload.candidates) {
     let candidate;
+    let registryAssessment = null;
     if (raw.judge_status === "Needs Judge" || raw.eligibility === "Needs Judge") {
       candidate = pendingCandidate(raw);
     } else {
@@ -360,6 +367,24 @@ try {
             candidate.unsupported_evidence ? "Judge flagged unsupported candidate evidence." : null,
             eligibilityDisagreement ? "Finder and judge disagreed on eligibility." : null,
           ].filter(Boolean).join(" "),
+          recommendation: recommendationBand(candidate.final_score, "Needs Human Review"),
+        };
+      }
+    }
+    const evidenceIds = raw.eligibility_evidence_ids ?? [];
+    if (!Array.isArray(evidenceIds)) throw new Error("eligibility_evidence_ids must be an array");
+    if (evidenceIds.length && !eligibilityRegistry) {
+      throw new Error("Candidate references eligibility evidence but --eligibility-registry was not provided");
+    }
+    if (eligibilityRegistry) {
+      registryAssessment = assessEligibilityEvidence(eligibilityRegistry, candidate, evidenceIds, { asOf: now });
+      registryWarnings.push(...registryAssessment.warnings);
+      if (registryAssessment.conflict) {
+        const context = eligibilityAssessmentText(registryAssessment);
+        candidate = {
+          ...candidate,
+          eligibility: "Needs Human Review",
+          eligibility_evidence: [candidate.eligibility_evidence, context, "Registry evidence conflicts with the judged decision."].filter(Boolean).join(" "),
           recommendation: recommendationBand(candidate.final_score, "Needs Human Review"),
         };
       }
@@ -434,10 +459,14 @@ try {
     );
     const eligibilityDisagreement = raw.finder_eligibility && raw.judge_eligibility
       && raw.finder_eligibility !== raw.judge_eligibility;
-    const reviewType = candidate.unsupported_evidence
+    const reviewType = registryAssessment?.conflict
+      ? "Registry conflict"
+      : candidate.unsupported_evidence
       ? "Evidence"
       : eligibilityDisagreement ? "Eligibility disagreement" : "Eligibility clarification";
-    const reviewReason = candidate.unsupported_evidence
+    const reviewReason = registryAssessment?.conflict
+      ? eligibilityAssessmentText(registryAssessment)
+      : candidate.unsupported_evidence
       ? normalizeText(raw.unsupported_evidence_details) || "Independent judge flagged unsupported candidate evidence."
       : eligibilityDisagreement
         ? `Finder concluded ${raw.finder_eligibility}; judge concluded ${raw.judge_eligibility}.`
@@ -552,7 +581,14 @@ try {
   });
   if (/#[A-Z0-9/]+[!?]/.test(formulaErrors.ndjson)) throw new Error("Formula validation failed: " + formulaErrors.ndjson);
 
-  const result = { run_id: payload.run_id, outcomes, reviews, alerts: selectedAlerts, diagnostics };
+  const result = {
+    run_id: payload.run_id,
+    outcomes,
+    reviews,
+    registry_warnings: [...new Set(registryWarnings)],
+    alerts: selectedAlerts,
+    diagnostics,
+  };
   const resultTempPath = path.join(stateDir, ".last-run-" + String(payload.run_id).replace(/[^a-z0-9_-]/gi, "_") + ".tmp.json");
   const exported = await SpreadsheetFile.exportXlsx(workbook);
   await exported.save(tempPath);

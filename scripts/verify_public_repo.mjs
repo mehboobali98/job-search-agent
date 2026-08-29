@@ -17,6 +17,7 @@ const blockedPaths = [
   /^Job_Application_Tracker\.xlsx$/i,
   /^profile\/candidate-profile\.md$/,
   /^profile\/search-terms\.json$/,
+  /^profile\/eligibility-evidence\.json$/,
   /^profile\/resumes\//,
   /^state\//,
   /^application-packages\//,

@@ -12,19 +12,19 @@ Every query includes `query_id`, `finder`, `role_family`, `source`, `lane`, `key
 
 Each finder returns `{ agent, status, query_count, query_attempts, packets, scan_events, error? }`. `query_attempts` contains exactly one `{ query_id, finder, source, lane, status: Completed|Failed, error? }` record per assigned query; failed records require an error and make the combined run `Partial`. Packets are deeply evaluated viable jobs. Scan events contain every duplicate, inaccessible, expired, shallow-rejected, preliminary-suppressed, or hard-blocked examination.
 
-A finder packet requires identity and source fields, normalized job description with exact SHA-256 hash, `listing_status`, rubric evidence, finder eligibility and evidence, seven preliminary component scores, total, strengths, gaps, best resume, and stable candidate evidence IDs. Query-plan discoveries also carry `discovery_query_id`, `discovery_source`, their original discovery URL before canonical-source resolution, `canonical_source_adapter` when the canonical host matches the supplied registry, and evidence-backed `canonical_source_status`. A vacancy found through a company watchlist also carries the configured non-empty `interview_process_signal`; the updater stores it in Notes and it never changes a component score.
+A finder packet requires identity and source fields, normalized job description with exact SHA-256 hash, `listing_status`, rubric evidence, finder eligibility and evidence, fresh in-scope `finder_eligibility_evidence_ids`, seven preliminary component scores, total, strengths, gaps, best resume, and stable candidate evidence IDs. Query-plan discoveries also carry `discovery_query_id`, `discovery_source`, their original discovery URL before canonical-source resolution, `canonical_source_adapter` when the canonical host matches the supplied registry, and evidence-backed `canonical_source_status`. A vacancy found through a company watchlist also carries the configured non-empty `interview_process_signal`; the updater stores it in Notes and it never changes a component score.
 
 A scan event includes identity when known, finder, examination timestamp, outcome, reason, optional score/eligibility/hash, `counts_toward_unique`, `deep_evaluated`, and `destination: Scan Log`. `deep_evaluated: true` requires `counts_toward_unique: true`; a duplicate or other examination excluded from the unique-vacancy count cannot increase the deep-evaluation count. It also retains query-plan provenance in its raw JSON when applicable.
 
 ## Blind judge input
 
-Include canonical job data, source links, job evidence, scoring rubric, and candidate evidence. Exclude finder eligibility and listing status, scores, preliminary total, recommendation, strengths, gaps, best resume, and `interview_process_signal`. The orchestrator preserves the signal outside the judge packet and restores it unchanged after judging.
+Include canonical job data, source links, job evidence, the full active eligibility-registry snapshot, scoring rubric, and candidate evidence. Exclude finder eligibility, finder registry IDs and listing status, scores, preliminary total, recommendation, strengths, gaps, best resume, and `interview_process_signal`. The orchestrator preserves the signal and finder IDs outside the judge packet and restores them unchanged after judging.
 
 ## Judge result
 
 The judge returns `{ agent: job_judge, status, results, failures, error? }` with status `Completed`, `Partial`, or `Failed`. Every failure or omitted input becomes a failed-judge candidate restored from the original finder packet.
 
-A judged candidate requires identity, source, description and matching hash, structured `listing_status`, preserved finder eligibility/evidence, independently returned judge eligibility/evidence, confidence, all seven scores and exact total, strengths, gaps, best resume, explicit unsupported-evidence boolean/details, and `judge_status: Judged`. `Expired` or `Inaccessible` requires judge eligibility `Ineligible`.
+A judged candidate requires identity, source, description and matching hash, structured `listing_status`, preserved finder eligibility/evidence/registry IDs, independently returned judge eligibility/evidence/registry IDs, confidence, all seven scores and exact total, strengths, gaps, best resume, explicit unsupported-evidence boolean/details, and `judge_status: Judged`. `Expired` or `Inaccessible` requires judge eligibility `Ineligible`. The orchestrator emits the stable unique union as `eligibility_evidence_ids` for deterministic updater validation.
 
 Allowed resumes: `Backend / Platform`, `Staff / Principal / Tech Lead`, `Applied AI / LLM`, `Developer Productivity / AI Enablement`, and `Full-stack / Product`.
 
@@ -58,7 +58,13 @@ A failed-judge candidate restores the finder packet with `listing_status: Active
 }
 ```
 
-The updater validates the envelope, timestamps, agent states, count relationships, Search Config limits, query-attempt attribution, scan events, candidate hashes, eligibility, canonical-source adapter claims, and alert rules before mutation. It writes one `Query Metrics` row per attempt, upserts strong unresolved cases in `Eligibility Review`, and returns review outcomes plus deterministic funnel, per-query, per-source, and coverage diagnostics. Payloads created before query-attempt or adapter tracking remain accepted.
+The updater validates the envelope, timestamps, agent states, count relationships, Search Config limits, query-attempt attribution, scan events, candidate hashes, eligibility, referenced registry IDs, canonical-source adapter claims, and alert rules before mutation. It ignores stale and out-of-scope registry entries, converts active registry conflicts to `Needs Human Review`, writes one `Query Metrics` row per attempt, upserts strong unresolved cases in `Eligibility Review`, and returns review outcomes plus deterministic funnel, per-query, per-source, and coverage diagnostics. Payloads created before query-attempt, registry, or adapter tracking remain accepted.
+
+## Lead monitor payload
+
+`{ run_id, started_at, completed_at, notes, checks }` contains exactly one check per supplied `Shortlisted` or `Moved to Applications` lead. Every check requires `lead_id`, the exact matching `canonical_url`, `listing_status: Active|Expired|Inaccessible`, and concise source-backed `evidence`. An active check additionally requires exact location, work type, normalized `job_description` and matching SHA-256 `description_hash`, `compensation: { published: boolean, text: string|null }`, `eligibility: Eligible|Unclear|Ineligible`, eligibility evidence, and fresh in-scope `eligibility_evidence_ids`. An expired or inaccessible check contains no inferred active-page facts.
+
+The monitor writer compares listing status, location, work type, description hash, compensation publication/text, and eligibility. It returns `{ run_id, outcomes, reviews, registry_warnings }`; every outcome includes lead ID, listing status, `changed`, `change_types`, and a concise summary.
 
 ## Friday recheck payload
 

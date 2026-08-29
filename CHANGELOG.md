@@ -6,6 +6,20 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-29
+
+### Added
+
+- Add a candidate-local, cited, expiring eligibility-evidence registry with conservative scopes, freshness states, HTTPS citations, confidence, and expiring human overrides.
+- Add deterministic registry assessment that ignores stale or out-of-scope entries and routes active conflicts to `Eligibility Review` without automatically rejecting roles.
+- Add the read-only `change_monitor` agent and atomic `monitor_leads.mjs` workflow for closure, location, work-model, description, compensation, and eligibility changes.
+- Add a migratable `Lead Monitor` tracker sheet for latest source-backed snapshots while preserving material change history in `Scan Log`.
+
+### Changed
+
+- Extend candidate setup and local configuration to include private eligibility evidence, while retaining backward compatibility with earlier configuration versions.
+- Extend discovery and blind judging contracts with independently selected eligibility registry evidence IDs.
+
 ## [1.6.0] - 2026-08-29
 
 ### Added
@@ -104,7 +118,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/mehboobali98/job-search-agent/compare/v1.4.0...v1.4.1
