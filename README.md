@@ -1,11 +1,12 @@
 # Multi-Agent Job Search Agent
 
-A reusable Codex workflow that discovers jobs with two parallel finders, independently judges candidate fit, monitors shortlisted roles, prepares claim-safe application guidance, tracks confirmed outcomes, and safely updates a local Excel tracker. It never submits applications or sends outreach.
+A reusable Codex workflow that discovers jobs with two parallel finders, optionally ingests read-only Gmail job alerts, independently judges candidate fit, monitors shortlisted roles, prepares claim-safe application guidance, tracks confirmed outcomes, and safely updates a local Excel tracker. It never submits applications or sends outreach.
 
 ## How it works
 
 - `backend_finder` searches backend/platform and staff/leadership roles.
 - `ai_product_finder` searches applied AI, developer productivity, and selective product roles.
+- `gmail_alert_finder` represents sanitized, opt-in inbox alert seeds after the private batch importer has removed message bodies and direct message identifiers.
 - `application_form_agent` reads the current prepared application-form step and drafts responses without typing or submitting.
 - `change_monitor` rechecks shortlisted and prepared canonical listings for material changes without writing to the tracker.
 - `tailoring_agent` maps canonical job requirements and ATS keywords to stable candidate evidence without editing resumes.
@@ -49,9 +50,28 @@ Priority markets belong in `linkedin_public.priority_market_locations`, with cou
 
 `npm run preflight` returns one machine-readable report for the Node runtime, bundled workbook dependency, local config version, twelve-sheet tracker contract, stable candidate evidence, five-variant PDF/DOCX resume inventory, search terms, eligibility registry, writable private directories, and pending recovery markers. Failed checks block discovery; warnings remain visible.
 
-Local config version 4 adds reliability settings while older versions remain readable. `npm run upgrade-config` previews every change without writing. Apply only with `npm run upgrade-config -- --apply`; the upgrader saves the prior config under the ignored state directory, initializes missing generic support files and private directories without overwriting anything, then atomically replaces the config.
+Local config version 5 adds the disabled-by-default Gmail job-alert block while versions 1 through 4 remain readable. `npm run upgrade-config` previews every change without writing. Apply only with `npm run upgrade-config -- --apply`; the upgrader saves the prior config under the ignored state directory, initializes missing generic support files and private directories without overwriting anything, then atomically replaces the config.
 
 `npm run dry-run -- --input state/RUN.json` validates a proposed discovery payload against an isolated workbook copy and verifies that the live workbook hash is unchanged. If a writer previously failed, `npm run pending` reports its marker checksum, age, failure summary, and exact recovery steps without deleting it. Extraction for replay is explicit and remains inside the private state directory.
+
+## Opt-in Gmail job-alert ingestion
+
+Gmail ingestion is off by default and requires no credentials for setup, upgrades, or tests. Config version 5 adds `gmail_job_alerts` with `enabled: false`, `read_only: true`, a bounded Gmail query, a 168-hour freshness window, a 50-message cap, a 20-link-per-message cap, and an empty sender allowlist. Enable it only after adding exact sender addresses or domains to the private `.job-search.local.json`. The validator rejects an enabled configuration without an allowlist, values outside the caps, unknown fields, and any attempt to set `read_only` to false.
+
+The versioned transport-neutral input is documented by `schemas/job-alert-batch.v1.schema.json`. Keep real batches under the ignored `state/` directory and preview them first:
+
+```sh
+npm run ingest-alerts -- --input state/job-alert-imports/private-batch.json
+npm run ingest-alerts -- --input state/job-alert-imports/private-batch.json --apply
+```
+
+Preview is the default and writes nothing. `--apply` atomically stores only the sanitized proposal under `state/job-alert-ingestion/`; it does not touch the workbook. A failed promotion leaves a sanitized pending marker recoverable through `npm run pending`. Running the same batch again is idempotent.
+
+The importer extracts HTTPS job links and labeled company, role, location, work-type, and posted-date metadata from plain text and HTML. It unwraps common tracking redirects, applies the existing canonical-source normalization, reconciles identities within the batch and against `Leads`, and explicitly classifies malformed messages, disallowed senders, stale messages, extraction failures, unsupported links, batch duplicates, tracker duplicates, expired notices, and configured-limit overflow.
+
+Sanitized provenance retains only the batch ID, received timestamp, link index, and a one-way message reference. Subjects, sender addresses, transport message IDs, raw tracking URLs, and full text/HTML bodies are never copied into proposals, the tracker, run archives, diagnostics, or logs. Accepted seeds still require a live public vacancy check and the existing blind judge. The only tracker write remains `scripts/update_tracker.mjs`.
+
+This release defines the Gmail connector boundary with the single `gmail.readonly` scope and permits only message list/get operations. It does not invent credentials or provide a live mailbox authentication adapter when no Gmail connector is available; normalized connector records and synthetic fixtures enter through the same batch contract.
 
 ## Tracker
 
@@ -101,6 +121,7 @@ npm run preflight
 npm run upgrade-config
 npm run pending
 npm run dry-run -- --input state/RUN.json
+npm run ingest-alerts -- --input state/job-alert-imports/private-batch.json
 npm run queries
 npm run eligibility
 npm run calibrate-judge
@@ -139,7 +160,7 @@ After manual submission, say `applied L-…`. The tracker records the date and f
 
 ## Public-repository boundary
 
-The repository contains only reusable code, schemas, templates, tests, project agents, and the generic skill. Git ignores the local configuration, live workbook, candidate profile, resumes, state, application packages, renders, PDFs, Word files, and spreadsheets. A pre-commit hook rejects those paths and common private-data patterns if they are staged accidentally.
+The repository contains only reusable code, schemas, templates, tests, project agents, synthetic fixtures, and the generic skill. Git ignores the local configuration, live workbook, candidate profile, resumes, state, application packages, mail-import directories, raw `.eml`/`.mbox`/`.pst` files, renders, PDFs, Word files, and spreadsheets. A pre-commit hook rejects those paths, real email addresses, and common private-data patterns if they are staged accidentally.
 
 Run `npm run install-skill` after pulling skill changes. It installs the generic skill into the current user's Codex skill directory.
 

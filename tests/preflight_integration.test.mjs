@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { DEFAULT_RELIABILITY } from "../scripts/project_config.mjs";
+import { DEFAULT_GMAIL_JOB_ALERTS, DEFAULT_RELIABILITY } from "../scripts/project_config.mjs";
 import { runPreflight } from "../scripts/preflight.mjs";
 import { createFixtureWorkbook } from "./test_fixture.mjs";
 
@@ -38,7 +38,7 @@ test("preflight validates a complete synthetic fresh-clone contract", async () =
   await fs.copyFile(path.join(projectRoot, "templates", "search-terms.template.json"), path.join(root, "profile", "search-terms.json"));
   await fs.copyFile(path.join(projectRoot, "templates", "eligibility-evidence.template.json"), path.join(root, "profile", "eligibility-evidence.json"));
   await fs.writeFile(path.join(root, ".job-search.local.json"), JSON.stringify({
-    version: 4,
+    version: 5,
     candidate_name: "Synthetic Candidate",
     timezone: "Etc/UTC",
     target_geography: "Worldwide remote",
@@ -50,6 +50,7 @@ test("preflight validates a complete synthetic fresh-clone contract", async () =
     state_directory: "state",
     application_packages_directory: "application-packages",
     reliability: { ...DEFAULT_RELIABILITY },
+    gmail_job_alerts: { ...DEFAULT_GMAIL_JOB_ALERTS, sender_allowlist: [] },
   }, null, 2));
   const result = await runPreflight({ projectRoot: root });
   assert.equal(result.ready, true, JSON.stringify(result));

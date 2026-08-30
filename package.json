@@ -1,7 +1,7 @@
 {
   "name": "job-search-agent",
-  "version": "1.9.1",
-  "description": "Reusable multi-agent job discovery, reliability checks, adaptive search guidance, claim-safe application intelligence, and local tracking for Codex",
+  "version": "2.0.0",
+  "description": "Privacy-first multi-agent job discovery with opt-in read-only Gmail alert ingestion and deterministic local tracking for Codex",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -11,6 +11,7 @@
     "preflight": "node scripts/preflight.mjs",
     "pending": "node scripts/inspect_pending.mjs",
     "dry-run": "node scripts/dry_run_update.mjs",
+    "ingest-alerts": "node scripts/ingest_job_alerts.mjs",
     "create-tracker": "node scripts/create_tracker.mjs",
     "install-skill": "node scripts/install_skill.mjs",
     "config": "node scripts/export_search_config.mjs",
@@ -33,7 +34,7 @@
     "update": "node scripts/update_tracker.mjs",
     "inspect": "node scripts/inspect_workbook.mjs",
     "test": "node --test tests/*.test.mjs",
-    "test:portable": "node --test tests/action_dashboard_lib.test.mjs tests/application_form_lib.test.mjs tests/application_outcomes_lib.test.mjs tests/canonical_source_adapters.test.mjs tests/eligibility_evidence_lib.test.mjs tests/file_transaction.test.mjs tests/form_runs_sheet.test.mjs tests/job_tracker_lib.test.mjs tests/judge_calibration.test.mjs tests/lead_monitor_lib.test.mjs tests/pending_recovery.test.mjs tests/preflight_lib.test.mjs tests/project_config.test.mjs tests/query_budget.test.mjs tests/query_metrics_sheet.test.mjs tests/run_diagnostics.test.mjs tests/run_replay_lib.test.mjs tests/search_query_lib.test.mjs tests/tailoring_report_lib.test.mjs tests/tracker_contract.test.mjs tests/tracker_rows.test.mjs",
+    "test:portable": "node --test tests/action_dashboard_lib.test.mjs tests/application_form_lib.test.mjs tests/application_outcomes_lib.test.mjs tests/canonical_source_adapters.test.mjs tests/eligibility_evidence_lib.test.mjs tests/file_transaction.test.mjs tests/form_runs_sheet.test.mjs tests/gmail_connector_contract.test.mjs tests/job_alert_ingestion_lib.test.mjs tests/job_tracker_lib.test.mjs tests/judge_calibration.test.mjs tests/lead_monitor_lib.test.mjs tests/pending_recovery.test.mjs tests/preflight_lib.test.mjs tests/project_config.test.mjs tests/public_repo_privacy.test.mjs tests/query_budget.test.mjs tests/query_metrics_sheet.test.mjs tests/run_diagnostics.test.mjs tests/run_replay_lib.test.mjs tests/search_query_lib.test.mjs tests/tailoring_report_lib.test.mjs tests/tracker_contract.test.mjs tests/tracker_rows.test.mjs",
     "verify-public": "node scripts/verify_public_repo.mjs"
   },
   "engines": {

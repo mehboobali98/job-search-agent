@@ -40,6 +40,9 @@ export function classifyPendingMarker(fileName, raw) {
   if (/^pending-query-budget-/i.test(name)) {
     return { workflow: "Query-budget approval", extract_key: null, command: "node scripts/apply_query_budget.mjs" };
   }
+  if (/^pending-job-alert-/i.test(name) && raw.proposal) {
+    return { workflow: "Job-alert ingestion", extract_key: null, command: "node scripts/ingest_job_alerts.mjs" };
+  }
   if (/^pending-action-/i.test(name) && raw.lead_id && raw.action) {
     return { workflow: "Lead action", extract_key: null, command: "node scripts/manage_lead.mjs" };
   }
@@ -108,6 +111,9 @@ export function recoveryGuidance({ filePath, stateDirectory, raw, workbookPath =
       if (raw.recommendation_path && raw.approval_id) {
         steps.push(`${classification.command}${common} --recommendation ${shellQuote(raw.recommendation_path)} --approve ${shellQuote(raw.approval_id)}${state}`);
       }
+      break;
+    case "Job-alert ingestion":
+      steps.push(`${classification.command} --recover ${shellQuote(filePath)} --apply`);
       break;
     default:
       break;

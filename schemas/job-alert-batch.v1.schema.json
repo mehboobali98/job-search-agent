@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.test/job-search-agent/job-alert-batch.v1.schema.json",
+  "title": "Job Alert Message Batch v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "batch_id", "transport", "retrieved_at", "messages"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "batch_id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "access_mode"],
+      "properties": {
+        "provider": { "type": "string", "pattern": "^[a-z0-9]+(?:[-_][a-z0-9]+)*$" },
+        "access_mode": { "const": "read_only" },
+        "query": { "type": "string", "maxLength": 512 }
+      }
+    },
+    "retrieved_at": { "type": "string", "format": "date-time" },
+    "messages": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["message_id", "received_at", "from"],
+        "anyOf": [{ "required": ["text_body"] }, { "required": ["html_body"] }],
+        "properties": {
+          "message_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+          "received_at": { "type": "string", "format": "date-time" },
+          "from": { "type": "string", "minLength": 1, "maxLength": 998 },
+          "subject": { "type": "string", "maxLength": 998 },
+          "text_body": { "type": "string", "maxLength": 1000000 },
+          "html_body": { "type": "string", "maxLength": 1000000 }
+        }
+      }
+    }
+  }
+}

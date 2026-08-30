@@ -34,4 +34,6 @@ jobs:
       - run: node --check scripts/update_tracker.mjs
       - run: node --check scripts/preflight.mjs
       - run: node --check scripts/apply_query_budget.mjs
+      - run: node --check scripts/job_alert_ingestion_lib.mjs
+      - run: node --check scripts/ingest_job_alerts.mjs
       - run: echo "Full workbook integration tests run in the Codex release environment with the bundled @oai/artifact-tool dependency."

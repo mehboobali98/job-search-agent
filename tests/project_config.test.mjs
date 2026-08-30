@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { CURRENT_CONFIG_VERSION, DEFAULT_RELIABILITY, upgradeProjectConfig, validateProjectConfig } from "../scripts/project_config.mjs";
+import { CURRENT_CONFIG_VERSION, DEFAULT_GMAIL_JOB_ALERTS, DEFAULT_RELIABILITY, upgradeProjectConfig, validateProjectConfig } from "../scripts/project_config.mjs";
 import { upgradeConfigFile } from "../scripts/upgrade_config.mjs";
 
 const v1 = {
@@ -23,16 +23,25 @@ test("config upgrades are deterministic and preserve existing values", () => {
   assert.equal(result.to_version, CURRENT_CONFIG_VERSION);
   assert.equal(result.config.candidate_name, v1.candidate_name);
   assert.deepEqual(result.config.reliability, DEFAULT_RELIABILITY);
+  assert.deepEqual(result.config.gmail_job_alerts, { ...DEFAULT_GMAIL_JOB_ALERTS, sender_allowlist: [] });
   assert.equal(result.config.search_terms_path, "profile/search-terms.json");
   assert.equal(result.config.eligibility_evidence_path, "profile/eligibility-evidence.json");
   assert.equal(result.config.application_packages_directory, "application-packages");
   assert.equal(upgradeProjectConfig(result.config).changed, false);
 });
 
-test("version 4 config validates reliability settings", () => {
+test("version 5 config validates reliability and bounded Gmail settings", () => {
   const config = upgradeProjectConfig(v1).config;
   assert.equal(validateProjectConfig(config), config);
   assert.throws(() => validateProjectConfig({ ...config, reliability: { ...config.reliability, query_recommendation_window: 0 } }), /positive integer/);
+  assert.throws(() => validateProjectConfig({ ...config, gmail_job_alerts: { ...config.gmail_job_alerts, read_only: false } }), /read_only must be true/);
+  assert.throws(() => validateProjectConfig({ ...config, gmail_job_alerts: { ...config.gmail_job_alerts, max_messages: 101 } }), /1 to 100/);
+  assert.throws(() => validateProjectConfig({ ...config, gmail_job_alerts: { ...config.gmail_job_alerts, query: "newer_than:7d\nOR all:mail" } }), /single line/);
+  assert.throws(() => validateProjectConfig({ ...config, gmail_job_alerts: { ...config.gmail_job_alerts, enabled: true } }), /allowlist must be non-empty/);
+  assert.equal(validateProjectConfig({
+    ...config,
+    gmail_job_alerts: { ...config.gmail_job_alerts, enabled: true, sender_allowlist: ["notifications.example.test"] },
+  }).gmail_job_alerts.enabled, true);
 });
 
 test("upgrade preview is read-only and apply creates a backup", async () => {

@@ -108,6 +108,14 @@ export async function runPreflight({ projectRoot = process.cwd(), configPath = "
     }
   }
 
+  checks.push(config.gmailJobAlerts.enabled
+    ? check(
+      "gmail-job-alerts",
+      "Passed",
+      `Read-only Gmail job-alert ingestion is enabled with ${config.gmailJobAlerts.sender_allowlist.length} allowlisted sender(s), a ${config.gmailJobAlerts.freshness_hours}-hour freshness window, and a ${config.gmailJobAlerts.max_messages}-message cap.`,
+    )
+    : check("gmail-job-alerts", "Passed", "Gmail job-alert ingestion is disabled; setup and tests require no Gmail credentials."));
+
   try {
     const pending = (await fs.readdir(config.stateDirectory)).filter((name) => /^pending(?:[.-].*)?\.json$/i.test(name));
     checks.push(pending.length

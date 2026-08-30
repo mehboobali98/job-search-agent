@@ -2,13 +2,17 @@
 
 ## Preflight
 
-Run `node scripts/preflight.mjs` before discovery when the local version-4 config has `reliability.require_preflight: true`. A failed check blocks discovery. Warnings do not block, but report them and resolve pending recovery markers before another workbook write. The report is intentionally compact and never includes candidate-profile or resume content.
+Run `node scripts/preflight.mjs` before discovery when local configuration has `reliability.require_preflight: true`. A failed check blocks discovery. Warnings do not block, but report them and resolve pending recovery markers before another workbook write. The report is intentionally compact and never includes candidate-profile, resume, sender, query, or email-body content.
 
 Older local config versions remain readable. `npm run upgrade-config` is preview-only. Apply only after the user requests it with `npm run upgrade-config -- --apply`; the script writes a private backup, initializes missing generic support files and directories without overwriting existing data, and then atomically replaces the config.
+
+Config version 5 adds `gmail_job_alerts`, disabled by default with `read_only: true`, a bounded query and freshness window, message/link limits, and an empty sender allowlist. Setup and tests never require Gmail credentials. Enabling requires at least one exact sender address or domain. Never store credentials in local configuration.
 
 ## Dry-run and pending recovery
 
 Use `npm run dry-run -- --input <run.json>` to validate a discovery payload on an isolated workbook copy. The command must report `workbook_unchanged: true` and never writes project state.
+
+Use `npm run ingest-alerts -- --input <private-batch.json>` for a read-only sanitized preview. Only `--apply` may persist the proposal under private state. It never writes the workbook. A failed proposal promotion leaves a sanitized `pending-job-alert-*.json` marker; use the exact recovery command returned by `npm run pending`. Repeating the same batch is idempotent.
 
 Use `npm run pending` to inspect checksums, age, failure summaries, and guided recovery commands. Inspection is read-only. If extraction is needed, use the exact `--marker` and `--extract` command from the report; extracted material must remain under the private state directory. Never delete a marker merely to silence preflight. A successful replay removes its own marker.
 

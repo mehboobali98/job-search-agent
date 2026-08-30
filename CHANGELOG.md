@@ -6,6 +6,22 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-30
+
+### Added
+
+- Add opt-in, disabled-by-default Gmail job-alert ingestion through a versioned transport-neutral message batch and sanitized discovery-proposal contract.
+- Add plain-text and HTML link/metadata extraction, tracked-link unwrapping, existing canonical-source normalization, deterministic batch and tracker deduplication, and explicit malformed, unsupported, duplicate, stale, expired, extraction-failure, and limit classifications.
+- Add a strict Gmail connector boundary limited to `gmail.readonly` message list/get operations, with no credential requirement for setup or tests and no send, delete, modify, label, archive, trash, or outreach capability.
+- Add preview-by-default private imports, explicit atomic `--apply`, idempotent proposal storage, sanitized pending recovery, and public-repository protections for mail exports and real email addresses.
+- Add synthetic fixtures and focused coverage for text, HTML, multiple/tracked links, privacy redaction, limits, idempotency, tracker reconciliation, and forced failure recovery.
+
+### Changed
+
+- Upgrade new local configurations to version 5 with bounded freshness, query, message, link, and sender-allowlist settings while retaining read compatibility for versions 1 through 4.
+- Extend discovery attribution with the optional `gmail_alert_finder`; all accepted alert seeds still require public canonical verification, blind judging, and the existing deterministic tracker writer.
+- Update the reusable skill, schemas, setup and upgrade guidance, roadmap, privacy verification, preflight, portable suite, and release documentation for the v2 ingestion boundary.
+
 ## [1.9.1] - 2026-08-30
 
 ### Fixed
@@ -156,7 +172,9 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.9.1...v2.0.0
+[1.9.1]: https://github.com/mehboobali98/job-search-agent/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.6.0...v1.7.0

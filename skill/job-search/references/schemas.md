@@ -2,6 +2,16 @@
 
 All packets are JSON-compatible. Text evidence is concise and source-specific.
 
+## Job-alert batch and discovery proposal
+
+Job alerts use the transport-neutral version-1 batch in `schemas/job-alert-batch.v1.schema.json`. The envelope has `schema_version`, `batch_id`, `{ provider, access_mode: read_only, query? }`, `retrieved_at`, and `messages[]`. A private message carries transport ID, receipt timestamp, From header, optional subject, and text and/or HTML body. Those raw fields exist only in the ignored input batch.
+
+`scripts/ingest_job_alerts.mjs` emits the version-1 sanitized proposal in `schemas/job-alert-discovery-proposal.v1.schema.json`. It contains a deterministic proposal ID, read-only transport marker, query hash, one `gmail_alert_finder` query attempt, proposed candidates, classifications, compact counts, and explicit privacy flags. Proposed candidates contain normalized public job URLs, extracted non-private job metadata, canonical adapter/job ID when available, live-verification/judge requirements, and provenance limited to batch ID, received timestamp, link index, and a one-way message reference.
+
+The classifications are `malformed_message`, `sender_not_allowed`, `stale_message`, `extraction_failure`, `unsupported_link`, `duplicate_in_batch`, `duplicate_in_tracker`, `expired_listing`, and `limit_exceeded`. They are proposal diagnostics, not raw tracker scan events. Do not force malformed records without a valid job identity through the updater.
+
+An alert proposal is not a finder packet. For each retained seed, verify a live public canonical vacancy, collect the complete finder packet below, blind the judge normally, and retain the Gmail discovery attribution in the final run. The run may add `agents.gmail_alert_finder` with a normal finder status. The updater remains the only tracker writer.
+
 ## Search query plan
 
 Query-plan v4 returns a JSON object with `target_geography`, `run_weekday`, exact `query_count`, `linkedin_query_count`, `company_watchlist_query_count`, `priority_markets`, `canonical_source_adapters`, `role_query_budget`, `by_finder`, and a flat `queries` list. Each finder receives only its own `by_finder` entries and must execute exactly that assigned count. Every canonical-source adapter has a stable ID, display name, recognized public hosts, `public_read_only` access contract, and explicit rules prohibiting private APIs, authenticated sessions, access-control bypasses, and submission endpoints.
@@ -43,6 +53,7 @@ A failed-judge candidate restores the finder packet with `listing_status: Active
   "agents": {
     "backend_finder": "Completed | Failed | Fallback Completed | Fallback Failed",
     "ai_product_finder": "Completed | Failed | Fallback Completed | Fallback Failed",
+    "gmail_alert_finder": "optional; Completed | Failed | Fallback Completed | Fallback Failed",
     "job_judge": "Completed | Partial | Failed | Fallback Completed | Fallback Failed"
   },
   "queries": 0,

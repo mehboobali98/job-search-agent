@@ -2,7 +2,7 @@ import { candidateIdentityKeys, isAlertable, normalizeText } from "./job_tracker
 import { ROLE_FAMILIES } from "./search_query_lib.mjs";
 
 const QUERY_ATTEMPT_STATUSES = new Set(["Completed", "Failed"]);
-const FINDERS = new Set(["backend_finder", "ai_product_finder"]);
+const FINDERS = new Set(["backend_finder", "ai_product_finder", "gmail_alert_finder"]);
 const MIN_UNIQUE_FOR_DEPTH_CHECK = 5;
 const MIN_DEEP_EVALUATIONS = 3;
 const MIN_EVALUATION_RATE = 0.2;

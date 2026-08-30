@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.test/job-search-agent/job-alert-discovery-proposal.v1.schema.json",
+  "title": "Sanitized Job Alert Discovery Proposal v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "proposal_id", "generated_at", "transport", "source", "batch", "query_attempt", "proposed_candidates", "classifications", "diagnostics", "privacy", "next_boundary"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "proposal_id": { "type": "string", "pattern": "^JAP-[A-F0-9]{24}$" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "access_mode"],
+      "properties": { "provider": { "type": "string" }, "access_mode": { "const": "read_only" } }
+    },
+    "source": { "const": "gmail_job_alert" },
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["batch_id", "message_count", "query_sha256"],
+      "properties": {
+        "batch_id": { "type": "string" },
+        "message_count": { "type": "integer", "minimum": 0 },
+        "query_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "query_attempt": { "type": "object" },
+    "proposed_candidates": { "type": "array", "items": { "type": "object" } },
+    "classifications": { "type": "array", "items": { "type": "object" } },
+    "diagnostics": { "type": "object" },
+    "privacy": { "type": "object" },
+    "next_boundary": { "type": "string" }
+  }
+}

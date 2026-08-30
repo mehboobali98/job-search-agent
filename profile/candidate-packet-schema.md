@@ -1,5 +1,13 @@
 # Candidate packet schema
 
+## Job-alert discovery proposal
+
+Job alerts enter through `schemas/job-alert-batch.v1.schema.json`, regardless of whether the source is a synthetic fixture, a sanitized private batch export, or a future live connector. The transport must declare `access_mode: read_only`. The importer emits `schemas/job-alert-discovery-proposal.v1.schema.json` with a deterministic proposal ID, one `gmail_alert_finder` query attempt, sanitized proposed candidates, explicit classifications, compact diagnostics, and a privacy declaration.
+
+Proposed candidates contain canonicalized public URLs, extractable job metadata, adapter/job IDs when available, and only hashed message provenance. They are not finder packets and must not be sent directly to the updater. Each seed requires a live public canonical-vacancy check, normal evidence collection and preliminary scoring, blind `job_judge` review, and conversion to the judged-candidate contract below. The Gmail query attempt and discovery provenance remain attributed in the final run. The updater may accept an optional `agents.gmail_alert_finder` status but remains the sole tracker mutation boundary.
+
+Malformed messages, disallowed or stale senders, extraction failures, unsupported links, duplicates, explicit expired notices, and limit overflows remain sanitized proposal classifications. Never copy raw message bodies, subjects, sender addresses, transport message IDs, or tracking URLs into scan-event raw JSON, tracker rows, replay archives, diagnostics, or logs.
+
 ## Finder result
 
 Each finder returns an object with `agent`, `status`, `query_count`, `query_attempts`, `packets`, `scan_events`, and optional `error`. `query_attempts` contains one record per assigned query with its query ID, finder, role family, source, lane, `Completed|Failed` status, and a non-empty error for failures. Role family remains optional only when accepting archived legacy payloads. `packets` contains only deeply evaluated viable jobs. `scan_events` records every other examined listing, including inaccessible, expired, duplicate, shallow-rejected, preliminary-suppressed, and hard-blocked jobs.

@@ -23,6 +23,19 @@ test("pending markers are classified without exposing their payload", () => {
   assert.equal(JSON.stringify(summary).includes("candidates"), false);
 });
 
+test("sanitized job-alert markers have an explicit apply recovery command", () => {
+  const raw = { proposal: { proposal_id: "JAP-SYNTHETIC" }, error: "Synthetic promotion failure" };
+  assert.equal(classifyPendingMarker("pending-job-alert-JAP-SYNTHETIC.json", raw).workflow, "Job-alert ingestion");
+  const summary = pendingMarkerSummary({
+    filePath: "/tmp/state/pending-job-alert-JAP-SYNTHETIC.json",
+    text: JSON.stringify(raw), raw, stat: { mtime: new Date("2026-08-30T00:00:00Z") },
+    stateDirectory: "/tmp/state", now: new Date("2026-08-30T01:00:00Z"),
+  });
+  assert.equal(summary.recovery.extraction_required, false);
+  assert.match(summary.recovery.steps[0], /--recover/);
+  assert.match(summary.recovery.steps[0], /--apply/);
+});
+
 test("inspection is read-only by default and extraction is explicit and private", async () => {
   const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "pending-recovery-"));
   const marker = "pending-SYNTHETIC-2.json";

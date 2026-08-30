@@ -1,6 +1,6 @@
 interface:
   display_name: "Job Search"
-  short_description: "Discover, assess, and prepare job applications"
-  default_prompt: "Use $job-search to discover jobs or inspect a prepared application form."
+  short_description: "Discover, ingest alerts, assess, and prepare jobs"
+  default_prompt: "Use $job-search to discover jobs, preview an opt-in job-alert batch, or inspect a prepared application form."
 policy:
   allow_implicit_invocation: true

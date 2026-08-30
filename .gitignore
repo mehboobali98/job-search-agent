@@ -12,6 +12,12 @@ profile/eligibility-evidence.json
 profile/resumes/
 state/
 application-packages/
+gmail-imports/
+job-alert-imports/
+email-imports/
+*.eml
+*.mbox
+*.pst
 
 # Generated verification and temporary files.
 renders/

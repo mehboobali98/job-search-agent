@@ -268,6 +268,47 @@ test("only alerts inside the configured digest cap are stamped as alerted", asyn
   assert.equal(lowest[27], null, "a qualifying lead outside the digest cap must remain alertable later");
 });
 
+test("sanitized Gmail discoveries retain attribution through the existing updater boundary", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "job-updater-gmail-"));
+  const workbook = path.join(tempDir, "Tracker.xlsx");
+  const stateDir = path.join(tempDir, "state");
+  const payloadPath = path.join(tempDir, "run.json");
+  await fs.copyFile(sourceWorkbook, workbook);
+  const gmailCandidate = candidate({
+    finder: "gmail_alert_finder",
+    discovery_query_id: "GMAIL-SYNTHETIC",
+    discovery_source: "gmail_job_alert",
+    source: "Gmail job alert",
+    company: "Mailbox Example",
+    canonical_url: "https://jobs.ashbyhq.com/mailbox-example/role-200",
+    job_id: "role-200",
+    provenance: {
+      transport: "gmail", batch_id: "synthetic-batch", message_ref: "msg-0123456789abcdef01234567",
+      received_at: "2026-08-30T07:00:00Z", link_index: 0, body_retained: false,
+    },
+  });
+  const payload = runPayload({
+    run_id: "TEST-GMAIL-001",
+    queries: 1,
+    agents: {
+      backend_finder: "Completed", ai_product_finder: "Completed", gmail_alert_finder: "Completed", job_judge: "Completed",
+    },
+    query_attempts: [{
+      query_id: "GMAIL-SYNTHETIC", finder: "gmail_alert_finder", source: "gmail_job_alert",
+      lane: "allowlisted_inbox_alerts", status: "Completed",
+    }],
+    candidates: [gmailCandidate],
+  });
+  await fs.writeFile(payloadPath, JSON.stringify(payload));
+  const result = runUpdater(workbook, stateDir, payloadPath);
+  assert.equal(result.status, 0, result.stderr);
+  const lastRun = JSON.parse(await fs.readFile(path.join(stateDir, "last-run.json"), "utf8"));
+  assert.equal(lastRun.diagnostics.source_metrics[0].source, "gmail_job_alert");
+  const archive = await fs.readFile(path.join(stateDir, "runs", "TEST-GMAIL-001.input.json"), "utf8");
+  assert.match(archive, /msg-0123456789abcdef01234567/);
+  assert.doesNotMatch(archive, /text_body|html_body|sender|subject|message_id/);
+});
+
 test("repeat alerts require a threshold, eligibility, or material description trigger", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "job-updater-repeat-"));
   const workbook = path.join(tempDir, "Tracker.xlsx");

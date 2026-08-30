@@ -1,4 +1,5 @@
 import path from "node:path";
+import crypto from "node:crypto";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import { allocateLargestRemainder } from "./job_tracker_lib.mjs";
 import { argumentValue, loadProjectConfig } from "./project_config.mjs";
@@ -39,4 +40,13 @@ console.log(JSON.stringify({
   scoring,
   policies,
   reliability: config.reliability,
+  gmail_job_alerts: {
+    enabled: config.gmailJobAlerts.enabled,
+    read_only: true,
+    query_sha256: crypto.createHash("sha256").update(config.gmailJobAlerts.query).digest("hex"),
+    freshness_hours: config.gmailJobAlerts.freshness_hours,
+    max_messages: config.gmailJobAlerts.max_messages,
+    max_links_per_message: config.gmailJobAlerts.max_links_per_message,
+    sender_allowlist_count: config.gmailJobAlerts.sender_allowlist.length,
+  },
 }, null, 2));

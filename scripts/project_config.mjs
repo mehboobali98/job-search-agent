@@ -2,13 +2,68 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 export const LOCAL_CONFIG_NAME = ".job-search.local.json";
-export const CURRENT_CONFIG_VERSION = 4;
+export const CURRENT_CONFIG_VERSION = 5;
 export const DEFAULT_RELIABILITY = Object.freeze({
   require_preflight: true,
   pending_retention_days: 30,
   query_recommendation_window: 20,
   query_recommendation_min_attempts: 5,
 });
+export const DEFAULT_GMAIL_JOB_ALERTS = Object.freeze({
+  enabled: false,
+  read_only: true,
+  query: "newer_than:7d",
+  freshness_hours: 168,
+  max_messages: 50,
+  max_links_per_message: 20,
+  sender_allowlist: Object.freeze([]),
+});
+
+const GMAIL_CONFIG_FIELDS = new Set([
+  "enabled", "read_only", "query", "freshness_hours", "max_messages", "max_links_per_message", "sender_allowlist",
+]);
+
+export function validateGmailJobAlertsConfig(value, { requireAllowlistWhenEnabled = true } = {}) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("gmail_job_alerts must be an object");
+  }
+  for (const field of Object.keys(value)) {
+    if (!GMAIL_CONFIG_FIELDS.has(field)) throw new Error("Unsupported gmail_job_alerts field: " + field);
+  }
+  if (typeof value.enabled !== "boolean") throw new Error("gmail_job_alerts.enabled must be a boolean");
+  if (value.read_only !== true) throw new Error("gmail_job_alerts.read_only must be true");
+  const query = String(value.query ?? "").trim();
+  if (!query || query.length > 512) throw new Error("gmail_job_alerts.query must contain 1-512 characters");
+  if (/[\r\n]/.test(query)) throw new Error("gmail_job_alerts.query must be a single line");
+  for (const [field, maximum] of [["freshness_hours", 720], ["max_messages", 100], ["max_links_per_message", 50]]) {
+    if (!Number.isInteger(value[field]) || value[field] < 1 || value[field] > maximum) {
+      throw new Error(`gmail_job_alerts.${field} must be an integer from 1 to ${maximum}`);
+    }
+  }
+  if (!Array.isArray(value.sender_allowlist) || value.sender_allowlist.length > 100) {
+    throw new Error("gmail_job_alerts.sender_allowlist must be an array with at most 100 entries");
+  }
+  const normalized = value.sender_allowlist.map((entry, index) => {
+    const text = String(entry ?? "").trim().toLowerCase().replace(/^@/, "");
+    if (!text || text.length > 254 || /\s/.test(text)) {
+      throw new Error(`gmail_job_alerts.sender_allowlist[${index}] is invalid`);
+    }
+    const isAddress = text.includes("@");
+    const domain = isAddress ? text.slice(text.lastIndexOf("@") + 1) : text;
+    if (!/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(domain) || !domain.includes(".")) {
+      throw new Error(`gmail_job_alerts.sender_allowlist[${index}] must be an exact email address or domain`);
+    }
+    if (isAddress && !/^[^@\s]+@[^@\s]+$/.test(text)) {
+      throw new Error(`gmail_job_alerts.sender_allowlist[${index}] must be an exact email address or domain`);
+    }
+    return text;
+  });
+  if (new Set(normalized).size !== normalized.length) throw new Error("gmail_job_alerts.sender_allowlist contains duplicates");
+  if (requireAllowlistWhenEnabled && value.enabled && normalized.length === 0) {
+    throw new Error("gmail_job_alerts.sender_allowlist must be non-empty when ingestion is enabled");
+  }
+  return { ...value, query, sender_allowlist: normalized };
+}
 
 export function argumentValue(argv, name, fallback = null) {
   const index = argv.indexOf(name);
@@ -58,6 +113,7 @@ export function validateProjectConfig(raw) {
       }
     }
   }
+  if (raw.version >= 5) validateGmailJobAlertsConfig(raw.gmail_job_alerts);
   try {
     new Intl.DateTimeFormat("en", { timeZone: raw.timezone }).format(new Date());
   } catch {
@@ -91,6 +147,11 @@ export function upgradeProjectConfig(raw) {
     config.reliability = { ...DEFAULT_RELIABILITY };
     changes.push({ version: 4, field: "reliability", value: { ...DEFAULT_RELIABILITY } });
     config.version = 4;
+  }
+  if (config.version < 5) {
+    config.gmail_job_alerts = { ...DEFAULT_GMAIL_JOB_ALERTS, sender_allowlist: [] };
+    changes.push({ version: 5, field: "gmail_job_alerts", value: config.gmail_job_alerts });
+    config.version = 5;
   }
 
   validateProjectConfig(config);
@@ -127,5 +188,10 @@ export async function loadProjectConfig({ projectRoot = process.cwd(), configPat
     stateDirectory: resolveProjectPath(absoluteRoot, raw.state_directory),
     applicationPackagesDirectory: resolveProjectPath(absoluteRoot, raw.application_packages_directory ?? "application-packages"),
     reliability: { ...DEFAULT_RELIABILITY, ...(raw.reliability ?? {}) },
+    gmailJobAlerts: validateGmailJobAlertsConfig({
+      ...DEFAULT_GMAIL_JOB_ALERTS,
+      ...(raw.gmail_job_alerts ?? {}),
+      sender_allowlist: [...(raw.gmail_job_alerts?.sender_allowlist ?? DEFAULT_GMAIL_JOB_ALERTS.sender_allowlist)],
+    }),
   };
 }

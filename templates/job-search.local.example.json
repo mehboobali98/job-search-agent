@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "candidate_name": "Candidate Name",
   "timezone": "Etc/UTC",
   "target_geography": "Worldwide remote and roles offering credible relocation or work-authorization support",
@@ -15,5 +15,14 @@
     "pending_retention_days": 30,
     "query_recommendation_window": 20,
     "query_recommendation_min_attempts": 5
+  },
+  "gmail_job_alerts": {
+    "enabled": false,
+    "read_only": true,
+    "query": "newer_than:7d",
+    "freshness_hours": 168,
+    "max_messages": 50,
+    "max_links_per_message": 20,
+    "sender_allowlist": []
   }
 }

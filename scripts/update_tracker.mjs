@@ -78,6 +78,9 @@ function validateRunPayload(run) {
   if (!FINDER_STATUSES.has(run.agents.backend_finder)) throw new Error("Invalid backend_finder status");
   if (!FINDER_STATUSES.has(run.agents.ai_product_finder)) throw new Error("Invalid ai_product_finder status");
   if (!JUDGE_AGENT_STATUSES.has(run.agents.job_judge)) throw new Error("Invalid job_judge status");
+  if (run.agents.gmail_alert_finder !== undefined && !FINDER_STATUSES.has(run.agents.gmail_alert_finder)) {
+    throw new Error("Invalid gmail_alert_finder status");
+  }
   const failedAgent = Object.values(run.agents).some((status) => status === "Failed" || status === "Fallback Failed" || status === "Partial");
   if (run.status === "Completed" && failedAgent) throw new Error("A run with a failed or partial agent must have status Partial");
   for (const field of COUNT_FIELDS) {

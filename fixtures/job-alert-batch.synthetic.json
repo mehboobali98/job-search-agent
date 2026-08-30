@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "batch_id": "synthetic-gmail-alerts-20260830",
+  "transport": {
+    "provider": "gmail",
+    "access_mode": "read_only",
+    "query": "label:fictional-job-alerts newer_than:7d"
+  },
+  "retrieved_at": "2026-08-30T08:00:00Z",
+  "messages": [
+    {
+      "message_id": "synthetic-message-text-1",
+      "received_at": "2026-08-30T07:00:00Z",
+      "from": "Fictional Job Alerts <alerts@notifications.example.test>",
+      "subject": "Fictional backend vacancy",
+      "text_body": "Company: Northstar Example Labs\nRole: Senior Backend Engineer\nLocation: Worldwide remote\nWork type: Remote\nhttps://www.google.com/url?q=https%3A%2F%2Fjob-boards.greenhouse.io%2Fnorthstar-example%2Fjobs%2F4242%3Futm_source%3Dmail"
+    },
+    {
+      "message_id": "synthetic-message-html-2",
+      "received_at": "2026-08-30T07:30:00Z",
+      "from": "Fictional Job Alerts <alerts@notifications.example.test>",
+      "subject": "Two fictional product roles",
+      "html_body": "<html><body><article><p>Company: Atlas Example Works</p><p>Location: Dubai, UAE</p><a href=\"https://jobs.ashbyhq.com/atlas-example/role-100?utm_source=alert\">Staff Platform Engineer</a></article><article><a href=\"https://alerts.example.test/unsubscribe\">Unsubscribe</a></article></body></html>"
+    }
+  ]
+}
