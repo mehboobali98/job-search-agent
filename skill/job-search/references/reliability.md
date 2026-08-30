@@ -20,6 +20,10 @@ Use `npm run import-history -- --source <private.xlsx> [--mapping <private-mappi
 
 Use `npm run notify [-- --input <private-result.json>]` to preview a version-1 digest and delivery plan from updater-returned alerts. Preview writes nothing. Only `--apply --approve NAPP-EXACT-ID` may atomically create private local or connector-outbox requests; no connector is invoked. A failure leaves `pending-notification-*.json` with redacted diagnostics and exact replay inputs. Repeating an approved request is idempotent.
 
+Live notification connectors use a separate two-step authorization. First preview a private version-1 profile with `npm run connector-profile -- --profile <private-profile>` and import only its sanitized binding with exact `--apply --approve NCON-EXACT-ID`. This never exports the endpoint, credential environment-variable name, or credential value. Then preview an existing outbox request with `npm run notify-send -- --request <private-request> --profile <private-profile>`. Only explicit `--send --approve NAPP-EXACT-ID` may attempt HTTPS delivery. Preview, setup, tests, and preflight never read the credential or use the network.
+
+The live dispatcher enforces exact local and profile destination allowlists, quiet-hour `not_before`, 1–15 second timeouts, 256 KiB maximum request bodies, 64 KiB maximum responses, at most three attempts, at most ten seconds of deterministic retry delay, redirect rejection, and the stable request ID as `Idempotency-Key`. It records only sanitized receipts. Failures retain `pending-notification-connector-*.json`; a confirmed marker writes the receipt without resending, while unconfirmed recovery reuses the same idempotency key after a fresh explicit send approval.
+
 Use `npm run pending` to inspect checksums, age, failure summaries, and guided recovery commands. Inspection is read-only. If extraction is needed, use the exact `--marker` and `--extract` command from the report; extracted material must remain under the private state directory. Never delete a marker merely to silence preflight. A successful replay removes its own marker.
 
 ## Adaptive query budgets

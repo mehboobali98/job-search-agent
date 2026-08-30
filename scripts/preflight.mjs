@@ -121,9 +121,9 @@ export async function runPreflight({ projectRoot = process.cwd(), configPath = "
     ? check(
       "notifications",
       "Passed",
-      `Notifications are enabled with ${enabledDestinations.length} destination(s), a ${config.notifications.max_items_per_digest}-item digest cap, and explicit approval required for private request creation.`,
+      `Notifications are enabled with ${enabledDestinations.length} destination(s), a ${config.notifications.max_items_per_digest}-item digest cap, and separate exact approvals required for request creation and any live send. Preflight does not load connector profiles or credentials.`,
     )
-    : check("notifications", "Passed", "Notifications are disabled; previews perform no external delivery and require no connector credentials."));
+    : check("notifications", "Passed", "Notifications are disabled; setup, previews, tests, and preflight perform no external delivery and do not load connector profiles or credentials."));
 
   try {
     const pending = (await fs.readdir(config.stateDirectory)).filter((name) => /^pending(?:[.-].*)?\.json$/i.test(name));

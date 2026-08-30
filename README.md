@@ -100,7 +100,7 @@ Apply writes one verified atomic replacement of the configured tracker and one i
 
 Notifications are disabled by default and require no connector credentials for setup, upgrades, previews, or tests. Config version 6 adds a global 1–20 item digest cap, bounded quiet hours, and at most ten destinations. Each destination has an opaque ID, enabled flag, `private_file` or `connector` adapter, channel, minimum score, 1–20 item cap, and an explicit choice about including the selected resume name. Connector destinations use only a non-secret opaque `connection_ref`; raw addresses, endpoint URLs, and credentials do not belong in configuration.
 
-The version-1 contracts are `schemas/job-digest.v1.schema.json` and `schemas/notification-delivery-request.v1.schema.json`. The command consumes only an archived updater result, never a candidate profile, raw discovery payload, email body, or workbook. Preview the latest result, or choose an archived run explicitly:
+The digest and outbox contracts are `schemas/job-digest.v1.schema.json` and `schemas/notification-delivery-request.v1.schema.json`. The command consumes only an archived updater result, never a candidate profile, raw discovery payload, email body, or workbook. Preview the latest result, or choose an archived run explicitly:
 
 ```sh
 npm run notify
@@ -136,9 +136,40 @@ After reviewing the exact preview, apply with its approval ID:
 npm run notify -- --input state/runs/RUN-ID.result.json --apply --approve NAPP-EXACT-ID
 ```
 
-Apply atomically creates idempotent private requests under `state/notifications/`. A `private_file` request is available locally; a `connector` request is queued in the private outbox with a deterministic `not_before` timestamp. Repository code never invokes the connector or performs an external send. A future authorized connector must consume the same request contract, require the exact approval ID, and honor quiet hours. Failed promotion leaves a redacted `pending-notification-*.json` marker with an exact recovery command from `npm run pending`.
+Apply atomically creates idempotent private requests under `state/notifications/`. A `private_file` request is available locally; a `connector` request is queued in the private outbox with a deterministic `not_before` timestamp. This command never invokes a connector or performs an external send. Failed promotion leaves a redacted `pending-notification-*.json` marker with an exact recovery command from `npm run pending`.
 
 Digest content is limited to alert-backed job metadata: lead ID, company, role, score, canonical public URL, location, eligibility, one strength, one risk, posting date, and optionally the selected resume label. It excludes candidate identity, profile evidence, resume files or paths, credentials, raw run payloads, email data, and private filesystem paths. Notification delivery never updates the tracker, submits an application, or contacts a recruiter.
+
+### Authenticated live connector boundary
+
+Live delivery remains separately disabled even after an outbox request exists. Local config stays at version 6; no connector endpoint or credential reference is added to `.job-search.local.json`. Instead, create a private profile under `state/notification-connectors/<profile_id>.profile.json` using `schemas/notification-connector-profile.v1.schema.json` and values supplied by the real connector account. Do not invent or copy an endpoint or account identifier from documentation. The profile supports one bounded transport: HTTPS JSON with a bearer value read from a named process environment variable only at send time.
+
+The private profile must explicitly set its enabled flag, opaque connection reference, query-free HTTPS endpoint, exact destination/channel allowlist, 1–15 second timeout, request limit up to 256 KiB, response limit up to 64 KiB, one to three attempts, non-decreasing deterministic retry delays totaling at most ten seconds, and mandatory `Idempotency-Key` support. Redirects are rejected. Credential values never belong in the profile, repository config, tracker, fixtures, diagnostics, logs, bindings, receipts, or recovery markers.
+
+Preview and import only the sanitized binding:
+
+```sh
+npm run connector-profile -- --profile state/notification-connectors/<profile_id>.profile.json
+npm run connector-profile -- --profile state/notification-connectors/<profile_id>.profile.json --apply --approve NCON-EXACT-ID
+```
+
+Preview exports a deterministic binding and exact `NCON-…` approval without writing or reading the credential. Apply stores only the binding under `state/notifications/connectors/`; it contains hashes, opaque references, allowlists, and limits, but no endpoint or environment-variable name. Changing any private profile field requires a new binding approval.
+
+Then preview an existing connector-outbox request. Preview performs no credential lookup and no network call:
+
+```sh
+npm run notify-send -- --request state/notifications/outbox/NREQ-….request.json --profile state/notification-connectors/<profile_id>.profile.json
+```
+
+A real attempt is possible only after separately reviewing that preview and supplying both the explicit send flag and the request's unchanged notification approval:
+
+```sh
+npm run notify-send -- --request state/notifications/outbox/NREQ-….request.json --profile state/notification-connectors/<profile_id>.profile.json --send --approve NAPP-EXACT-ID
+```
+
+Before reading the environment credential, the dispatcher revalidates the adapter-neutral request, approved profile hash, matching enabled local destination, private-profile allowlist, quiet-hour `not_before`, body size, and exact approval. Every retry uses the same request ID as its idempotency key. Successful delivery writes a sanitized receipt; repeating it returns that receipt without network activity. A failure leaves `pending-notification-connector-*.json`; `npm run pending` provides the exact private recovery command. If delivery was confirmed but receipt persistence failed, recovery writes the receipt without resending. For an unconfirmed attempt, recovery reuses the same key, so effective duplicate prevention still depends on the external endpoint honoring `Idempotency-Key`.
+
+No live connector or account was used to develop or test this boundary. Setup, upgrades, tests, previews, and preflight never send and never require connector credentials. Provider-specific OAuth refresh, account discovery, and delivery-format adapters remain outside this bounded slice.
 
 ## Tracker
 
@@ -191,6 +222,8 @@ npm run dry-run -- --input state/RUN.json
 npm run ingest-alerts -- --input state/job-alert-imports/private-batch.json
 npm run import-history -- --source state/tracker-imports/old-tracker.xlsx --mapping state/tracker-imports/mapping.json
 npm run notify -- --input state/runs/RUN-ID.result.json
+npm run connector-profile -- --profile state/notification-connectors/<profile_id>.profile.json
+npm run notify-send -- --request state/notifications/outbox/NREQ-….request.json --profile state/notification-connectors/<profile_id>.profile.json
 npm run queries
 npm run eligibility
 npm run calibrate-judge

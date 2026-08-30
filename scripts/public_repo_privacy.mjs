@@ -10,6 +10,7 @@ export const BLOCKED_PUBLIC_PATHS = Object.freeze([
   /^(?:gmail|job-alert|email)-imports\//i,
   /^(?:historical|tracker)-imports\//i,
   /^(?:notification|digest)-exports\//i,
+  /^(?:notification-connector|connector-profile)s?\//i,
   /^renders?\//,
   /\.inspect\.ndjson$/i,
   /\.(?:xlsx|xls|pdf|docx|eml|mbox|pst|zip|tar|tgz|gz)$/i,
@@ -42,6 +43,21 @@ export function publicContentViolations(content, { fileName = "" } = {}) {
       const parsed = JSON.parse(text);
       if (/^NREQ-[A-F0-9]{24}$/.test(String(parsed?.request_id ?? "")) && parsed?.destination && Array.isArray(parsed?.items)) {
         violations.push("private notification delivery request");
+      }
+    } catch {
+      // Non-JSON source files are checked by the remaining content rules.
+    }
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed?.schema_version === 1 && parsed?.transport === "https_json_bearer"
+        && typeof parsed?.endpoint === "string" && parsed?.authentication?.type === "bearer_env") {
+        violations.push("private notification connector profile");
+      }
+      if (/^NCBIND-[A-F0-9]{24}$/.test(String(parsed?.binding_id ?? "")) && parsed?.profile_sha256) {
+        violations.push("private notification connector binding");
+      }
+      if (/^NCREC-[A-F0-9]{24}$/.test(String(parsed?.receipt_id ?? "")) && parsed?.request_sha256) {
+        violations.push("private notification connector receipt");
       }
     } catch {
       // Non-JSON source files are checked by the remaining content rules.

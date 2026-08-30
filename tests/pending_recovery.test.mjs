@@ -78,6 +78,29 @@ test("notification markers require exact approved private replay", () => {
   assert.equal(JSON.stringify(summary).includes("requests"), false);
 });
 
+test("live connector markers recover with deterministic private paths and explicit send approval", () => {
+  const raw = {
+    workflow: "notification_connector_dispatch",
+    request_id: "NREQ-BBBBBBBBBBBBBBBBBBBBBBBB",
+    approval_id: "NAPP-AAAAAAAAAAAAAAAAAAAAAAAA",
+    profile_id: "fictional-slack",
+    connection_ref: "fictional-workspace",
+    binding_id: "NCBIND-CCCCCCCCCCCCCCCCCCCCCCCC",
+    error: "Synthetic connector failure",
+  };
+  assert.equal(classifyPendingMarker("pending-notification-connector-NREQ-BBBBBBBBBBBBBBBBBBBBBBBB.json", raw).workflow, "Notification connector dispatch");
+  const summary = pendingMarkerSummary({
+    filePath: "/tmp/state/pending-notification-connector-NREQ-BBBBBBBBBBBBBBBBBBBBBBBB.json",
+    text: JSON.stringify(raw), raw, stat: { mtime: new Date("2026-08-30T00:00:00Z") },
+    stateDirectory: "/tmp/state", now: new Date("2026-08-30T01:00:00Z"),
+  });
+  assert.match(summary.recovery.steps[0], /dispatch_notifications\.mjs/);
+  assert.match(summary.recovery.steps[0], /--send/);
+  assert.match(summary.recovery.steps[0], /--approve/);
+  assert.match(summary.recovery.steps[0], /fictional-slack\.profile\.json/);
+  assert.equal(JSON.stringify(summary).includes("fictional-workspace"), false);
+});
+
 test("inspection is read-only by default and extraction is explicit and private", async () => {
   const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "pending-recovery-"));
   const marker = "pending-SYNTHETIC-2.json";

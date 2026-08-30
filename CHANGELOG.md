@@ -6,6 +6,19 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-08-30
+
+### Added
+
+- Add an authenticated HTTPS JSON bearer connector runtime that consumes only the existing sanitized connector-outbox contract and requires a separate explicit `--send` plus the request's exact `NAPP-…` approval.
+- Add private version-1 connector profiles, exact destination allowlisting, deterministic sanitized binding imports, bounded timeouts and request/response sizes, fixed retry schedules, stable idempotency keys, and redirect rejection.
+- Add sanitized delivery receipts and redacted connector recovery markers, including confirmed-delivery receipt recovery without resending and synthetic transport coverage with no live account access.
+
+### Changed
+
+- Extend public privacy verification, pending recovery, CI contracts, documentation, roadmap, and the reusable skill so connector profiles, endpoints, credentials, bindings, receipts, request payloads, and candidate artifacts cannot enter the public tree.
+- Keep local configuration at version 6: connector endpoints and credential sources live only in ignored private profiles, so versions 1 through 5 remain readable and no private config migration is required.
+
 ## [2.2.0] - 2026-08-30
 
 ### Added
@@ -196,7 +209,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.9.1...v2.0.0

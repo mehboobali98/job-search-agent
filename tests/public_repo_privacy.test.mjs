@@ -7,10 +7,25 @@ test("private email exports and candidate artifacts are blocked from the public 
     "gmail-imports/private.json", "job-alert-imports/batch.json", "email-imports/export.json",
     "historical-imports/old-tracker.json", "tracker-imports/mapping.json", "private-history.xlsx",
     "notification-exports/digest.json", "digest-exports/request.json",
+    "notification-connectors/live.profile.json", "connector-profiles/live.json",
     "mailbox.eml", "archive.mbox", "mail-export.zip", "profile/candidate-profile.md", "profile/resumes/private.pdf", "state/private.json",
   ]) assert.equal(isBlockedPublicPath(name), true, name);
   assert.equal(isBlockedPublicPath("fixtures/job-alert-batch.synthetic.json"), false);
   assert.equal(isBlockedPublicPath("schemas/job-alert-batch.v1.schema.json"), false);
+});
+
+test("private live connector profiles, bindings, and receipts cannot enter the public tree", () => {
+  const profile = JSON.stringify({
+    schema_version: 1,
+    transport: "https_json_bearer",
+    endpoint: "https://connector.example.test/notifications",
+    authentication: { type: "bearer_env", environment_variable: "SYNTHETIC_CONNECTOR_BEARER" },
+  });
+  const binding = JSON.stringify({ binding_id: "NCBIND-AAAAAAAAAAAAAAAAAAAAAAAA", profile_sha256: "a".repeat(64) });
+  const receipt = JSON.stringify({ receipt_id: "NCREC-BBBBBBBBBBBBBBBBBBBBBBBB", request_sha256: "b".repeat(64) });
+  assert.ok(publicContentViolations(profile, { fileName: "live-profile.json" }).includes("private notification connector profile"));
+  assert.ok(publicContentViolations(binding, { fileName: "binding.json" }).includes("private notification connector binding"));
+  assert.ok(publicContentViolations(receipt, { fileName: "receipt.json" }).includes("private notification connector receipt"));
 });
 
 test("private notification delivery requests are rejected outside fixtures", () => {

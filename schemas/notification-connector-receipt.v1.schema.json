@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-connector-receipt.v1.schema.json",
+  "title": "Job Search Agent sanitized notification connector receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "receipt_id", "request_id", "approval_id", "binding_id", "request_sha256", "delivered_at", "http_status", "attempts", "idempotency_key", "safety"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "receipt_id": { "type": "string", "pattern": "^NCREC-[A-F0-9]{24}$" },
+    "request_id": { "type": "string", "pattern": "^NREQ-[A-F0-9]{24}$" },
+    "approval_id": { "type": "string", "pattern": "^NAPP-[A-F0-9]{24}$" },
+    "binding_id": { "type": "string", "pattern": "^NCBIND-[A-F0-9]{24}$" },
+    "request_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "delivered_at": { "type": "string", "format": "date-time" },
+    "http_status": { "type": "integer", "minimum": 200, "maximum": 299 },
+    "attempts": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "idempotency_key": { "type": "string", "pattern": "^NREQ-[A-F0-9]{24}$" },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint_included", "credential_included", "response_body_included", "application_submission_performed", "recruiter_outreach_performed"],
+      "properties": {
+        "endpoint_included": { "const": false },
+        "credential_included": { "const": false },
+        "response_body_included": { "const": false },
+        "application_submission_performed": { "const": false },
+        "recruiter_outreach_performed": { "const": false }
+      }
+    }
+  }
+}

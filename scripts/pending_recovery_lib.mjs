@@ -49,6 +49,9 @@ export function classifyPendingMarker(fileName, raw) {
   if (/^pending-notification-/i.test(name) && raw.workflow === "notification_delivery") {
     return { workflow: "Notification delivery", extract_key: null, command: "node scripts/deliver_notifications.mjs" };
   }
+  if (/^pending-notification-connector-/i.test(name) && raw.workflow === "notification_connector_dispatch") {
+    return { workflow: "Notification connector dispatch", extract_key: null, command: "node scripts/dispatch_notifications.mjs" };
+  }
   if (/^pending-action-/i.test(name) && raw.lead_id && raw.action) {
     return { workflow: "Lead action", extract_key: null, command: "node scripts/manage_lead.mjs" };
   }
@@ -127,6 +130,14 @@ export function recoveryGuidance({ filePath, stateDirectory, raw, workbookPath =
     case "Notification delivery":
       if (raw.approval_id) {
         steps.push(`${classification.command} --recover ${shellQuote(filePath)} --apply --approve ${shellQuote(raw.approval_id)}`);
+      }
+      break;
+    case "Notification connector dispatch":
+      if (raw.request_id && raw.profile_id && raw.connection_ref && raw.approval_id) {
+        const request = path.join(stateDirectory, "notifications", "outbox", `${raw.request_id}.request.json`);
+        const profile = path.join(stateDirectory, "notification-connectors", `${raw.profile_id}.profile.json`);
+        const binding = path.join(stateDirectory, "notifications", "connectors", `${raw.profile_id}.binding.json`);
+        steps.push(`${classification.command} --request ${shellQuote(request)} --profile ${shellQuote(profile)} --binding ${shellQuote(binding)} --recover ${shellQuote(filePath)} --send --approve ${shellQuote(raw.approval_id)}`);
       }
       break;
     default:

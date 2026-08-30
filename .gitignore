@@ -19,6 +19,8 @@ historical-imports/
 tracker-imports/
 notification-exports/
 digest-exports/
+notification-connectors/
+connector-profiles/
 *.eml
 *.mbox
 *.pst

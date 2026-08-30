@@ -100,6 +100,10 @@ test("connector boundary requires exact approval and never invokes a connector",
   assert.equal(deferred.application_submission_allowed, false);
   const ready = buildNotificationConnectorPlan(request, { approvalId: plan.approval_id, now: request.not_before });
   assert.equal(ready.status, "ready");
+  assert.equal(ready.requires_explicit_send_flag, true);
+  assert.equal(ready.authenticated_private_profile_required, true);
+  assert.equal(ready.destination_allowlist_required, true);
+  assert.equal(ready.idempotency_key, request.request_id);
 });
 
 test("notification contracts reject private addresses, paths, and credential keys", () => {
