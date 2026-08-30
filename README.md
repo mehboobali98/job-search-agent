@@ -171,6 +171,21 @@ Before reading the environment credential, the dispatcher revalidates the adapte
 
 No live connector or account was used to develop or test this boundary. Setup, upgrades, tests, previews, and preflight never send and never require connector credentials. Provider-specific OAuth refresh, account discovery, and delivery-format adapters remain outside this bounded slice.
 
+### Read-only delivery health
+
+Inspect connector delivery state without loading a connector profile or credential and without making a network request:
+
+```sh
+npm run notify-health
+npm run notify-health -- --stale-after-hours 24
+```
+
+The command reads only connector requests already in the private outbox, sanitized receipts, and redacted `pending-notification-connector-*.json` markers. It validates at most 1,000 artifacts, accepts files no larger than 256 KiB, rejects symbolic links and malformed contracts, and reports deterministic `confirmed`, `rejected`, `unknown`, `deferred`, `queued`, or `stale` status. The stale threshold is an inspection argument bounded from 1 to 720 hours; it is not a configuration migration.
+
+The version-1 report contract is `schemas/notification-delivery-health.v1.schema.json`. Reports contain only opaque request, destination, receipt, and binding identifiers; bounded status and attempt metadata; hashed artifact references; and safety flags. They exclude connector endpoints, profile fields, credential sources or values, request items, candidate artifacts, response bodies, and private paths. The command writes nothing, performs no retry, and never treats an unknown outcome as failed or safe to resend. Requests requiring attention point only to `npm run pending` or manual outbox review.
+
+Real report instances are private operational artifacts and are blocked by the public-repository verifier outside synthetic fixtures. The inspector remains compatible with supported configuration versions 1 through 5 and does not upgrade the local configuration.
+
 ## Tracker
 
 The local workbook has `Dashboard`, `Search Config`, `Leads`, `Applications`, `Scan Log`, `Run Log`, `Form Runs`, `Query Metrics`, `Eligibility Review`, `Lead Monitor`, `Application Outcomes`, and `Action Dashboard`. `Search Config` is authoritative for budgets, scoring, thresholds, and alert limits. `Form Runs` stores compact inspection summaries while full answers remain in private local packets. `Query Metrics` records deterministic discovery-funnel counts for every attributed query attempt. `Eligibility Review` is a persistent inbox for strong roles whose eligibility or candidate evidence still needs a human decision; its Status and Resolution fields remain user-controlled. `Lead Monitor` stores the latest source-backed snapshot of shortlisted and prepared roles while `Scan Log` preserves change history. `Application Outcomes` is append-only and user-confirmed. `Action Dashboard` is a derived queue for reviews, manual submissions, due follow-ups, and stale leads. There are no daily worksheets; timestamps and IDs preserve history.
@@ -224,6 +239,7 @@ npm run import-history -- --source state/tracker-imports/old-tracker.xlsx --mapp
 npm run notify -- --input state/runs/RUN-ID.result.json
 npm run connector-profile -- --profile state/notification-connectors/<profile_id>.profile.json
 npm run notify-send -- --request state/notifications/outbox/NREQ-….request.json --profile state/notification-connectors/<profile_id>.profile.json
+npm run notify-health
 npm run queries
 npm run eligibility
 npm run calibrate-judge

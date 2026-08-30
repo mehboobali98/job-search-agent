@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-delivery-health.v1.schema.json",
+  "title": "Job Search Agent sanitized notification delivery health report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_id", "as_of", "stale_after_hours", "counts", "requests", "artifact_issues", "guidance", "safety"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "report_id": { "type": "string", "pattern": "^NHEALTH-[A-F0-9]{24}$" },
+    "as_of": { "type": "string", "format": "date-time" },
+    "stale_after_hours": { "type": "integer", "minimum": 1, "maximum": 720 },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total_requests", "confirmed", "rejected", "unknown", "deferred", "queued", "stale", "requires_attention", "artifact_issues"],
+      "properties": {
+        "total_requests": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "confirmed": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "rejected": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "unknown": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "deferred": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "queued": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "stale": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "requires_attention": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "artifact_issues": { "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
+    "requests": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "destination_id", "channel", "status", "created_at", "not_before", "last_activity_at", "age_hours", "attempts", "http_status", "receipt_id", "binding_id", "delivery_evidence", "requires_attention", "recovery_required", "recovery_action"],
+        "properties": {
+          "request_id": { "type": "string", "pattern": "^NREQ-[A-F0-9]{24}$" },
+          "destination_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+          "channel": { "enum": ["email", "slack", "webhook", "custom"] },
+          "status": { "enum": ["confirmed", "rejected", "unknown", "deferred", "queued", "stale"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "not_before": { "type": "string", "format": "date-time" },
+          "last_activity_at": { "type": "string", "format": "date-time" },
+          "age_hours": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+          "attempts": { "type": "integer", "minimum": 0, "maximum": 3 },
+          "http_status": { "type": ["integer", "null"], "minimum": 100, "maximum": 599 },
+          "receipt_id": { "type": ["string", "null"], "pattern": "^NCREC-[A-F0-9]{24}$" },
+          "binding_id": { "type": ["string", "null"], "pattern": "^NCBIND-[A-F0-9]{24}$" },
+          "delivery_evidence": { "enum": ["none", "receipt", "recovery_marker"] },
+          "requires_attention": { "type": "boolean" },
+          "recovery_required": { "type": "boolean" },
+          "recovery_action": { "enum": ["none", "wait_until_not_before", "review_outbox", "run_pending_inspection"] }
+        }
+      }
+    },
+    "artifact_issues": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifact_ref", "artifact_type", "issue_code"],
+        "properties": {
+          "artifact_ref": { "type": "string", "pattern": "^NHART-[A-F0-9]{24}$" },
+          "artifact_type": { "enum": ["request", "receipt", "recovery_marker"] },
+          "issue_code": { "enum": ["invalid_json", "oversized", "not_regular_file", "invalid_contract", "filename_mismatch", "unsupported_adapter", "orphaned_receipt", "orphaned_marker", "receipt_mismatch", "marker_mismatch", "receipt_marker_conflict"] }
+        }
+      }
+    },
+    "guidance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pending_recovery_command", "automatic_retry_available"],
+      "properties": {
+        "pending_recovery_command": { "const": "npm run pending" },
+        "automatic_retry_available": { "const": false }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "state_written", "network_accessed", "external_delivery_performed", "automatic_retry_performed", "profile_files_read", "credential_environment_read", "endpoint_included", "request_items_included", "candidate_artifacts_included", "private_paths_included"],
+      "properties": {
+        "read_only": { "const": true },
+        "state_written": { "const": false },
+        "network_accessed": { "const": false },
+        "external_delivery_performed": { "const": false },
+        "automatic_retry_performed": { "const": false },
+        "profile_files_read": { "const": false },
+        "credential_environment_read": { "const": false },
+        "endpoint_included": { "const": false },
+        "request_items_included": { "const": false },
+        "candidate_artifacts_included": { "const": false },
+        "private_paths_included": { "const": false }
+      }
+    }
+  }
+}

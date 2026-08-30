@@ -24,6 +24,8 @@ Live notification connectors use a separate two-step authorization. First previe
 
 The live dispatcher enforces exact local and profile destination allowlists, quiet-hour `not_before`, 1–15 second timeouts, 256 KiB maximum request bodies, 64 KiB maximum responses, at most three attempts, at most ten seconds of deterministic retry delay, redirect rejection, and the stable request ID as `Idempotency-Key`. It records only sanitized receipts. Failures retain `pending-notification-connector-*.json`; a confirmed marker writes the receipt without resending, while unconfirmed recovery reuses the same idempotency key after a fresh explicit send approval.
 
+Use `npm run notify-health [-- --stale-after-hours 24]` for a read-only sanitized delivery-health report. The inspector reads at most 1,000 connector outbox requests, sanitized receipts, and redacted connector recovery markers, with a 256 KiB per-file limit. It rejects links and malformed contracts, reports hashed artifact references, and never loads profiles, endpoints, credential sources or values, request items into the report, candidate artifacts, or response bodies. It writes nothing, performs no network activity or automatic retry, and remains compatible with supported configuration versions 1 through 5 without migration. Recovery-required entries point to `npm run pending`.
+
 Use `npm run pending` to inspect checksums, age, failure summaries, and guided recovery commands. Inspection is read-only. If extraction is needed, use the exact `--marker` and `--extract` command from the report; extracted material must remain under the private state directory. Never delete a marker merely to silence preflight. A successful replay removes its own marker.
 
 ## Adaptive query budgets

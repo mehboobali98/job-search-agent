@@ -107,13 +107,14 @@ Status: released in v1.9.0, with compatibility fixes in v1.9.1.
 
 ## v2 — Opt-in ingestion and notifications
 
-Status: Gmail ingestion released in v2.0.0, historical tracker import released in v2.1.0, notification preferences released in v2.2.0, and bounded authenticated live connector support released in v2.3.0; remaining items are exploratory.
+Status: Gmail ingestion released in v2.0.0, historical tracker import released in v2.1.0, notification preferences released in v2.2.0, bounded authenticated live connector support released in v2.3.0, and read-only delivery-health monitoring released in v2.4.0; remaining items are exploratory.
 
 - Optional Gmail job-alert ingestion is implemented with a transport-neutral versioned batch, read-only connector contract, synthetic and private batch inputs, sanitized provenance, explicit classifications, tracker-aware deduplication, preview-by-default behavior, and atomic apply recovery.
 - Configurable digest destinations are implemented with a versioned privacy-minimized digest, local private-file delivery, and an adapter-neutral connector outbox. A separately disabled HTTPS JSON bearer consumer now adds private hash-bound profiles, exact destination allowlisting, explicit send approval, bounded deterministic retries, stable idempotency keys, sanitized receipts, and redacted recovery without changing the outbox contract.
 - Historical tracker import is implemented with read-only `.xlsx` sources, a versioned mapping contract, privacy-safe previews, deterministic validation and duplicate reconciliation, current-tracker-wins conflict policy, and atomic explicit apply with recovery.
 - Quiet hours and bounded per-channel score, item, and resume preferences are implemented; user-defined schedules remain future work.
-- Provider-specific OAuth refresh, connector-native message rendering, delivery health monitoring, and account-discovery UX remain future work and must preserve the private profile and sanitized outbox boundary.
+- Read-only delivery-health monitoring validates bounded private outbox, sanitized receipt, and redacted recovery artifacts; classifies confirmed, rejected, unknown, deferred, queued, and stale requests; reports only opaque identifiers and hashed artifact references; and never loads profiles or credentials, invokes a connector, writes state, or retries delivery.
+- Provider-specific OAuth refresh, connector-native message rendering, and account-discovery UX remain future work and must preserve the private profile and sanitized outbox boundary.
 
 ## v3 — Service mode
 

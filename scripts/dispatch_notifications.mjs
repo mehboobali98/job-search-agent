@@ -12,31 +12,12 @@ import {
   validateNotificationConnectorBinding,
   validateNotificationConnectorProfile,
   validateNotificationConnectorReceipt,
+  validateNotificationConnectorRecoveryMarker,
 } from "./notification_connector_runtime.mjs";
 import { validateNotificationDeliveryRequest } from "./notification_delivery_lib.mjs";
 import { argumentValue, loadProjectConfig } from "./project_config.mjs";
 
 const RETRYABLE_STATUS = new Set([408, 425, 429]);
-const MARKER_FIELDS = new Set([
-  "schema_version", "workflow", "created_at", "request_id", "approval_id", "binding_id", "profile_id",
-  "connection_ref", "request_sha256", "profile_sha256", "idempotency_key", "delivery_state", "attempts",
-  "last_failure", "confirmed_receipt", "error", "safety",
-]);
-const MARKER_SAFETY_FIELDS = new Set([
-  "endpoint_included", "credential_included", "response_body_included", "request_items_included",
-]);
-const MARKER_FAILURE_FIELDS = new Set(["category", "http_status", "retryable"]);
-
-function exactFields(value, fields, label) {
-  for (const field of Object.keys(value)) if (!fields.has(field)) throw new Error(`Unsupported ${label} field: ${field}`);
-}
-
-function safeId(value, pattern, label) {
-  const text = String(value ?? "");
-  if (!pattern.test(text)) throw new Error(`${label} is invalid`);
-  return text;
-}
-
 function isContained(filePath, directory) {
   const relative = path.relative(path.resolve(directory), path.resolve(filePath));
   return relative !== "" && !relative.startsWith(".." + path.sep) && !path.isAbsolute(relative);
@@ -145,66 +126,6 @@ function markerBase({ request, profile, binding, now }) {
       request_items_included: false,
     },
   };
-}
-
-function validateRecoveryMarker(marker, { request, profile, binding }) {
-  if (!marker || marker.workflow !== "notification_connector_dispatch") {
-    throw new Error("Recovery marker is not a notification-connector marker");
-  }
-  exactFields(marker, MARKER_FIELDS, "connector recovery marker");
-  if (marker.schema_version !== 1 || !Number.isFinite(new Date(marker.created_at).getTime())) {
-    throw new Error("Recovery marker version or timestamp is invalid");
-  }
-  const expected = {
-    request_id: request.request_id,
-    approval_id: request.approval_id,
-    binding_id: binding.binding_id,
-    profile_id: profile.profile_id,
-    connection_ref: profile.connection_ref,
-    request_sha256: notificationConnectorRequestHash(request),
-    profile_sha256: binding.profile_sha256,
-    idempotency_key: request.request_id,
-  };
-  for (const [key, value] of Object.entries(expected)) {
-    if (marker[key] !== value) throw new Error(`Recovery marker ${key} does not match the private connector inputs`);
-  }
-  if (!Number.isInteger(marker.attempts) || marker.attempts < 0 || marker.attempts > binding.request_policy.max_attempts) {
-    throw new Error("Recovery marker attempt count is invalid");
-  }
-  if (!new Set(["attempting", "retryable_failure", "unknown", "rejected", "confirmed"]).has(marker.delivery_state)) {
-    throw new Error("Recovery marker delivery_state is invalid");
-  }
-  if (!marker.safety || typeof marker.safety !== "object" || Array.isArray(marker.safety)) {
-    throw new Error("Recovery marker safety must be an object");
-  }
-  exactFields(marker.safety, MARKER_SAFETY_FIELDS, "connector recovery marker safety");
-  if (marker.safety.endpoint_included !== false || marker.safety.credential_included !== false
-    || marker.safety?.response_body_included !== false || marker.safety?.request_items_included !== false) {
-    throw new Error("Recovery marker safety flags are invalid");
-  }
-  if (marker.error !== null && (typeof marker.error !== "string" || !marker.error || marker.error.length > 240 || /[\r\n]/.test(marker.error))) {
-    throw new Error("Recovery marker error summary is invalid");
-  }
-  if (marker.last_failure !== null) {
-    if (!marker.last_failure || typeof marker.last_failure !== "object" || Array.isArray(marker.last_failure)) {
-      throw new Error("Recovery marker last_failure is invalid");
-    }
-    exactFields(marker.last_failure, MARKER_FAILURE_FIELDS, "connector recovery marker last_failure");
-    if (!new Set(["response_limit", "transport", "http_status"]).has(marker.last_failure.category)
-      || (marker.last_failure.http_status !== null
-        && (!Number.isInteger(marker.last_failure.http_status) || marker.last_failure.http_status < 100 || marker.last_failure.http_status > 599))
-      || typeof marker.last_failure.retryable !== "boolean") throw new Error("Recovery marker last_failure is invalid");
-  }
-  if (marker.delivery_state === "confirmed") {
-    const receipt = validateNotificationConnectorReceipt(marker.confirmed_receipt);
-    if (receipt.request_id !== request.request_id || receipt.approval_id !== request.approval_id
-      || receipt.binding_id !== binding.binding_id || receipt.request_sha256 !== notificationConnectorRequestHash(request)) {
-      throw new Error("Confirmed recovery receipt does not match the exact connector inputs");
-    }
-  } else if (marker.confirmed_receipt !== null) {
-    throw new Error("Unconfirmed recovery marker cannot contain a receipt");
-  }
-  return marker;
 }
 
 function enabledDestination(config, request) {
@@ -434,7 +355,9 @@ export async function runNotificationConnectorDispatch({
   if (recoverPath) {
     const absoluteRecovery = requirePrivatePath(recoverPath, config.stateDirectory, "Connector recovery marker");
     if (absoluteRecovery !== path.resolve(expectedPending)) throw new Error("Connector recovery marker path is not the deterministic pending path");
-    marker = validateRecoveryMarker(await readBoundedJson(absoluteRecovery, MAX_CONNECTOR_REQUEST_BYTES, "Connector recovery marker"), {
+    marker = validateNotificationConnectorRecoveryMarker(await readBoundedJson(
+      absoluteRecovery, MAX_CONNECTOR_REQUEST_BYTES, "Connector recovery marker",
+    ), {
       request, profile, binding,
     });
     if (marker.delivery_state === "confirmed") {

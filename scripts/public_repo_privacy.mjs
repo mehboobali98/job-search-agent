@@ -10,6 +10,7 @@ export const BLOCKED_PUBLIC_PATHS = Object.freeze([
   /^(?:gmail|job-alert|email)-imports\//i,
   /^(?:historical|tracker)-imports\//i,
   /^(?:notification|digest)-exports\//i,
+  /^(?:notification-health|delivery-health)-exports\//i,
   /^(?:notification-connector|connector-profile)s?\//i,
   /^renders?\//,
   /\.inspect\.ndjson$/i,
@@ -58,6 +59,10 @@ export function publicContentViolations(content, { fileName = "" } = {}) {
       }
       if (/^NCREC-[A-F0-9]{24}$/.test(String(parsed?.receipt_id ?? "")) && parsed?.request_sha256) {
         violations.push("private notification connector receipt");
+      }
+      if (/^NHEALTH-[A-F0-9]{24}$/.test(String(parsed?.report_id ?? ""))
+        && parsed?.counts && Array.isArray(parsed?.requests) && Array.isArray(parsed?.artifact_issues)) {
+        violations.push("private notification delivery health report");
       }
     } catch {
       // Non-JSON source files are checked by the remaining content rules.

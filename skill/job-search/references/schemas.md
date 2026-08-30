@@ -28,6 +28,8 @@ The runtime accepts only the documented lead/application fields and bounded valu
 
 `schemas/notification-connector-binding.v1.schema.json` and `schemas/notification-connector-receipt.v1.schema.json` define sanitized private artifacts. A binding hashes the complete profile and endpoint while exporting neither endpoint nor credential-source detail. A receipt records only deterministic request/binding identities, request hash, delivery timestamp, 2xx status, attempt count, stable idempotency key, and explicit redaction/non-application safety flags.
 
+`schemas/notification-delivery-health.v1.schema.json` defines a deterministic sanitized private health report over connector outbox requests, receipts, and recovery markers. It contains opaque request/destination/receipt/binding IDs, bounded timestamps and attempt/status metadata, exclusive confirmed/rejected/unknown/deferred/queued/stale counts, hashed artifact references, recovery guidance, and explicit no-network/no-write/no-profile/no-credential safety flags. It contains no request items, endpoint, credential source or value, response body, candidate artifact, or private path.
+
 ## Search query plan
 
 Query-plan v4 returns a JSON object with `target_geography`, `run_weekday`, exact `query_count`, `linkedin_query_count`, `company_watchlist_query_count`, `priority_markets`, `canonical_source_adapters`, `role_query_budget`, `by_finder`, and a flat `queries` list. Each finder receives only its own `by_finder` entries and must execute exactly that assigned count. Every canonical-source adapter has a stable ID, display name, recognized public hosts, `public_read_only` access contract, and explicit rules prohibiting private APIs, authenticated sessions, access-control bypasses, and submission endpoints.

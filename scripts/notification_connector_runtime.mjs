@@ -35,6 +35,15 @@ const RECEIPT_SAFETY_FIELDS = new Set([
   "endpoint_included", "credential_included", "response_body_included",
   "application_submission_performed", "recruiter_outreach_performed",
 ]);
+const RECOVERY_MARKER_FIELDS = new Set([
+  "schema_version", "workflow", "created_at", "request_id", "approval_id", "binding_id", "profile_id",
+  "connection_ref", "request_sha256", "profile_sha256", "idempotency_key", "delivery_state", "attempts",
+  "last_failure", "confirmed_receipt", "error", "safety",
+]);
+const RECOVERY_MARKER_SAFETY_FIELDS = new Set([
+  "endpoint_included", "credential_included", "response_body_included", "request_items_included",
+]);
+const RECOVERY_MARKER_FAILURE_FIELDS = new Set(["category", "http_status", "retryable"]);
 const CHANNELS = new Set(NOTIFICATION_CHANNELS.filter((channel) => channel !== "local"));
 
 function sha256(value) {
@@ -322,6 +331,89 @@ export function validateNotificationConnectorReceipt(receipt) {
     throw new Error("Connector receipt ID does not match deterministic content");
   }
   return receipt;
+}
+
+export function validateNotificationConnectorRecoveryMarker(marker, { request = null, profile = null, binding = null } = {}) {
+  if (!marker || typeof marker !== "object" || Array.isArray(marker)
+    || marker.workflow !== "notification_connector_dispatch") {
+    throw new Error("Recovery marker is not a notification-connector marker");
+  }
+  exactFields(marker, RECOVERY_MARKER_FIELDS, "connector recovery marker");
+  if (marker.schema_version !== 1 || !Number.isFinite(new Date(marker.created_at).getTime())) {
+    throw new Error("Recovery marker version or timestamp is invalid");
+  }
+  if (!/^NREQ-[A-F0-9]{24}$/.test(String(marker.request_id ?? ""))
+    || !/^NAPP-[A-F0-9]{24}$/.test(String(marker.approval_id ?? ""))
+    || !/^NCBIND-[A-F0-9]{24}$/.test(String(marker.binding_id ?? ""))
+    || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(String(marker.profile_id ?? ""))
+    || !/^[a-f0-9]{64}$/.test(String(marker.request_sha256 ?? ""))
+    || !/^[a-f0-9]{64}$/.test(String(marker.profile_sha256 ?? ""))) {
+    throw new Error("Recovery marker identifiers or hashes are invalid");
+  }
+  opaqueReference(marker.connection_ref, "Recovery marker connection_ref");
+  if (marker.idempotency_key !== marker.request_id) throw new Error("Recovery marker idempotency key is invalid");
+  if (!Number.isInteger(marker.attempts) || marker.attempts < 0 || marker.attempts > 3) {
+    throw new Error("Recovery marker attempt count is invalid");
+  }
+  if (!new Set(["attempting", "retryable_failure", "unknown", "rejected", "confirmed"]).has(marker.delivery_state)) {
+    throw new Error("Recovery marker delivery_state is invalid");
+  }
+  if (!marker.safety || typeof marker.safety !== "object" || Array.isArray(marker.safety)) {
+    throw new Error("Recovery marker safety must be an object");
+  }
+  exactFields(marker.safety, RECOVERY_MARKER_SAFETY_FIELDS, "connector recovery marker safety");
+  if (marker.safety.endpoint_included !== false || marker.safety.credential_included !== false
+    || marker.safety.response_body_included !== false || marker.safety.request_items_included !== false) {
+    throw new Error("Recovery marker safety flags are invalid");
+  }
+  if (marker.error !== null && (typeof marker.error !== "string" || !marker.error
+    || marker.error.length > 240 || /[\r\n]/.test(marker.error))) {
+    throw new Error("Recovery marker error summary is invalid");
+  }
+  if (marker.last_failure !== null) {
+    if (!marker.last_failure || typeof marker.last_failure !== "object" || Array.isArray(marker.last_failure)) {
+      throw new Error("Recovery marker last_failure is invalid");
+    }
+    exactFields(marker.last_failure, RECOVERY_MARKER_FAILURE_FIELDS, "connector recovery marker last_failure");
+    if (!new Set(["response_limit", "transport", "http_status"]).has(marker.last_failure.category)
+      || (marker.last_failure.http_status !== null
+        && (!Number.isInteger(marker.last_failure.http_status)
+          || marker.last_failure.http_status < 100 || marker.last_failure.http_status > 599))
+      || typeof marker.last_failure.retryable !== "boolean") {
+      throw new Error("Recovery marker last_failure is invalid");
+    }
+  }
+  if (marker.delivery_state === "confirmed") {
+    const receipt = validateNotificationConnectorReceipt(marker.confirmed_receipt);
+    if (receipt.request_id !== marker.request_id || receipt.approval_id !== marker.approval_id
+      || receipt.binding_id !== marker.binding_id || receipt.request_sha256 !== marker.request_sha256) {
+      throw new Error("Confirmed recovery receipt does not match the recovery marker");
+    }
+  } else if (marker.confirmed_receipt !== null) {
+    throw new Error("Unconfirmed recovery marker cannot contain a receipt");
+  }
+
+  if (request || profile || binding) {
+    if (!request || !profile || !binding) throw new Error("Exact recovery validation requires request, profile, and binding");
+    validateNotificationDeliveryRequest(request);
+    const validatedProfile = validateNotificationConnectorProfile(profile);
+    validateNotificationConnectorBinding(binding);
+    const expected = {
+      request_id: request.request_id,
+      approval_id: request.approval_id,
+      binding_id: binding.binding_id,
+      profile_id: validatedProfile.profile_id,
+      connection_ref: validatedProfile.connection_ref,
+      request_sha256: notificationConnectorRequestHash(request),
+      profile_sha256: binding.profile_sha256,
+      idempotency_key: request.request_id,
+    };
+    for (const [key, value] of Object.entries(expected)) {
+      if (marker[key] !== value) throw new Error(`Recovery marker ${key} does not match the private connector inputs`);
+    }
+    if (marker.attempts > binding.request_policy.max_attempts) throw new Error("Recovery marker attempt count is invalid");
+  }
+  return marker;
 }
 
 export function notificationConnectorProfilePreview(profile) {

@@ -6,6 +6,18 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-08-30
+
+### Added
+
+- Add a versioned privacy-minimized notification delivery-health report and read-only `npm run notify-health` inspector over bounded connector outbox requests, sanitized receipts, and redacted recovery markers.
+- Add deterministic confirmed, rejected, unknown, deferred, queued, and stale classifications, hashed invalid/orphaned artifact references, strict conflict detection, and synthetic no-write coverage.
+
+### Changed
+
+- Centralize connector recovery-marker validation so live dispatch and health inspection share one strict contract, and extend CI, privacy verification, documentation, and the reusable skill for private health reports.
+- Keep local configuration at version 6 while preserving versions 1 through 5; delivery-health thresholds are bounded inspection arguments and the maintainer's private version-5 configuration requires no migration.
+
 ## [2.3.0] - 2026-08-30
 
 ### Added
@@ -209,7 +221,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.0.0...v2.1.0

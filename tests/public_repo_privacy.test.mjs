@@ -7,6 +7,7 @@ test("private email exports and candidate artifacts are blocked from the public 
     "gmail-imports/private.json", "job-alert-imports/batch.json", "email-imports/export.json",
     "historical-imports/old-tracker.json", "tracker-imports/mapping.json", "private-history.xlsx",
     "notification-exports/digest.json", "digest-exports/request.json",
+    "notification-health-exports/report.json", "delivery-health-exports/report.json",
     "notification-connectors/live.profile.json", "connector-profiles/live.json",
     "mailbox.eml", "archive.mbox", "mail-export.zip", "profile/candidate-profile.md", "profile/resumes/private.pdf", "state/private.json",
   ]) assert.equal(isBlockedPublicPath(name), true, name);
@@ -26,6 +27,18 @@ test("private live connector profiles, bindings, and receipts cannot enter the p
   assert.ok(publicContentViolations(profile, { fileName: "live-profile.json" }).includes("private notification connector profile"));
   assert.ok(publicContentViolations(binding, { fileName: "binding.json" }).includes("private notification connector binding"));
   assert.ok(publicContentViolations(receipt, { fileName: "receipt.json" }).includes("private notification connector receipt"));
+});
+
+test("private delivery health reports cannot enter the public tree", () => {
+  const report = JSON.stringify({
+    schema_version: 1,
+    report_id: "NHEALTH-AAAAAAAAAAAAAAAAAAAAAAAA",
+    counts: { total_requests: 1 },
+    requests: [{ request_id: "NREQ-BBBBBBBBBBBBBBBBBBBBBBBB" }],
+    artifact_issues: [],
+  });
+  assert.ok(publicContentViolations(report, { fileName: "health.json" }).includes("private notification delivery health report"));
+  assert.equal(publicContentViolations(report, { fileName: "fixtures/health.synthetic.json" }).includes("private notification delivery health report"), false);
 });
 
 test("private notification delivery requests are rejected outside fixtures", () => {
