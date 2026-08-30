@@ -6,6 +6,18 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-08-31
+
+### Added
+
+- Add a separate disabled-by-default authenticated provider-status boundary with private version-1 status profiles, exact sanitized `NSTATCON-…` binding imports, preview-by-default request plans, and one-attempt probes requiring explicit `--probe` plus exact `NSTAT-…` approval.
+- Add strict provider response validation, append-only sanitized status observations, atomic persistence, and redacted pending recovery that can commit a confirmed observation without another network call.
+
+### Changed
+
+- Upgrade new private delivery-health reports to schema version 2 so read-only inspection can reconcile sanitized provider observations and status-probe recovery markers without reading profiles, endpoints, credentials, request items, response bodies, or candidate artifacts.
+- Extend pending recovery, public privacy verification, CI, documentation, and the reusable skill while keeping configuration version 6 and the existing delivery request/send contracts unchanged.
+
 ## [2.4.0] - 2026-08-30
 
 ### Added
@@ -221,7 +233,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.1.0...v2.2.0

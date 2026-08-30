@@ -11,6 +11,10 @@ import {
   validateNotificationConnectorReceipt,
   validateNotificationConnectorRecoveryMarker,
 } from "./notification_connector_runtime.mjs";
+import {
+  validateNotificationStatusObservation,
+  validateNotificationStatusRecoveryMarker,
+} from "./notification_status_runtime.mjs";
 import { validateNotificationDeliveryRequest } from "./notification_delivery_lib.mjs";
 import { argumentValue, loadProjectConfig } from "./project_config.mjs";
 
@@ -75,19 +79,25 @@ async function scanNotificationArtifacts(stateDirectory) {
   const notifications = path.join(state, "notifications");
   const outbox = path.join(notifications, "outbox");
   const receipts = path.join(notifications, "receipts");
+  const statusObservationsDirectory = path.join(notifications, "status-observations");
   await requireRegularDirectoryIfPresent(notifications);
-  const [requestEntries, receiptEntries, markerEntries] = await Promise.all([
+  const [requestEntries, receiptEntries, markerEntries, statusObservationEntries, statusMarkerEntries] = await Promise.all([
     directoryEntries(outbox, (name) => name.endsWith(".request.json")),
     directoryEntries(receipts, (name) => name.endsWith(".receipt.json")),
     directoryEntries(state, (name) => /^pending-notification-connector-.*\.json$/i.test(name)),
+    directoryEntries(statusObservationsDirectory, (name) => name.endsWith(".observation.json")),
+    directoryEntries(state, (name) => /^pending-notification-status-.*\.json$/i.test(name)),
   ]);
-  const total = requestEntries.length + receiptEntries.length + markerEntries.length;
+  const total = requestEntries.length + receiptEntries.length + markerEntries.length
+    + statusObservationEntries.length + statusMarkerEntries.length;
   if (total > MAX_NOTIFICATION_HEALTH_ARTIFACTS) {
     throw new Error(`Notification health inspection supports at most ${MAX_NOTIFICATION_HEALTH_ARTIFACTS} artifacts`);
   }
   const requests = [];
   const sanitizedReceipts = [];
   const recoveryMarkers = [];
+  const statusObservations = [];
+  const statusRecoveryMarkers = [];
   const artifactIssues = [];
   const groups = [
     {
@@ -103,6 +113,18 @@ async function scanNotificationArtifacts(stateDirectory) {
       validator: validateNotificationConnectorRecoveryMarker,
       expectedFileName: (value) => `pending-notification-connector-${value.request_id}.json`, destination: recoveryMarkers,
     },
+    {
+      directory: statusObservationsDirectory, entries: statusObservationEntries, artifactType: "status_observation",
+      validator: validateNotificationStatusObservation,
+      expectedFileName: (value) => `${value.request_id}.${value.observation_id}.observation.json`,
+      destination: statusObservations,
+    },
+    {
+      directory: state, entries: statusMarkerEntries, artifactType: "status_recovery_marker",
+      validator: validateNotificationStatusRecoveryMarker,
+      expectedFileName: (value) => `pending-notification-status-${value.request_id}.json`,
+      destination: statusRecoveryMarkers,
+    },
   ];
   for (const group of groups) {
     for (const entry of group.entries) {
@@ -111,7 +133,14 @@ async function scanNotificationArtifacts(stateDirectory) {
       else group.destination.push(result.value);
     }
   }
-  return { requests, receipts: sanitizedReceipts, recoveryMarkers, artifactIssues };
+  return {
+    requests,
+    receipts: sanitizedReceipts,
+    recoveryMarkers,
+    statusObservations,
+    statusRecoveryMarkers,
+    artifactIssues,
+  };
 }
 
 export async function inspectNotificationDeliveryHealth({
@@ -153,7 +182,7 @@ async function main() {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(() => {
     console.error(JSON.stringify({
-      schema_version: 1,
+      schema_version: 2,
       inspected: false,
       state_written: false,
       network_accessed: false,

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-connector-status-observation.v1.schema.json",
+  "title": "Job Search Agent sanitized notification connector provider-status observation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "observation_id", "request_id", "approval_id", "binding_id", "request_sha256", "observed_at", "recorded_at", "delivery_status", "http_status", "network_attempts", "safety"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "observation_id": { "type": "string", "pattern": "^NSTATOBS-[A-F0-9]{24}$" },
+    "request_id": { "type": "string", "pattern": "^NREQ-[A-F0-9]{24}$" },
+    "approval_id": { "type": "string", "pattern": "^NSTAT-[A-F0-9]{24}$" },
+    "binding_id": { "type": "string", "pattern": "^NSTATBIND-[A-F0-9]{24}$" },
+    "request_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "recorded_at": { "type": "string", "format": "date-time" },
+    "delivery_status": { "enum": ["delivered", "rejected", "pending", "unknown"] },
+    "http_status": { "type": "integer", "minimum": 200, "maximum": 299 },
+    "network_attempts": { "const": 1 },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint_included", "credential_included", "response_body_included", "request_items_included", "automatic_retry_performed", "external_delivery_performed", "application_submission_performed", "recruiter_outreach_performed"],
+      "properties": {
+        "endpoint_included": { "const": false },
+        "credential_included": { "const": false },
+        "response_body_included": { "const": false },
+        "request_items_included": { "const": false },
+        "automatic_retry_performed": { "const": false },
+        "external_delivery_performed": { "const": false },
+        "application_submission_performed": { "const": false },
+        "recruiter_outreach_performed": { "const": false }
+      }
+    }
+  }
+}

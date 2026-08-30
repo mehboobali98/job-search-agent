@@ -21,8 +21,12 @@ notification-exports/
 digest-exports/
 notification-health-exports/
 delivery-health-exports/
+notification-status-exports/
+provider-status-exports/
 notification-connectors/
 connector-profiles/
+notification-status-connectors/
+status-connector-profiles/
 *.eml
 *.mbox
 *.pst

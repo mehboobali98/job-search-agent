@@ -11,7 +11,9 @@ export const BLOCKED_PUBLIC_PATHS = Object.freeze([
   /^(?:historical|tracker)-imports\//i,
   /^(?:notification|digest)-exports\//i,
   /^(?:notification-health|delivery-health)-exports\//i,
+  /^(?:notification-status|provider-status)-exports\//i,
   /^(?:notification-connector|connector-profile)s?\//i,
+  /^(?:notification-status-connector|status-connector-profile)s?\//i,
   /^renders?\//,
   /\.inspect\.ndjson$/i,
   /\.(?:xlsx|xls|pdf|docx|eml|mbox|pst|zip|tar|tgz|gz)$/i,
@@ -59,6 +61,16 @@ export function publicContentViolations(content, { fileName = "" } = {}) {
       }
       if (/^NCREC-[A-F0-9]{24}$/.test(String(parsed?.receipt_id ?? "")) && parsed?.request_sha256) {
         violations.push("private notification connector receipt");
+      }
+      if (parsed?.schema_version === 1 && parsed?.transport === "https_json_bearer_status"
+        && typeof parsed?.endpoint === "string" && parsed?.authentication?.type === "bearer_env") {
+        violations.push("private notification status profile");
+      }
+      if (/^NSTATBIND-[A-F0-9]{24}$/.test(String(parsed?.binding_id ?? "")) && parsed?.profile_sha256) {
+        violations.push("private notification status binding");
+      }
+      if (/^NSTATOBS-[A-F0-9]{24}$/.test(String(parsed?.observation_id ?? "")) && parsed?.request_sha256) {
+        violations.push("private notification status observation");
       }
       if (/^NHEALTH-[A-F0-9]{24}$/.test(String(parsed?.report_id ?? ""))
         && parsed?.counts && Array.isArray(parsed?.requests) && Array.isArray(parsed?.artifact_issues)) {

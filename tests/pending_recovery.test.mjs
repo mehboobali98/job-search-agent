@@ -101,6 +101,31 @@ test("live connector markers recover with deterministic private paths and explic
   assert.equal(JSON.stringify(summary).includes("fictional-workspace"), false);
 });
 
+test("notification status markers require an exact explicit probe and never expose the connection", () => {
+  const raw = {
+    workflow: "notification_connector_status_probe",
+    request_id: "NREQ-BBBBBBBBBBBBBBBBBBBBBBBB",
+    approval_id: "NSTAT-AAAAAAAAAAAAAAAAAAAAAAAA",
+    profile_id: "fictional-status",
+    connection_ref: "fictional-workspace",
+    binding_id: "NSTATBIND-CCCCCCCCCCCCCCCCCCCCCCCC",
+    error: "Synthetic status failure",
+  };
+  assert.equal(classifyPendingMarker(
+    "pending-notification-status-NREQ-BBBBBBBBBBBBBBBBBBBBBBBB.json", raw,
+  ).workflow, "Notification connector status probe");
+  const summary = pendingMarkerSummary({
+    filePath: "/tmp/state/pending-notification-status-NREQ-BBBBBBBBBBBBBBBBBBBBBBBB.json",
+    text: JSON.stringify(raw), raw, stat: { mtime: new Date("2026-08-30T00:00:00Z") },
+    stateDirectory: "/tmp/state", now: new Date("2026-08-30T01:00:00Z"),
+  });
+  assert.match(summary.recovery.steps[0], /probe_notification_status\.mjs/);
+  assert.match(summary.recovery.steps[0], /--probe/);
+  assert.match(summary.recovery.steps[0], /--approve/);
+  assert.match(summary.recovery.steps[0], /fictional-status\.status-profile\.json/);
+  assert.equal(JSON.stringify(summary).includes("fictional-workspace"), false);
+});
+
 test("inspection is read-only by default and extraction is explicit and private", async () => {
   const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "pending-recovery-"));
   const marker = "pending-SYNTHETIC-2.json";

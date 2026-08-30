@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-connector-status-profile.v1.schema.json",
+  "title": "Job Search Agent private notification connector status profile v1",
+  "description": "Private runtime input for an explicitly approved, read-only provider-status probe. Real profiles, endpoints, and environment details must remain outside the public repository.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile_id", "enabled", "connection_ref", "transport", "endpoint", "authentication", "allowed_destinations", "request_policy"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "profile_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "enabled": { "type": "boolean", "default": false },
+    "connection_ref": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "transport": { "const": "https_json_bearer_status" },
+    "endpoint": { "type": "string", "format": "uri", "pattern": "^https://[^?#]+$", "maxLength": 2048 },
+    "authentication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "environment_variable"],
+      "properties": {
+        "type": { "const": "bearer_env" },
+        "environment_variable": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,127}$" }
+      }
+    },
+    "allowed_destinations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["destination_id", "channel"],
+        "properties": {
+          "destination_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+          "channel": { "enum": ["email", "slack", "webhook", "custom"] }
+        }
+      }
+    },
+    "request_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timeout_ms", "max_request_bytes", "max_response_bytes"],
+      "properties": {
+        "timeout_ms": { "type": "integer", "minimum": 1000, "maximum": 15000 },
+        "max_request_bytes": { "type": "integer", "minimum": 1024, "maximum": 16384 },
+        "max_response_bytes": { "type": "integer", "minimum": 1024, "maximum": 65536 }
+      }
+    }
+  }
+}

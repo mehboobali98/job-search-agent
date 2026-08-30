@@ -171,6 +171,37 @@ Before reading the environment credential, the dispatcher revalidates the adapte
 
 No live connector or account was used to develop or test this boundary. Setup, upgrades, tests, previews, and preflight never send and never require connector credentials. Provider-specific OAuth refresh, account discovery, and delivery-format adapters remain outside this bounded slice.
 
+### Authenticated provider-status reconciliation
+
+Provider status uses a separate private profile and cannot send a notification. Keep a version-1 profile under `state/notification-status-connectors/<profile_id>.status-profile.json` using `schemas/notification-connector-status-profile.v1.schema.json`. It is disabled by default and contains a query-free HTTPS status endpoint, bearer environment-variable name, exact destination allowlist, 1–15 second timeout, request limit up to 16 KiB, and response limit up to 64 KiB. Credential values remain only in the process environment.
+
+Preview and import only the sanitized status binding:
+
+```sh
+npm run status-profile -- --profile state/notification-status-connectors/<profile_id>.status-profile.json
+npm run status-profile -- --profile state/notification-status-connectors/<profile_id>.status-profile.json --apply --approve NSTATCON-EXACT-ID
+```
+
+The imported version-1 binding contains hashes, opaque references, the allowlist, and limits, but no endpoint or credential environment-variable name. Changing any status-profile field changes the exact approval.
+
+Then preview an existing connector outbox request. Preview does not read the credential, access the network, or write state:
+
+```sh
+npm run notify-status -- --request state/notifications/outbox/NREQ-….request.json --profile state/notification-status-connectors/<profile_id>.status-profile.json
+```
+
+A real read-only provider query requires a separately reviewed exact `NSTAT-…` approval and the explicit probe flag:
+
+```sh
+npm run notify-status -- --request state/notifications/outbox/NREQ-….request.json --profile state/notification-status-connectors/<profile_id>.status-profile.json --probe --approve NSTAT-EXACT-ID
+```
+
+The probe revalidates the unchanged outbox request, approved binding, profile hash, connection reference, and destination/channel allowlist before reading the environment credential. It performs exactly one HTTPS POST, rejects redirects, enforces the configured timeout and byte limits, and never retries automatically. The request body contains only the operation, opaque request ID, and request hash. The response must match the strict version-1 `{ schema_version, request_id, delivery_status, observed_at }` contract, where status is `delivered`, `rejected`, `pending`, or `unknown`.
+
+Successful probes atomically append only the sanitized observation defined by `schemas/notification-connector-status-observation.v1.schema.json`. It excludes endpoints, credential details, response bodies, request items, and candidate artifacts. A failed probe or post-response persistence failure leaves `pending-notification-status-*.json`; `npm run pending` provides the exact recovery command. Confirmed recovery writes the observation without another network request. Unknown recovery performs no automatic retry and still requires explicit `--probe` plus the unchanged exact approval.
+
+No live provider account or status endpoint was used during implementation or validation. The boundary is connector-neutral and expects a private adapter endpoint that implements the strict response contract; provider-native APIs, OAuth refresh, and account discovery remain future work.
+
 ### Read-only delivery health
 
 Inspect connector delivery state without loading a connector profile or credential and without making a network request:
@@ -180,9 +211,9 @@ npm run notify-health
 npm run notify-health -- --stale-after-hours 24
 ```
 
-The command reads only connector requests already in the private outbox, sanitized receipts, and redacted `pending-notification-connector-*.json` markers. It validates at most 1,000 artifacts, accepts files no larger than 256 KiB, rejects symbolic links and malformed contracts, and reports deterministic `confirmed`, `rejected`, `unknown`, `deferred`, `queued`, or `stale` status. The stale threshold is an inspection argument bounded from 1 to 720 hours; it is not a configuration migration.
+The command reads only connector requests already in the private outbox, sanitized receipts, sanitized provider-status observations, and redacted connector/status recovery markers. It validates at most 1,000 artifacts, accepts files no larger than 256 KiB, rejects symbolic links and malformed contracts, and reports deterministic `confirmed`, `rejected`, `unknown`, `deferred`, `queued`, or `stale` status. Provider `pending` observations remain queued until they cross the configured inspection threshold, then become stale. The stale threshold is an inspection argument bounded from 1 to 720 hours; it is not a configuration migration.
 
-The version-1 report contract is `schemas/notification-delivery-health.v1.schema.json`. Reports contain only opaque request, destination, receipt, and binding identifiers; bounded status and attempt metadata; hashed artifact references; and safety flags. They exclude connector endpoints, profile fields, credential sources or values, request items, candidate artifacts, response bodies, and private paths. The command writes nothing, performs no retry, and never treats an unknown outcome as failed or safe to resend. Requests requiring attention point only to `npm run pending` or manual outbox review.
+New reports use `schemas/notification-delivery-health.v2.schema.json`; version 1 remains the historical local-only contract. Version 2 adds only sanitized provider observation/binding IDs, provider status/timestamp, hashed status-artifact references, and deterministic provider-review guidance. Reports exclude connector endpoints, profile fields, credential sources or values, request items, candidate artifacts, response bodies, and private paths. The command writes nothing, performs no retry, and never treats an unknown outcome as failed or safe to resend. Requests requiring attention point only to `npm run pending`, manual outbox review, or provider-status review.
 
 Real report instances are private operational artifacts and are blocked by the public-repository verifier outside synthetic fixtures. The inspector remains compatible with supported configuration versions 1 through 5 and does not upgrade the local configuration.
 

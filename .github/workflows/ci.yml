@@ -42,8 +42,12 @@ jobs:
       - run: node --check scripts/notification_connector_contract.mjs
       - run: node --check scripts/notification_connector_runtime.mjs
       - run: node --check scripts/notification_delivery_health_lib.mjs
+      - run: node --check scripts/notification_status_runtime.mjs
+      - run: node --check scripts/notification_status_contract.mjs
       - run: node --check scripts/manage_notification_connector.mjs
+      - run: node --check scripts/manage_notification_status_connector.mjs
       - run: node --check scripts/dispatch_notifications.mjs
+      - run: node --check scripts/probe_notification_status.mjs
       - run: node --check scripts/inspect_notification_health.mjs
       - run: node --check scripts/deliver_notifications.mjs
       - run: echo "Full workbook integration tests run in the Codex release environment with the bundled @oai/artifact-tool dependency."
