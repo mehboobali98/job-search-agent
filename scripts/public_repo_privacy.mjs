@@ -8,6 +8,7 @@ export const BLOCKED_PUBLIC_PATHS = Object.freeze([
   /^state\//,
   /^application-packages\//,
   /^(?:gmail|job-alert|email)-imports\//i,
+  /^(?:historical|tracker)-imports\//i,
   /^renders?\//,
   /\.inspect\.ndjson$/i,
   /\.(?:xlsx|xls|pdf|docx|eml|mbox|pst|zip|tar|tgz|gz)$/i,

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "import_id": "historical-tracker-example",
+  "imported_at": "2026-01-01T12:00:00Z",
+  "sheets": [
+    {
+      "sheet_name": "Applications",
+      "record_type": "application",
+      "header_row": 1,
+      "columns": {
+        "company": "Company",
+        "title": "Job Title",
+        "location": "Location",
+        "work_type": "Work Type",
+        "source": "Source",
+        "canonical_url": "Job URL",
+        "job_id": "Job ID",
+        "date_applied": "Date Applied",
+        "application_status": "Status",
+        "current_stage": "Stage",
+        "next_follow_up": "Next Follow-up",
+        "best_resume": "Resume Version",
+        "final_score": "Match Score",
+        "notes": "Notes",
+        "next_action": "Next Action"
+      }
+    }
+  ]
+}

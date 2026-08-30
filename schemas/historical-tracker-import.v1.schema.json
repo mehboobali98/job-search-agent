@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.test/job-search-agent/historical-tracker-import.v1.schema.json",
+  "title": "Historical Tracker Import Mapping v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "import_id", "imported_at", "sheets"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "import_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "imported_at": { "type": "string", "format": "date-time" },
+    "sheets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sheet_name", "record_type", "header_row", "columns"],
+        "properties": {
+          "sheet_name": { "type": "string", "minLength": 1, "maxLength": 31 },
+          "record_type": { "enum": ["lead", "application"] },
+          "header_row": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "columns": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["company", "title"],
+            "properties": {
+              "company": { "$ref": "#/$defs/header" },
+              "title": { "$ref": "#/$defs/header" },
+              "location": { "$ref": "#/$defs/header" },
+              "work_type": { "$ref": "#/$defs/header" },
+              "source": { "$ref": "#/$defs/header" },
+              "canonical_url": { "$ref": "#/$defs/header" },
+              "job_id": { "$ref": "#/$defs/header" },
+              "posted_date": { "$ref": "#/$defs/header" },
+              "first_seen": { "$ref": "#/$defs/header" },
+              "last_seen": { "$ref": "#/$defs/header" },
+              "eligibility": { "$ref": "#/$defs/header" },
+              "confidence": { "$ref": "#/$defs/header" },
+              "best_resume": { "$ref": "#/$defs/header" },
+              "final_score": { "$ref": "#/$defs/header" },
+              "lead_status": { "$ref": "#/$defs/header" },
+              "date_applied": { "$ref": "#/$defs/header" },
+              "application_status": { "$ref": "#/$defs/header" },
+              "current_stage": { "$ref": "#/$defs/header" },
+              "next_follow_up": { "$ref": "#/$defs/header" },
+              "salary_posted": { "$ref": "#/$defs/header" },
+              "salary_expectation": { "$ref": "#/$defs/header" },
+              "notes": { "$ref": "#/$defs/header" },
+              "next_action": { "$ref": "#/$defs/header" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "header": { "type": "string", "minLength": 1, "maxLength": 256 }
+  }
+}

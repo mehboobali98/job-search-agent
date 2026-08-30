@@ -6,6 +6,18 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-30
+
+### Added
+
+- Add preview-by-default historical `.xlsx` import with compatible-tracker auto-mapping and a strict version-1 mapping contract for other workbook layouts.
+- Add deterministic source/tracker duplicate reconciliation, explicit malformed/duplicate/conflict/limit classifications, privacy-safe hashed row references, and current-tracker-wins merge policy.
+- Add verified atomic `--apply`, idempotent run logging, hash-checked pending recovery, bounded source limits, and synthetic workbook coverage for failure preservation and replay.
+
+### Changed
+
+- Extend public-repository privacy guards, CI contracts, reusable skill guidance, pending-marker inspection, README, and roadmap for private historical imports.
+
 ## [2.0.0] - 2026-08-30
 
 ### Added

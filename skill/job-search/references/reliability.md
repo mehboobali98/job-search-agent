@@ -14,6 +14,8 @@ Use `npm run dry-run -- --input <run.json>` to validate a discovery payload on a
 
 Use `npm run ingest-alerts -- --input <private-batch.json>` for a read-only sanitized preview. Only `--apply` may persist the proposal under private state. It never writes the workbook. A failed proposal promotion leaves a sanitized `pending-job-alert-*.json` marker; use the exact recovery command returned by `npm run pending`. Repeating the same batch is idempotent.
 
+Use `npm run import-history -- --source <private.xlsx> [--mapping <private-mapping.json>]` for a privacy-safe historical-import preview. It never modifies the source or tracker. Only explicit `--apply` may append missing legacy history through a verified atomic tracker replacement. A failure leaves `pending-history-import-*.json`; recovery verifies that both source and target still match the failed attempt before replaying. Repeating a committed import is idempotent.
+
 Use `npm run pending` to inspect checksums, age, failure summaries, and guided recovery commands. Inspection is read-only. If extraction is needed, use the exact `--marker` and `--extract` command from the report; extracted material must remain under the private state directory. Never delete a marker merely to silence preflight. A successful replay removes its own marker.
 
 ## Adaptive query budgets

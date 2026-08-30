@@ -43,6 +43,9 @@ export function classifyPendingMarker(fileName, raw) {
   if (/^pending-job-alert-/i.test(name) && raw.proposal) {
     return { workflow: "Job-alert ingestion", extract_key: null, command: "node scripts/ingest_job_alerts.mjs" };
   }
+  if (/^pending-history-import-/i.test(name) && raw.workflow === "historical_tracker_import") {
+    return { workflow: "Historical tracker import", extract_key: null, command: "node scripts/import_tracker_history.mjs" };
+  }
   if (/^pending-action-/i.test(name) && raw.lead_id && raw.action) {
     return { workflow: "Lead action", extract_key: null, command: "node scripts/manage_lead.mjs" };
   }
@@ -113,6 +116,9 @@ export function recoveryGuidance({ filePath, stateDirectory, raw, workbookPath =
       }
       break;
     case "Job-alert ingestion":
+      steps.push(`${classification.command} --recover ${shellQuote(filePath)} --apply`);
+      break;
+    case "Historical tracker import":
       steps.push(`${classification.command} --recover ${shellQuote(filePath)} --apply`);
       break;
     default:

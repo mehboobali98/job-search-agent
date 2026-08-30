@@ -36,6 +36,27 @@ test("sanitized job-alert markers have an explicit apply recovery command", () =
   assert.match(summary.recovery.steps[0], /--apply/);
 });
 
+test("historical tracker import markers replay atomically with explicit apply", () => {
+  const raw = {
+    workflow: "historical_tracker_import",
+    import_id: "synthetic-history",
+    source_path: "/tmp/private-history.xlsx",
+    target_path: "/tmp/tracker.xlsx",
+    error: "Synthetic promotion failure",
+  };
+  assert.equal(classifyPendingMarker("pending-history-import-synthetic-history.json", raw).workflow, "Historical tracker import");
+  const summary = pendingMarkerSummary({
+    filePath: "/tmp/state/pending-history-import-synthetic-history.json",
+    text: JSON.stringify(raw), raw, stat: { mtime: new Date("2026-08-30T00:00:00Z") },
+    stateDirectory: "/tmp/state", now: new Date("2026-08-30T01:00:00Z"),
+  });
+  assert.equal(summary.recovery.extraction_required, false);
+  assert.match(summary.recovery.steps[0], /import_tracker_history\.mjs/);
+  assert.match(summary.recovery.steps[0], /--recover/);
+  assert.match(summary.recovery.steps[0], /--apply/);
+  assert.equal(JSON.stringify(summary).includes("private-history.xlsx"), false);
+});
+
 test("inspection is read-only by default and extraction is explicit and private", async () => {
   const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "pending-recovery-"));
   const marker = "pending-SYNTHETIC-2.json";

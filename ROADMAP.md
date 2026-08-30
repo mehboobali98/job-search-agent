@@ -107,11 +107,11 @@ Status: released in v1.9.0, with compatibility fixes in v1.9.1.
 
 ## v2 — Opt-in ingestion and notifications
 
-Status: Gmail ingestion released in v2.0.0; remaining items are exploratory.
+Status: Gmail ingestion released in v2.0.0 and historical tracker import released in v2.1.0; remaining items are exploratory.
 
 - Optional Gmail job-alert ingestion is implemented with a transport-neutral versioned batch, read-only connector contract, synthetic and private batch inputs, sanitized provenance, explicit classifications, tracker-aware deduplication, preview-by-default behavior, and atomic apply recovery.
 - Configurable digest destinations and external notification adapters.
-- Historical tracker import with validation and duplicate reconciliation.
+- Historical tracker import is implemented with read-only `.xlsx` sources, a versioned mapping contract, privacy-safe previews, deterministic validation and duplicate reconciliation, current-tracker-wins conflict policy, and atomic explicit apply with recovery.
 - User-defined schedules, quiet hours, and per-channel alert preferences.
 
 ## v3 — Service mode

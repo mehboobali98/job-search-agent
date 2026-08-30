@@ -5,6 +5,7 @@ import { isBlockedPublicPath, publicContentViolations } from "../scripts/public_
 test("private email exports and candidate artifacts are blocked from the public repository", () => {
   for (const name of [
     "gmail-imports/private.json", "job-alert-imports/batch.json", "email-imports/export.json",
+    "historical-imports/old-tracker.json", "tracker-imports/mapping.json", "private-history.xlsx",
     "mailbox.eml", "archive.mbox", "mail-export.zip", "profile/candidate-profile.md", "profile/resumes/private.pdf", "state/private.json",
   ]) assert.equal(isBlockedPublicPath(name), true, name);
   assert.equal(isBlockedPublicPath("fixtures/job-alert-batch.synthetic.json"), false);

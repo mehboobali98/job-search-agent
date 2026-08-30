@@ -73,6 +73,29 @@ Sanitized provenance retains only the batch ID, received timestamp, link index, 
 
 This release defines the Gmail connector boundary with the single `gmail.readonly` scope and permits only message list/get operations. It does not invent credentials or provide a live mailbox authentication adapter when no Gmail connector is available; normalized connector records and synthetic fixtures enter through the same batch contract.
 
+## Historical tracker import
+
+Historical `.xlsx` files stay private and are opened read-only. A compatible Job Search Agent tracker with `LeadsTable` or `ApplicationsTable` is mapped automatically; other workbooks use the strict version-1 mapping in `schemas/historical-tracker-import.v1.schema.json`. Copy `templates/historical-tracker-import.mapping.example.json` into the ignored `state/` directory and replace only the sheet and header names.
+
+Preview is the default and prints hashed row references, classifications, counts, and policy flags without source notes, company names, job titles, or raw rows:
+
+```sh
+npm run import-history -- --source state/tracker-imports/old-tracker.xlsx
+npm run import-history -- --source state/tracker-imports/old-tracker.xlsx --mapping state/tracker-imports/mapping.json
+```
+
+The importer accepts at most 50 MB, 20 mapped sheets, 10,000 rows, and 100 used columns. It normalizes URLs through the existing tracker identity logic, groups duplicates inside the source, and reconciles them against both current leads and applications. Exact duplicates are ignored. Conflicting source identities and matches to multiple current rows are quarantined instead of choosing a winner.
+
+The current tracker is always authoritative: historical import never overwrites an existing lead or application, never regresses an application stage, and never invents a resume, score, eligibility decision, or application event. New historical records are marked `Legacy / unjudged`, default to low confidence and unverified eligibility when those values are absent, retain only bounded mapped fields, and carry a hashed/auditable source-row reference.
+
+Apply only after reviewing the preview:
+
+```sh
+npm run import-history -- --source state/tracker-imports/old-tracker.xlsx --mapping state/tracker-imports/mapping.json --apply
+```
+
+Apply writes one verified atomic replacement of the configured tracker and one import row in `Run Log`. Repeating the same import is idempotent. A failed promotion leaves `pending-history-import-*.json`; `npm run pending` returns the exact hash-checked recovery command. The source workbook is never changed.
+
 ## Tracker
 
 The local workbook has `Dashboard`, `Search Config`, `Leads`, `Applications`, `Scan Log`, `Run Log`, `Form Runs`, `Query Metrics`, `Eligibility Review`, `Lead Monitor`, `Application Outcomes`, and `Action Dashboard`. `Search Config` is authoritative for budgets, scoring, thresholds, and alert limits. `Form Runs` stores compact inspection summaries while full answers remain in private local packets. `Query Metrics` records deterministic discovery-funnel counts for every attributed query attempt. `Eligibility Review` is a persistent inbox for strong roles whose eligibility or candidate evidence still needs a human decision; its Status and Resolution fields remain user-controlled. `Lead Monitor` stores the latest source-backed snapshot of shortlisted and prepared roles while `Scan Log` preserves change history. `Application Outcomes` is append-only and user-confirmed. `Action Dashboard` is a derived queue for reviews, manual submissions, due follow-ups, and stale leads. There are no daily worksheets; timestamps and IDs preserve history.
@@ -122,6 +145,7 @@ npm run upgrade-config
 npm run pending
 npm run dry-run -- --input state/RUN.json
 npm run ingest-alerts -- --input state/job-alert-imports/private-batch.json
+npm run import-history -- --source state/tracker-imports/old-tracker.xlsx --mapping state/tracker-imports/mapping.json
 npm run queries
 npm run eligibility
 npm run calibrate-judge

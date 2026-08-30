@@ -12,6 +12,12 @@ The classifications are `malformed_message`, `sender_not_allowed`, `stale_messag
 
 An alert proposal is not a finder packet. For each retained seed, verify a live public canonical vacancy, collect the complete finder packet below, blind the judge normally, and retain the Gmail discovery attribution in the final run. The run may add `agents.gmail_alert_finder` with a normal finder status. The updater remains the only tracker writer.
 
+## Historical tracker import mapping
+
+Historical `.xlsx` sources use `schemas/historical-tracker-import.v1.schema.json` when compatible `LeadsTable` or `ApplicationsTable` auto-mapping is unavailable. The strict envelope contains `schema_version: 1`, opaque `import_id`, deterministic `imported_at`, and one to twenty sheet mappings. Each mapping has an exact sheet name, `record_type: lead|application`, one-based header row, and unique exact header names for mapped fields; company and title are required.
+
+The runtime accepts only the documented lead/application fields and bounded values. It converts source dates to stable timestamps, accepts only existing tracker choices for statuses, stages, eligibility, confidence, and resume variants, rejects non-HTTP(S) URLs, and derives all identities with `candidateIdentityKeys`. Preview diagnostics use only one-way row references and omit raw rows and private text. The mapping never grants permission to overwrite a current tracker row.
+
 ## Search query plan
 
 Query-plan v4 returns a JSON object with `target_geography`, `run_weekday`, exact `query_count`, `linkedin_query_count`, `company_watchlist_query_count`, `priority_markets`, `canonical_source_adapters`, `role_query_budget`, `by_finder`, and a flat `queries` list. Each finder receives only its own `by_finder` entries and must execute exactly that assigned count. Every canonical-source adapter has a stable ID, display name, recognized public hosts, `public_read_only` access contract, and explicit rules prohibiting private APIs, authenticated sessions, access-control bypasses, and submission endpoints.
