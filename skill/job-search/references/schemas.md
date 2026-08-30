@@ -18,6 +18,12 @@ Historical `.xlsx` sources use `schemas/historical-tracker-import.v1.schema.json
 
 The runtime accepts only the documented lead/application fields and bounded values. It converts source dates to stable timestamps, accepts only existing tracker choices for statuses, stages, eligibility, confidence, and resume variants, rejects non-HTTP(S) URLs, and derives all identities with `candidateIdentityKeys`. Preview diagnostics use only one-way row references and omit raw rows and private text. The mapping never grants permission to overwrite a current tracker row.
 
+## Notification digest and delivery request
+
+`schemas/job-digest.v1.schema.json` defines a deterministic privacy-minimized digest built only from updater-returned alerts. It contains an opaque digest ID, run/replay identity, stable timestamp and timezone, at most twenty job items, and explicit flags proving candidate identity, credentials, private paths, and raw run payloads are absent.
+
+`schemas/notification-delivery-request.v1.schema.json` defines one adapter-neutral request per enabled destination. It contains the exact approval ID, opaque destination/connection references, selected digest items, deterministic `not_before`, per-destination filter policy, and safety flags that prohibit external delivery by repository code, application submission, and recruiter outreach. A private-file request is local; a connector request remains queued until a separately authorized connector honors the same approval and time boundary.
+
 ## Search query plan
 
 Query-plan v4 returns a JSON object with `target_geography`, `run_weekday`, exact `query_count`, `linkedin_query_count`, `company_watchlist_query_count`, `priority_markets`, `canonical_source_adapters`, `role_query_budget`, `by_finder`, and a flat `queries` list. Each finder receives only its own `by_finder` entries and must execute exactly that assigned count. Every canonical-source adapter has a stable ID, display name, recognized public hosts, `public_read_only` access contract, and explicit rules prohibiting private APIs, authenticated sessions, access-control bypasses, and submission endpoints.

@@ -600,6 +600,7 @@ try {
   const actions = refreshActionDashboard(workbook, { asOf: now });
   const result = {
     run_id: payload.run_id,
+    completed_at: payload.completed_at,
     outcomes,
     reviews,
     registry_warnings: [...new Set(registryWarnings)],

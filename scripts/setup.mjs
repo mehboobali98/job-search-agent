@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createTracker } from "./create_tracker.mjs";
-import { argumentValue, CURRENT_CONFIG_VERSION, DEFAULT_GMAIL_JOB_ALERTS, DEFAULT_RELIABILITY, LOCAL_CONFIG_NAME, resolveProjectPath, validateProjectConfig } from "./project_config.mjs";
+import { argumentValue, CURRENT_CONFIG_VERSION, DEFAULT_GMAIL_JOB_ALERTS, DEFAULT_NOTIFICATIONS, DEFAULT_RELIABILITY, LOCAL_CONFIG_NAME, resolveProjectPath, validateProjectConfig } from "./project_config.mjs";
 
 const projectRoot = path.resolve(argumentValue(process.argv, "--project-root", process.cwd()));
 const candidateName = argumentValue(process.argv, "--name");
@@ -24,6 +24,7 @@ const config = validateProjectConfig({
   application_packages_directory: "application-packages",
   reliability: { ...DEFAULT_RELIABILITY },
   gmail_job_alerts: { ...DEFAULT_GMAIL_JOB_ALERTS, sender_allowlist: [] },
+  notifications: { ...DEFAULT_NOTIFICATIONS, quiet_hours: { ...DEFAULT_NOTIFICATIONS.quiet_hours }, destinations: [] },
 });
 const configPath = path.join(projectRoot, LOCAL_CONFIG_NAME);
 const trackerPath = resolveProjectPath(projectRoot, config.tracker_path);

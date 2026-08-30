@@ -1,6 +1,6 @@
 # Multi-Agent Job Search Agent
 
-A reusable Codex workflow that discovers jobs with two parallel finders, optionally ingests read-only Gmail job alerts, independently judges candidate fit, monitors shortlisted roles, prepares claim-safe application guidance, tracks confirmed outcomes, and safely updates a local Excel tracker. It never submits applications or sends outreach.
+A reusable Codex workflow that discovers jobs with two parallel finders, optionally ingests read-only Gmail job alerts, independently judges candidate fit, prepares privacy-minimized notification digests, monitors shortlisted roles, prepares claim-safe application guidance, tracks confirmed outcomes, and safely updates a local Excel tracker. It never submits applications or sends outreach.
 
 ## How it works
 
@@ -50,7 +50,7 @@ Priority markets belong in `linkedin_public.priority_market_locations`, with cou
 
 `npm run preflight` returns one machine-readable report for the Node runtime, bundled workbook dependency, local config version, twelve-sheet tracker contract, stable candidate evidence, five-variant PDF/DOCX resume inventory, search terms, eligibility registry, writable private directories, and pending recovery markers. Failed checks block discovery; warnings remain visible.
 
-Local config version 5 adds the disabled-by-default Gmail job-alert block while versions 1 through 4 remain readable. `npm run upgrade-config` previews every change without writing. Apply only with `npm run upgrade-config -- --apply`; the upgrader saves the prior config under the ignored state directory, initializes missing generic support files and private directories without overwriting anything, then atomically replaces the config.
+Local config version 6 adds disabled-by-default notification preferences while versions 1 through 5 remain readable. Version 5 introduced the disabled-by-default Gmail job-alert block. `npm run upgrade-config` previews every change without writing. Apply only with `npm run upgrade-config -- --apply`; the upgrader saves the prior config under the ignored state directory, initializes missing generic support files and private directories without overwriting anything, then atomically replaces the config.
 
 `npm run dry-run -- --input state/RUN.json` validates a proposed discovery payload against an isolated workbook copy and verifies that the live workbook hash is unchanged. If a writer previously failed, `npm run pending` reports its marker checksum, age, failure summary, and exact recovery steps without deleting it. Extraction for replay is explicit and remains inside the private state directory.
 
@@ -95,6 +95,50 @@ npm run import-history -- --source state/tracker-imports/old-tracker.xlsx --mapp
 ```
 
 Apply writes one verified atomic replacement of the configured tracker and one import row in `Run Log`. Repeating the same import is idempotent. A failed promotion leaves `pending-history-import-*.json`; `npm run pending` returns the exact hash-checked recovery command. The source workbook is never changed.
+
+## Notification digests and destinations
+
+Notifications are disabled by default and require no connector credentials for setup, upgrades, previews, or tests. Config version 6 adds a global 1–20 item digest cap, bounded quiet hours, and at most ten destinations. Each destination has an opaque ID, enabled flag, `private_file` or `connector` adapter, channel, minimum score, 1–20 item cap, and an explicit choice about including the selected resume name. Connector destinations use only a non-secret opaque `connection_ref`; raw addresses, endpoint URLs, and credentials do not belong in configuration.
+
+The version-1 contracts are `schemas/job-digest.v1.schema.json` and `schemas/notification-delivery-request.v1.schema.json`. The command consumes only an archived updater result, never a candidate profile, raw discovery payload, email body, or workbook. Preview the latest result, or choose an archived run explicitly:
+
+```sh
+npm run notify
+npm run notify -- --input state/runs/RUN-ID.result.json
+```
+
+Preview writes nothing and displays the deterministic `NAPP-…` approval ID, privacy-minimized digest, destination plan, filters, and quiet-hour deferrals. To enable local private-file delivery, first upgrade and edit the ignored `.job-search.local.json`:
+
+```json
+{
+  "notifications": {
+    "enabled": true,
+    "max_items_per_digest": 10,
+    "quiet_hours": { "enabled": true, "start": "22:00", "end": "08:00" },
+    "destinations": [
+      {
+        "id": "local-review",
+        "enabled": true,
+        "adapter": "private_file",
+        "channel": "local",
+        "minimum_score": 80,
+        "max_items": 10,
+        "include_resume": false
+      }
+    ]
+  }
+}
+```
+
+After reviewing the exact preview, apply with its approval ID:
+
+```sh
+npm run notify -- --input state/runs/RUN-ID.result.json --apply --approve NAPP-EXACT-ID
+```
+
+Apply atomically creates idempotent private requests under `state/notifications/`. A `private_file` request is available locally; a `connector` request is queued in the private outbox with a deterministic `not_before` timestamp. Repository code never invokes the connector or performs an external send. A future authorized connector must consume the same request contract, require the exact approval ID, and honor quiet hours. Failed promotion leaves a redacted `pending-notification-*.json` marker with an exact recovery command from `npm run pending`.
+
+Digest content is limited to alert-backed job metadata: lead ID, company, role, score, canonical public URL, location, eligibility, one strength, one risk, posting date, and optionally the selected resume label. It excludes candidate identity, profile evidence, resume files or paths, credentials, raw run payloads, email data, and private filesystem paths. Notification delivery never updates the tracker, submits an application, or contacts a recruiter.
 
 ## Tracker
 
@@ -146,6 +190,7 @@ npm run pending
 npm run dry-run -- --input state/RUN.json
 npm run ingest-alerts -- --input state/job-alert-imports/private-batch.json
 npm run import-history -- --source state/tracker-imports/old-tracker.xlsx --mapping state/tracker-imports/mapping.json
+npm run notify -- --input state/runs/RUN-ID.result.json
 npm run queries
 npm run eligibility
 npm run calibrate-judge

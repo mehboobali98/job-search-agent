@@ -9,6 +9,7 @@ export const BLOCKED_PUBLIC_PATHS = Object.freeze([
   /^application-packages\//,
   /^(?:gmail|job-alert|email)-imports\//i,
   /^(?:historical|tracker)-imports\//i,
+  /^(?:notification|digest)-exports\//i,
   /^renders?\//,
   /\.inspect\.ndjson$/i,
   /\.(?:xlsx|xls|pdf|docx|eml|mbox|pst|zip|tar|tgz|gz)$/i,
@@ -33,6 +34,14 @@ export function publicContentViolations(content, { fileName = "" } = {}) {
       if (parsed?.transport?.access_mode === "read_only" && Array.isArray(parsed?.messages)
         && parsed.messages.some((message) => message && ("text_body" in message || "html_body" in message || "from" in message))) {
         violations.push("private job-alert message batch");
+      }
+    } catch {
+      // Non-JSON source files are checked by the remaining content rules.
+    }
+    try {
+      const parsed = JSON.parse(text);
+      if (/^NREQ-[A-F0-9]{24}$/.test(String(parsed?.request_id ?? "")) && parsed?.destination && Array.isArray(parsed?.items)) {
+        violations.push("private notification delivery request");
       }
     } catch {
       // Non-JSON source files are checked by the remaining content rules.

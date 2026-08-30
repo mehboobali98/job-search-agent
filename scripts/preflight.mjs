@@ -116,6 +116,15 @@ export async function runPreflight({ projectRoot = process.cwd(), configPath = "
     )
     : check("gmail-job-alerts", "Passed", "Gmail job-alert ingestion is disabled; setup and tests require no Gmail credentials."));
 
+  const enabledDestinations = config.notifications.destinations.filter((destination) => destination.enabled);
+  checks.push(config.notifications.enabled
+    ? check(
+      "notifications",
+      "Passed",
+      `Notifications are enabled with ${enabledDestinations.length} destination(s), a ${config.notifications.max_items_per_digest}-item digest cap, and explicit approval required for private request creation.`,
+    )
+    : check("notifications", "Passed", "Notifications are disabled; previews perform no external delivery and require no connector credentials."));
+
   try {
     const pending = (await fs.readdir(config.stateDirectory)).filter((name) => /^pending(?:[.-].*)?\.json$/i.test(name));
     checks.push(pending.length

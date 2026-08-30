@@ -8,6 +8,8 @@ Older local config versions remain readable. `npm run upgrade-config` is preview
 
 Config version 5 adds `gmail_job_alerts`, disabled by default with `read_only: true`, a bounded query and freshness window, message/link limits, and an empty sender allowlist. Setup and tests never require Gmail credentials. Enabling requires at least one exact sender address or domain. Never store credentials in local configuration.
 
+Config version 6 adds `notifications`, disabled by default with a bounded digest, quiet hours, and at most ten destinations. Enabling requires an enabled destination. Connector destinations store only a non-secret opaque reference; never store an address, endpoint URL, or credential. Versions 1 through 5 remain readable.
+
 ## Dry-run and pending recovery
 
 Use `npm run dry-run -- --input <run.json>` to validate a discovery payload on an isolated workbook copy. The command must report `workbook_unchanged: true` and never writes project state.
@@ -15,6 +17,8 @@ Use `npm run dry-run -- --input <run.json>` to validate a discovery payload on a
 Use `npm run ingest-alerts -- --input <private-batch.json>` for a read-only sanitized preview. Only `--apply` may persist the proposal under private state. It never writes the workbook. A failed proposal promotion leaves a sanitized `pending-job-alert-*.json` marker; use the exact recovery command returned by `npm run pending`. Repeating the same batch is idempotent.
 
 Use `npm run import-history -- --source <private.xlsx> [--mapping <private-mapping.json>]` for a privacy-safe historical-import preview. It never modifies the source or tracker. Only explicit `--apply` may append missing legacy history through a verified atomic tracker replacement. A failure leaves `pending-history-import-*.json`; recovery verifies that both source and target still match the failed attempt before replaying. Repeating a committed import is idempotent.
+
+Use `npm run notify [-- --input <private-result.json>]` to preview a version-1 digest and delivery plan from updater-returned alerts. Preview writes nothing. Only `--apply --approve NAPP-EXACT-ID` may atomically create private local or connector-outbox requests; no connector is invoked. A failure leaves `pending-notification-*.json` with redacted diagnostics and exact replay inputs. Repeating an approved request is idempotent.
 
 Use `npm run pending` to inspect checksums, age, failure summaries, and guided recovery commands. Inspection is read-only. If extraction is needed, use the exact `--marker` and `--extract` command from the report; extracted material must remain under the private state directory. Never delete a marker merely to silence preflight. A successful replay removes its own marker.
 

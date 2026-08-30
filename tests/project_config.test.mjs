@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { CURRENT_CONFIG_VERSION, DEFAULT_GMAIL_JOB_ALERTS, DEFAULT_RELIABILITY, upgradeProjectConfig, validateProjectConfig } from "../scripts/project_config.mjs";
+import { CURRENT_CONFIG_VERSION, DEFAULT_GMAIL_JOB_ALERTS, DEFAULT_NOTIFICATIONS, DEFAULT_RELIABILITY, upgradeProjectConfig, validateProjectConfig } from "../scripts/project_config.mjs";
 import { upgradeConfigFile } from "../scripts/upgrade_config.mjs";
 
 const v1 = {
@@ -24,13 +24,14 @@ test("config upgrades are deterministic and preserve existing values", () => {
   assert.equal(result.config.candidate_name, v1.candidate_name);
   assert.deepEqual(result.config.reliability, DEFAULT_RELIABILITY);
   assert.deepEqual(result.config.gmail_job_alerts, { ...DEFAULT_GMAIL_JOB_ALERTS, sender_allowlist: [] });
+  assert.deepEqual(result.config.notifications, { ...DEFAULT_NOTIFICATIONS, quiet_hours: { ...DEFAULT_NOTIFICATIONS.quiet_hours }, destinations: [] });
   assert.equal(result.config.search_terms_path, "profile/search-terms.json");
   assert.equal(result.config.eligibility_evidence_path, "profile/eligibility-evidence.json");
   assert.equal(result.config.application_packages_directory, "application-packages");
   assert.equal(upgradeProjectConfig(result.config).changed, false);
 });
 
-test("version 5 config validates reliability and bounded Gmail settings", () => {
+test("version 6 config validates reliability, Gmail, and bounded notification settings", () => {
   const config = upgradeProjectConfig(v1).config;
   assert.equal(validateProjectConfig(config), config);
   assert.throws(() => validateProjectConfig({ ...config, reliability: { ...config.reliability, query_recommendation_window: 0 } }), /positive integer/);
@@ -42,6 +43,27 @@ test("version 5 config validates reliability and bounded Gmail settings", () => 
     ...config,
     gmail_job_alerts: { ...config.gmail_job_alerts, enabled: true, sender_allowlist: ["notifications.example.test"] },
   }).gmail_job_alerts.enabled, true);
+  assert.throws(() => validateProjectConfig({ ...config, notifications: { ...config.notifications, enabled: true } }), /enabled destination/);
+  assert.throws(() => validateProjectConfig({
+    ...config,
+    notifications: { ...config.notifications, quiet_hours: { enabled: true, start: "22:00", end: "22:00" } },
+  }), /must differ/);
+  assert.throws(() => validateProjectConfig({
+    ...config,
+    notifications: {
+      ...config.notifications,
+      destinations: [{ id: "email", enabled: true, adapter: "connector", channel: "email", connection_ref: "secret-token", minimum_score: 80, max_items: 5, include_resume: false }],
+    },
+  }), /non-secret opaque reference/);
+  const enabled = {
+    ...config,
+    notifications: {
+      ...config.notifications,
+      enabled: true,
+      destinations: [{ id: "local", enabled: true, adapter: "private_file", channel: "local", minimum_score: 80, max_items: 5, include_resume: false }],
+    },
+  };
+  assert.equal(validateProjectConfig(enabled).notifications.enabled, true);
 });
 
 test("upgrade preview is read-only and apply creates a backup", async () => {

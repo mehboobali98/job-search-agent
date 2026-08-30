@@ -17,6 +17,8 @@ job-alert-imports/
 email-imports/
 historical-imports/
 tracker-imports/
+notification-exports/
+digest-exports/
 *.eml
 *.mbox
 *.pst

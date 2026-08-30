@@ -46,6 +46,9 @@ export function classifyPendingMarker(fileName, raw) {
   if (/^pending-history-import-/i.test(name) && raw.workflow === "historical_tracker_import") {
     return { workflow: "Historical tracker import", extract_key: null, command: "node scripts/import_tracker_history.mjs" };
   }
+  if (/^pending-notification-/i.test(name) && raw.workflow === "notification_delivery") {
+    return { workflow: "Notification delivery", extract_key: null, command: "node scripts/deliver_notifications.mjs" };
+  }
   if (/^pending-action-/i.test(name) && raw.lead_id && raw.action) {
     return { workflow: "Lead action", extract_key: null, command: "node scripts/manage_lead.mjs" };
   }
@@ -120,6 +123,11 @@ export function recoveryGuidance({ filePath, stateDirectory, raw, workbookPath =
       break;
     case "Historical tracker import":
       steps.push(`${classification.command} --recover ${shellQuote(filePath)} --apply`);
+      break;
+    case "Notification delivery":
+      if (raw.approval_id) {
+        steps.push(`${classification.command} --recover ${shellQuote(filePath)} --apply --approve ${shellQuote(raw.approval_id)}`);
+      }
       break;
     default:
       break;

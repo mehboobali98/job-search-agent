@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "candidate_name": "Candidate Name",
   "timezone": "Etc/UTC",
   "target_geography": "Worldwide remote and roles offering credible relocation or work-authorization support",
@@ -24,5 +24,15 @@
     "max_messages": 50,
     "max_links_per_message": 20,
     "sender_allowlist": []
+  },
+  "notifications": {
+    "enabled": false,
+    "max_items_per_digest": 10,
+    "quiet_hours": {
+      "enabled": true,
+      "start": "22:00",
+      "end": "08:00"
+    },
+    "destinations": []
   }
 }

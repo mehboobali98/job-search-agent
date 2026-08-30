@@ -6,6 +6,18 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-08-30
+
+### Added
+
+- Add versioned, transport-neutral job-digest and notification-delivery request contracts built only from updater-returned alerts.
+- Add disabled-by-default notification preferences with bounded destinations, per-channel score/item/resume controls, deterministic quiet-hour deferral, exact approval IDs, and privacy-minimized local previews.
+- Add atomic private local-file and connector-outbox request creation, idempotency, redacted pending recovery, a connector capability boundary, and synthetic failure-recovery coverage.
+
+### Changed
+
+- Upgrade new local configurations to version 6 while preserving read compatibility for versions 1 through 5, and extend preflight, config export, privacy verification, CI contracts, documentation, roadmap, and the reusable job-search skill.
+
 ## [2.1.0] - 2026-08-30
 
 ### Added
@@ -184,7 +196,9 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.9.1...v2.0.0
 [1.9.1]: https://github.com/mehboobali98/job-search-agent/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/mehboobali98/job-search-agent/compare/v1.8.0...v1.9.0

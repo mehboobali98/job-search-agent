@@ -49,4 +49,19 @@ console.log(JSON.stringify({
     max_links_per_message: config.gmailJobAlerts.max_links_per_message,
     sender_allowlist_count: config.gmailJobAlerts.sender_allowlist.length,
   },
+  notifications: {
+    enabled: config.notifications.enabled,
+    max_items_per_digest: config.notifications.max_items_per_digest,
+    quiet_hours: config.notifications.quiet_hours,
+    destinations: config.notifications.destinations.map((destination) => ({
+      id: destination.id,
+      enabled: destination.enabled,
+      adapter: destination.adapter,
+      channel: destination.channel,
+      minimum_score: destination.minimum_score,
+      max_items: destination.max_items,
+      include_resume: destination.include_resume,
+    })),
+    credentials_included: false,
+  },
 }, null, 2));

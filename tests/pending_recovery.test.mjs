@@ -57,6 +57,27 @@ test("historical tracker import markers replay atomically with explicit apply", 
   assert.equal(JSON.stringify(summary).includes("private-history.xlsx"), false);
 });
 
+test("notification markers require exact approved private replay", () => {
+  const raw = {
+    workflow: "notification_delivery",
+    approval_id: "NAPP-AAAAAAAAAAAAAAAAAAAAAAAA",
+    requests: [{ request_id: "NREQ-BBBBBBBBBBBBBBBBBBBBBBBB" }],
+    error: "Synthetic promotion failure",
+  };
+  assert.equal(classifyPendingMarker("pending-notification-NAPP-AAAAAAAAAAAAAAAAAAAAAAAA.json", raw).workflow, "Notification delivery");
+  const summary = pendingMarkerSummary({
+    filePath: "/tmp/state/pending-notification-NAPP-AAAAAAAAAAAAAAAAAAAAAAAA.json",
+    text: JSON.stringify(raw), raw, stat: { mtime: new Date("2026-08-30T00:00:00Z") },
+    stateDirectory: "/tmp/state", now: new Date("2026-08-30T01:00:00Z"),
+  });
+  assert.equal(summary.recovery.extraction_required, false);
+  assert.match(summary.recovery.steps[0], /deliver_notifications\.mjs/);
+  assert.match(summary.recovery.steps[0], /--recover/);
+  assert.match(summary.recovery.steps[0], /--apply/);
+  assert.match(summary.recovery.steps[0], /--approve/);
+  assert.equal(JSON.stringify(summary).includes("requests"), false);
+});
+
 test("inspection is read-only by default and extraction is explicit and private", async () => {
   const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "pending-recovery-"));
   const marker = "pending-SYNTHETIC-2.json";

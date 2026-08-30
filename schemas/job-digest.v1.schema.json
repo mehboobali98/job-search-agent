@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/job-digest.v1.schema.json",
+  "title": "Job Search Agent job digest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "digest_id", "run_id", "generated_at", "timezone", "source", "items", "privacy"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "digest_id": { "type": "string", "pattern": "^DIGEST-[A-F0-9]{24}$" },
+    "run_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "timezone": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "replay_hash"],
+      "properties": {
+        "kind": { "const": "tracker_update_result" },
+        "replay_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/item" }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_identity_included", "credentials_included", "private_paths_included", "raw_run_payload_included"],
+      "properties": {
+        "candidate_identity_included": { "const": false },
+        "credentials_included": { "const": false },
+        "private_paths_included": { "const": false },
+        "raw_run_payload_included": { "const": false }
+      }
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lead_id", "company", "role", "score", "canonical_url", "location", "eligibility", "primary_strength", "primary_risk", "posted_date", "best_resume"],
+      "properties": {
+        "lead_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "company": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "role": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "canonical_url": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "location": { "type": ["string", "null"], "maxLength": 160 },
+        "eligibility": { "enum": ["Eligible", "Unclear"] },
+        "primary_strength": { "type": ["string", "null"], "maxLength": 240 },
+        "primary_risk": { "type": ["string", "null"], "maxLength": 240 },
+        "posted_date": { "type": ["string", "null"], "format": "date" },
+        "best_resume": { "type": ["string", "null"], "maxLength": 80 }
+      }
+    }
+  }
+}

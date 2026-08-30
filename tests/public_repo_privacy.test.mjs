@@ -6,10 +6,22 @@ test("private email exports and candidate artifacts are blocked from the public 
   for (const name of [
     "gmail-imports/private.json", "job-alert-imports/batch.json", "email-imports/export.json",
     "historical-imports/old-tracker.json", "tracker-imports/mapping.json", "private-history.xlsx",
+    "notification-exports/digest.json", "digest-exports/request.json",
     "mailbox.eml", "archive.mbox", "mail-export.zip", "profile/candidate-profile.md", "profile/resumes/private.pdf", "state/private.json",
   ]) assert.equal(isBlockedPublicPath(name), true, name);
   assert.equal(isBlockedPublicPath("fixtures/job-alert-batch.synthetic.json"), false);
   assert.equal(isBlockedPublicPath("schemas/job-alert-batch.v1.schema.json"), false);
+});
+
+test("private notification delivery requests are rejected outside fixtures", () => {
+  const request = JSON.stringify({
+    schema_version: 1,
+    request_id: "NREQ-AAAAAAAAAAAAAAAAAAAAAAAA",
+    destination: { id: "local", adapter: "private_file", channel: "local" },
+    items: [{ lead_id: "L-SYNTHETIC" }],
+  });
+  assert.ok(publicContentViolations(request, { fileName: "notification.json" }).includes("private notification delivery request"));
+  assert.equal(publicContentViolations(request, { fileName: "fixtures/notification.synthetic.json" }).includes("private notification delivery request"), false);
 });
 
 test("real email addresses are rejected while reserved synthetic domains remain usable", () => {
