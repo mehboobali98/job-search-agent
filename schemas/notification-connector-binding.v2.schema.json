@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-connector-binding.v2.schema.json",
+  "title": "Job Search Agent sanitized notification connector binding v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "binding_id", "approval_id", "profile_id", "profile_sha256", "connection_ref", "endpoint_sha256", "allowed_destinations", "request_policy", "safety"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "binding_id": { "type": "string", "pattern": "^NCBIND-[A-F0-9]{24}$" },
+    "approval_id": { "type": "string", "pattern": "^NCON-[A-F0-9]{24}$" },
+    "profile_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "profile_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "connection_ref": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "endpoint_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "allowed_destinations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["destination_id", "channel", "renderer", "target_sha256"],
+        "properties": {
+          "destination_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+          "channel": { "enum": ["email", "slack", "webhook", "custom"] },
+          "renderer": { "enum": ["adapter_neutral_json_v1", "slack_blocks_v1"] },
+          "target_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "renderer": { "const": "slack_blocks_v1" } } },
+            "then": { "properties": { "channel": { "const": "slack" }, "target_sha256": { "type": "string" } } },
+            "else": { "properties": { "target_sha256": { "type": "null" } } }
+          }
+        ]
+      }
+    },
+    "request_policy": { "$ref": "notification-connector-profile.v1.schema.json#/properties/request_policy" },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint_included", "credential_included", "credential_environment_name_included", "native_target_included", "destination_allowlist_required", "explicit_send_required"],
+      "properties": {
+        "endpoint_included": { "const": false },
+        "credential_included": { "const": false },
+        "credential_environment_name_included": { "const": false },
+        "native_target_included": { "const": false },
+        "destination_allowlist_required": { "const": true },
+        "explicit_send_required": { "const": true }
+      }
+    }
+  }
+}

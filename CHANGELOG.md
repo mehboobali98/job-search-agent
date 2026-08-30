@@ -6,6 +6,18 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-08-31
+
+### Added
+
+- Add backward-compatible private connector profile and sanitized binding version 2 contracts with per-destination `adapter_neutral_json_v1` or `slack_blocks_v1` rendering.
+- Add deterministic bounded Slack Block Kit rendering over the unchanged sanitized connector-outbox request, with the native target retained only in the ignored private profile and represented in approved bindings by a hash.
+
+### Changed
+
+- Route connector previews and sends through the selected renderer while keeping credentials, endpoints, native targets, and rendered payloads out of previews, receipts, recovery markers, diagnostics, and public files.
+- Preserve profile/binding version 1 behavior, configuration version 6, exact `NAPP-…` send approval, destination allowlisting, idempotency, bounded retries, and the adapter-neutral delivery-request contract.
+
 ## [2.5.0] - 2026-08-31
 
 ### Added
@@ -233,7 +245,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.2.0...v2.3.0

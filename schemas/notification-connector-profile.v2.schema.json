@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-connector-profile.v2.schema.json",
+  "title": "Job Search Agent private notification connector profile v2",
+  "description": "Private runtime input. Real profiles, endpoints, environment details, and native destination targets must remain outside the public repository.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile_id", "enabled", "connection_ref", "transport", "endpoint", "authentication", "allowed_destinations", "request_policy", "idempotency"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "profile_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "enabled": { "type": "boolean", "default": false },
+    "connection_ref": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "transport": { "const": "https_json_bearer" },
+    "endpoint": { "type": "string", "format": "uri", "pattern": "^https://[^?#]+$", "maxLength": 2048 },
+    "authentication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "environment_variable"],
+      "properties": {
+        "type": { "const": "bearer_env" },
+        "environment_variable": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,127}$" }
+      }
+    },
+    "allowed_destinations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["destination_id", "channel", "rendering"],
+        "properties": {
+          "destination_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+          "channel": { "enum": ["email", "slack", "webhook", "custom"] },
+          "rendering": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["renderer", "target"],
+            "properties": {
+              "renderer": { "enum": ["adapter_neutral_json_v1", "slack_blocks_v1"] },
+              "target": { "type": ["string", "null"], "maxLength": 128 }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "rendering": { "properties": { "renderer": { "const": "slack_blocks_v1" } } } } },
+            "then": {
+              "properties": {
+                "channel": { "const": "slack" },
+                "rendering": { "properties": { "target": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" } } }
+              }
+            },
+            "else": {
+              "properties": {
+                "rendering": {
+                  "properties": {
+                    "target": { "type": "null" }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "request_policy": { "$ref": "notification-connector-profile.v1.schema.json#/properties/request_policy" },
+    "idempotency": { "$ref": "notification-connector-profile.v1.schema.json#/properties/idempotency" }
+  }
+}

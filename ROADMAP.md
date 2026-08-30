@@ -107,15 +107,15 @@ Status: released in v1.9.0, with compatibility fixes in v1.9.1.
 
 ## v2 — Opt-in ingestion and notifications
 
-Status: Gmail ingestion released in v2.0.0, historical tracker import released in v2.1.0, notification preferences released in v2.2.0, bounded authenticated live connector support released in v2.3.0, read-only delivery-health monitoring released in v2.4.0, and provider-status reconciliation released in v2.5.0; remaining items are exploratory.
+Status: Gmail ingestion released in v2.0.0, historical tracker import released in v2.1.0, notification preferences released in v2.2.0, bounded authenticated live connector support released in v2.3.0, read-only delivery-health monitoring released in v2.4.0, provider-status reconciliation released in v2.5.0, and native Slack rendering released in v2.6.0; remaining items are exploratory.
 
 - Optional Gmail job-alert ingestion is implemented with a transport-neutral versioned batch, read-only connector contract, synthetic and private batch inputs, sanitized provenance, explicit classifications, tracker-aware deduplication, preview-by-default behavior, and atomic apply recovery.
-- Configurable digest destinations are implemented with a versioned privacy-minimized digest, local private-file delivery, and an adapter-neutral connector outbox. A separately disabled HTTPS JSON bearer consumer now adds private hash-bound profiles, exact destination allowlisting, explicit send approval, bounded deterministic retries, stable idempotency keys, sanitized receipts, and redacted recovery without changing the outbox contract.
+- Configurable digest destinations are implemented with a versioned privacy-minimized digest, local private-file delivery, and an adapter-neutral connector outbox. A separately disabled HTTPS JSON bearer consumer adds private hash-bound profiles, exact destination allowlisting, explicit send approval, bounded deterministic retries, stable idempotency keys, sanitized receipts, and redacted recovery without changing the outbox contract. Backward-compatible profile version 2 additionally supports deterministic Slack Block Kit rendering with a private hash-bound target.
 - Historical tracker import is implemented with read-only `.xlsx` sources, a versioned mapping contract, privacy-safe previews, deterministic validation and duplicate reconciliation, current-tracker-wins conflict policy, and atomic explicit apply with recovery.
 - Quiet hours and bounded per-channel score, item, and resume preferences are implemented; user-defined schedules remain future work.
 - A separate provider-status boundary previews and imports sanitized status bindings, requires exact `NSTAT-…` approval plus explicit `--probe` for one authenticated read-only HTTPS attempt, validates a strict connector-neutral response, writes only sanitized observations, and recovers without automatic retry or notification delivery.
 - Read-only delivery-health monitoring validates bounded private outbox, sanitized receipt/provider-observation, and redacted recovery artifacts; classifies confirmed, rejected, unknown, deferred, queued, and stale requests; reports only opaque identifiers and hashed artifact references; and never loads profiles or credentials, invokes a connector, writes state, or retries delivery.
-- Provider-specific OAuth refresh, connector-native message rendering, and account-discovery UX remain future work and must preserve the private profile, exact approval, and sanitized outbox/status boundaries.
+- Provider-specific OAuth refresh, account-discovery UX, and additional connector-native renderers remain future work and must preserve the private profile, exact approval, and sanitized outbox/status boundaries.
 
 ## v3 — Service mode
 

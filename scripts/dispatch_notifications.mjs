@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildNotificationConnectorPlan } from "./notification_connector_contract.mjs";
+import { renderNotificationConnectorRequest } from "./notification_connector_renderer.mjs";
 import {
   authorizeNotificationConnectorRequest,
   buildNotificationConnectorReceipt,
@@ -260,10 +261,11 @@ export async function runNotificationConnectorDispatch({
   const binding = validateNotificationConnectorBinding(await readBoundedJson(
     absoluteBinding, MAX_CONNECTOR_BINDING_BYTES, "Connector binding",
   ));
-  authorizeNotificationConnectorRequest(request, profile, binding);
+  const authorization = authorizeNotificationConnectorRequest(request, profile, binding);
   const boundaryPlan = buildNotificationConnectorPlan(request, { approvalId: request.approval_id, now: timestamp.toISOString() });
-  const requestBody = JSON.stringify(request);
-  const requestBytes = Buffer.byteLength(requestBody);
+  const rendering = renderNotificationConnectorRequest(request, authorization.destinationPolicy);
+  const requestBody = rendering.body;
+  const requestBytes = rendering.body_bytes;
   if (requestBytes > profile.request_policy.max_request_bytes) {
     throw new Error("Connector request exceeds the profile's request byte limit");
   }
@@ -285,11 +287,15 @@ export async function runNotificationConnectorDispatch({
     timeout_ms: profile.request_policy.timeout_ms,
     maximum_attempts: profile.request_policy.max_attempts,
     retry_delays_ms: profile.request_policy.retry_delays_ms,
+    renderer: rendering.renderer,
+    native_rendering: rendering.native_rendering,
     idempotency_key: request.request_id,
     explicit_send_required: true,
     exact_approval_required: true,
     endpoint_included: false,
     credential_included: false,
+    native_target_included: false,
+    rendered_payload_included: false,
     external_delivery_performed: false,
   };
   if (!send) {

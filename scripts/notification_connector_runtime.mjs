@@ -1,9 +1,10 @@
 import crypto from "node:crypto";
 import { NOTIFICATION_CHANNELS } from "./project_config.mjs";
+import { NOTIFICATION_CONNECTOR_RENDERERS } from "./notification_connector_renderer.mjs";
 import { validateNotificationDeliveryRequest } from "./notification_delivery_lib.mjs";
 
-export const NOTIFICATION_CONNECTOR_PROFILE_SCHEMA_VERSION = 1;
-export const NOTIFICATION_CONNECTOR_BINDING_SCHEMA_VERSION = 1;
+export const NOTIFICATION_CONNECTOR_PROFILE_SCHEMA_VERSION = 2;
+export const NOTIFICATION_CONNECTOR_BINDING_SCHEMA_VERSION = 2;
 export const NOTIFICATION_CONNECTOR_RECEIPT_SCHEMA_VERSION = 1;
 export const MAX_CONNECTOR_PROFILE_BYTES = 64 * 1024;
 export const MAX_CONNECTOR_BINDING_BYTES = 64 * 1024;
@@ -14,7 +15,10 @@ const PROFILE_FIELDS = new Set([
   "allowed_destinations", "request_policy", "idempotency",
 ]);
 const AUTH_FIELDS = new Set(["type", "environment_variable"]);
-const DESTINATION_FIELDS = new Set(["destination_id", "channel"]);
+const PROFILE_DESTINATION_V1_FIELDS = new Set(["destination_id", "channel"]);
+const PROFILE_DESTINATION_V2_FIELDS = new Set(["destination_id", "channel", "rendering"]);
+const PROFILE_RENDERING_FIELDS = new Set(["renderer", "target"]);
+const BINDING_DESTINATION_V2_FIELDS = new Set(["destination_id", "channel", "renderer", "target_sha256"]);
 const REQUEST_POLICY_FIELDS = new Set([
   "timeout_ms", "max_request_bytes", "max_response_bytes", "max_attempts", "retry_delays_ms",
 ]);
@@ -23,10 +27,11 @@ const BINDING_FIELDS = new Set([
   "schema_version", "binding_id", "approval_id", "profile_id", "profile_sha256", "connection_ref",
   "endpoint_sha256", "allowed_destinations", "request_policy", "safety",
 ]);
-const BINDING_SAFETY_FIELDS = new Set([
+const BINDING_SAFETY_V1_FIELDS = new Set([
   "endpoint_included", "credential_included", "credential_environment_name_included",
   "destination_allowlist_required", "explicit_send_required",
 ]);
+const BINDING_SAFETY_V2_FIELDS = new Set([...BINDING_SAFETY_V1_FIELDS, "native_target_included"]);
 const RECEIPT_FIELDS = new Set([
   "schema_version", "receipt_id", "request_id", "approval_id", "binding_id", "request_sha256", "delivered_at",
   "http_status", "attempts", "idempotency_key", "safety",
@@ -45,6 +50,7 @@ const RECOVERY_MARKER_SAFETY_FIELDS = new Set([
 ]);
 const RECOVERY_MARKER_FAILURE_FIELDS = new Set(["category", "http_status", "retryable"]);
 const CHANNELS = new Set(NOTIFICATION_CHANNELS.filter((channel) => channel !== "local"));
+const RENDERERS = new Set(NOTIFICATION_CONNECTOR_RENDERERS);
 
 function sha256(value) {
   return crypto.createHash("sha256").update(String(value)).digest("hex");
@@ -84,7 +90,7 @@ function boundedInteger(value, minimum, maximum, label) {
   return value;
 }
 
-function validateAllowedDestinations(value) {
+function validateAllowedDestinations(value, schemaVersion, { binding = false } = {}) {
   if (!Array.isArray(value) || value.length < 1 || value.length > 10) {
     throw new Error("Connector profile allowed_destinations must contain 1-10 entries");
   }
@@ -92,7 +98,10 @@ function validateAllowedDestinations(value) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
       throw new Error(`Connector profile allowed_destinations[${index}] must be an object`);
     }
-    exactFields(entry, DESTINATION_FIELDS, `connector profile allowed_destinations[${index}]`);
+    const fields = binding
+      ? (schemaVersion === 1 ? PROFILE_DESTINATION_V1_FIELDS : BINDING_DESTINATION_V2_FIELDS)
+      : (schemaVersion === 1 ? PROFILE_DESTINATION_V1_FIELDS : PROFILE_DESTINATION_V2_FIELDS);
+    exactFields(entry, fields, `connector ${binding ? "binding" : "profile"} allowed_destinations[${index}]`);
     const destinationId = String(entry.destination_id ?? "").trim();
     if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(destinationId)) {
       throw new Error(`Connector profile allowed_destinations[${index}].destination_id is invalid`);
@@ -100,11 +109,49 @@ function validateAllowedDestinations(value) {
     if (!CHANNELS.has(entry.channel)) {
       throw new Error(`Connector profile allowed_destinations[${index}].channel is unsupported`);
     }
-    return { destination_id: destinationId, channel: entry.channel };
+    if (schemaVersion === 1) return { destination_id: destinationId, channel: entry.channel };
+    if (binding) {
+      const renderer = String(entry.renderer ?? "");
+      if (!RENDERERS.has(renderer)) throw new Error(`Connector binding allowed_destinations[${index}].renderer is unsupported`);
+      const targetSha256 = entry.target_sha256;
+      if (renderer === "slack_blocks_v1") {
+        if (entry.channel !== "slack" || !/^[a-f0-9]{64}$/.test(String(targetSha256 ?? ""))) {
+          throw new Error(`Connector binding allowed_destinations[${index}] has invalid Slack rendering`);
+        }
+      } else if (targetSha256 !== null) {
+        throw new Error(`Connector binding allowed_destinations[${index}] adapter-neutral target must be null`);
+      }
+      return { destination_id: destinationId, channel: entry.channel, renderer, target_sha256: targetSha256 };
+    }
+    const rendering = entry.rendering;
+    if (!rendering || typeof rendering !== "object" || Array.isArray(rendering)) {
+      throw new Error(`Connector profile allowed_destinations[${index}].rendering must be an object`);
+    }
+    exactFields(rendering, PROFILE_RENDERING_FIELDS, `connector profile allowed_destinations[${index}].rendering`);
+    const renderer = String(rendering.renderer ?? "");
+    if (!RENDERERS.has(renderer)) throw new Error(`Connector profile allowed_destinations[${index}].renderer is unsupported`);
+    let target = rendering.target;
+    if (renderer === "slack_blocks_v1") {
+      if (entry.channel !== "slack") throw new Error("Slack rendering requires a Slack destination");
+      target = opaqueReference(target, "Connector profile native target");
+    } else if (target !== null) {
+      throw new Error("Adapter-neutral rendering cannot include a native target");
+    }
+    return { destination_id: destinationId, channel: entry.channel, rendering: { renderer, target } };
   });
   const tuples = normalized.map((entry) => `${entry.destination_id}\u0000${entry.channel}`);
   if (new Set(tuples).size !== tuples.length) throw new Error("Connector profile allowed_destinations contains duplicates");
   return normalized;
+}
+
+function sanitizedAllowedDestinations(profile) {
+  if (profile.schema_version === 1) return profile.allowed_destinations;
+  return profile.allowed_destinations.map((destination) => ({
+    destination_id: destination.destination_id,
+    channel: destination.channel,
+    renderer: destination.rendering.renderer,
+    target_sha256: destination.rendering.target === null ? null : sha256(destination.rendering.target),
+  }));
 }
 
 function validateRequestPolicy(requestPolicy) {
@@ -138,7 +185,7 @@ function validateRequestPolicy(requestPolicy) {
 export function validateNotificationConnectorProfile(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Connector profile must be an object");
   exactFields(value, PROFILE_FIELDS, "connector profile");
-  if (value.schema_version !== NOTIFICATION_CONNECTOR_PROFILE_SCHEMA_VERSION) {
+  if (![1, NOTIFICATION_CONNECTOR_PROFILE_SCHEMA_VERSION].includes(value.schema_version)) {
     throw new Error("Unsupported connector profile schema_version");
   }
   const profileId = String(value.profile_id ?? "").trim();
@@ -170,14 +217,14 @@ export function validateNotificationConnectorProfile(value) {
     throw new Error("Connector profile must require the Idempotency-Key header");
   }
   return {
-    schema_version: 1,
+    schema_version: value.schema_version,
     profile_id: profileId,
     enabled: value.enabled,
     connection_ref: connectionRef,
     transport: "https_json_bearer",
     endpoint: endpoint.href,
     authentication: { type: "bearer_env", environment_variable: environmentVariable },
-    allowed_destinations: validateAllowedDestinations(value.allowed_destinations),
+    allowed_destinations: validateAllowedDestinations(value.allowed_destinations, value.schema_version),
     request_policy: validateRequestPolicy(value.request_policy),
     idempotency: { required: true, header: "Idempotency-Key" },
   };
@@ -193,7 +240,7 @@ function bindingSeed(profile) {
     profile_sha256: notificationConnectorProfileHash(profile),
     connection_ref: profile.connection_ref,
     endpoint_sha256: sha256(profile.endpoint),
-    allowed_destinations: profile.allowed_destinations,
+    allowed_destinations: sanitizedAllowedDestinations(profile),
     request_policy: profile.request_policy,
   };
 }
@@ -203,7 +250,7 @@ export function buildSanitizedNotificationConnectorBinding(profile) {
   const seed = bindingSeed(validated);
   const bindingId = stableId("NCBIND", seed);
   const binding = {
-    schema_version: NOTIFICATION_CONNECTOR_BINDING_SCHEMA_VERSION,
+    schema_version: validated.schema_version,
     binding_id: bindingId,
     approval_id: stableId("NCON", { binding_id: bindingId }),
     ...seed,
@@ -211,6 +258,7 @@ export function buildSanitizedNotificationConnectorBinding(profile) {
       endpoint_included: false,
       credential_included: false,
       credential_environment_name_included: false,
+      ...(validated.schema_version === 2 ? { native_target_included: false } : {}),
       destination_allowlist_required: true,
       explicit_send_required: true,
     },
@@ -221,7 +269,7 @@ export function buildSanitizedNotificationConnectorBinding(profile) {
 export function validateNotificationConnectorBinding(binding) {
   if (!binding || typeof binding !== "object" || Array.isArray(binding)) throw new Error("Connector binding must be an object");
   exactFields(binding, BINDING_FIELDS, "connector binding");
-  if (binding.schema_version !== NOTIFICATION_CONNECTOR_BINDING_SCHEMA_VERSION) {
+  if (![1, NOTIFICATION_CONNECTOR_BINDING_SCHEMA_VERSION].includes(binding.schema_version)) {
     throw new Error("Unsupported connector binding schema_version");
   }
   if (!/^NCBIND-[A-F0-9]{24}$/.test(String(binding.binding_id ?? ""))) throw new Error("Connector binding_id is invalid");
@@ -231,7 +279,7 @@ export function validateNotificationConnectorBinding(binding) {
     profile_sha256: String(binding.profile_sha256 ?? ""),
     connection_ref: opaqueReference(binding.connection_ref, "Connector binding connection_ref"),
     endpoint_sha256: String(binding.endpoint_sha256 ?? ""),
-    allowed_destinations: validateAllowedDestinations(binding.allowed_destinations),
+    allowed_destinations: validateAllowedDestinations(binding.allowed_destinations, binding.schema_version, { binding: true }),
     request_policy: binding.request_policy,
   };
   if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(normalized.profile_id)
@@ -241,9 +289,14 @@ export function validateNotificationConnectorBinding(binding) {
   if (!binding.safety || typeof binding.safety !== "object" || Array.isArray(binding.safety)) {
     throw new Error("Connector binding safety must be an object");
   }
-  exactFields(binding.safety, BINDING_SAFETY_FIELDS, "connector binding safety");
+  exactFields(
+    binding.safety,
+    binding.schema_version === 1 ? BINDING_SAFETY_V1_FIELDS : BINDING_SAFETY_V2_FIELDS,
+    "connector binding safety",
+  );
   if (binding.safety.endpoint_included !== false || binding.safety.credential_included !== false
     || binding.safety?.credential_environment_name_included !== false
+    || (binding.schema_version === 2 && binding.safety?.native_target_included !== false)
     || binding.safety?.destination_allowlist_required !== true || binding.safety?.explicit_send_required !== true) {
     throw new Error("Connector binding safety flags are invalid");
   }
@@ -265,11 +318,11 @@ export function authorizeNotificationConnectorRequest(request, profile, binding)
   if (request.destination.connection_ref !== validatedProfile.connection_ref) {
     throw new Error("Connector request connection_ref is not allowlisted by this profile");
   }
-  const allowed = validatedProfile.allowed_destinations.some((destination) => (
+  const destinationPolicy = validatedProfile.allowed_destinations.find((destination) => (
     destination.destination_id === request.destination.id && destination.channel === request.destination.channel
   ));
-  if (!allowed) throw new Error("Connector request destination is not allowlisted by this profile");
-  return { request, profile: validatedProfile, binding };
+  if (!destinationPolicy) throw new Error("Connector request destination is not allowlisted by this profile");
+  return { request, profile: validatedProfile, binding, destinationPolicy };
 }
 
 export function notificationConnectorRequestHash(request) {
@@ -421,17 +474,26 @@ export function notificationConnectorProfilePreview(profile) {
   const binding = buildSanitizedNotificationConnectorBinding(validated);
   return {
     schema_version: 1,
+    profile_schema_version: validated.schema_version,
     profile_id: validated.profile_id,
     enabled: validated.enabled,
     connection_ref: validated.connection_ref,
     transport: validated.transport,
-    allowed_destinations: validated.allowed_destinations,
+    allowed_destinations: validated.schema_version === 1
+      ? validated.allowed_destinations
+      : validated.allowed_destinations.map((destination) => ({
+        destination_id: destination.destination_id,
+        channel: destination.channel,
+        renderer: destination.rendering.renderer,
+        native_target_included: false,
+      })),
     request_policy: validated.request_policy,
     binding,
     approval_id: binding.approval_id,
     endpoint_included: false,
     credential_included: false,
     credential_environment_name_included: false,
+    native_target_included: false,
     external_delivery_performed: false,
   };
 }

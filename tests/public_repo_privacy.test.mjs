@@ -31,6 +31,33 @@ test("private live connector profiles, bindings, and receipts cannot enter the p
   assert.ok(publicContentViolations(receipt, { fileName: "receipt.json" }).includes("private notification connector receipt"));
 });
 
+test("private native-rendering profiles and sanitized target bindings cannot enter the public tree", () => {
+  const profile = JSON.stringify({
+    schema_version: 2,
+    transport: "https_json_bearer",
+    endpoint: "https://connector.example.test/notifications",
+    authentication: { type: "bearer_env", environment_variable: "SYNTHETIC_BEARER" },
+    allowed_destinations: [{
+      destination_id: "slack-jobs",
+      channel: "slack",
+      rendering: { renderer: "slack_blocks_v1", target: "C0123456789" },
+    }],
+  });
+  const binding = JSON.stringify({
+    schema_version: 2,
+    binding_id: "NCBIND-AAAAAAAAAAAAAAAAAAAAAAAA",
+    profile_sha256: "a".repeat(64),
+    allowed_destinations: [{
+      destination_id: "slack-jobs",
+      channel: "slack",
+      renderer: "slack_blocks_v1",
+      target_sha256: "b".repeat(64),
+    }],
+  });
+  assert.ok(publicContentViolations(profile, { fileName: "native-profile.json" }).includes("private notification connector profile"));
+  assert.ok(publicContentViolations(binding, { fileName: "native-binding.json" }).includes("private notification connector binding"));
+});
+
 test("private delivery health reports cannot enter the public tree", () => {
   const report = JSON.stringify({
     schema_version: 1,

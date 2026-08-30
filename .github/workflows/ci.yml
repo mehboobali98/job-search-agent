@@ -41,6 +41,7 @@ jobs:
       - run: node --check scripts/notification_delivery_lib.mjs
       - run: node --check scripts/notification_connector_contract.mjs
       - run: node --check scripts/notification_connector_runtime.mjs
+      - run: node --check scripts/notification_connector_renderer.mjs
       - run: node --check scripts/notification_delivery_health_lib.mjs
       - run: node --check scripts/notification_status_runtime.mjs
       - run: node --check scripts/notification_status_contract.mjs

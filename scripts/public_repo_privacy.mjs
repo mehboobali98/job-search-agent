@@ -52,7 +52,7 @@ export function publicContentViolations(content, { fileName = "" } = {}) {
     }
     try {
       const parsed = JSON.parse(text);
-      if (parsed?.schema_version === 1 && parsed?.transport === "https_json_bearer"
+      if ([1, 2].includes(parsed?.schema_version) && parsed?.transport === "https_json_bearer"
         && typeof parsed?.endpoint === "string" && parsed?.authentication?.type === "bearer_env") {
         violations.push("private notification connector profile");
       }

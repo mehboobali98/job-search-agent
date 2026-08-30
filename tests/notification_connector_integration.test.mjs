@@ -28,6 +28,18 @@ function connectorProfile() {
   };
 }
 
+function nativeConnectorProfile() {
+  return {
+    ...connectorProfile(),
+    schema_version: 2,
+    allowed_destinations: [{
+      destination_id: "slack-jobs",
+      channel: "slack",
+      rendering: { renderer: "slack_blocks_v1", target: "C0123456789" },
+    }],
+  };
+}
+
 function localConfig() {
   return {
     version: 6,
@@ -61,24 +73,24 @@ function localConfig() {
   };
 }
 
-function connectorRequest(runId, completedAt) {
+function connectorRequest(runId, completedAt, alertCount = 1) {
   const source = {
     run_id: runId,
     completed_at: completedAt,
     replay: { replay_hash: "d".repeat(64) },
-    alerts: [{
-      lead_id: `L-${runId}`,
-      company: "Fictional Systems",
-      title: "Staff Platform Engineer",
-      final_score: 94,
-      canonical_url: `https://jobs.example.test/${runId.toLowerCase()}`,
-      location: "Remote",
+    alerts: Array.from({ length: alertCount }, (_, index) => ({
+      lead_id: `L-${runId}-${index + 1}`,
+      company: `Fictional Systems ${index + 1}`,
+      title: "Staff Platform Engineer for Synthetic Distributed Systems",
+      final_score: 94 - index,
+      canonical_url: `https://jobs.example.test/${runId.toLowerCase()}/${index + 1}`,
+      location: "Worldwide Remote Synthetic Region",
       eligibility: "Eligible",
-      strengths: ["Synthetic platform evidence"],
-      gaps: ["Synthetic compensation gap"],
+      strengths: ["Synthetic platform reliability and distributed systems evidence"],
+      gaps: ["Synthetic compensation and timezone overlap gap"],
       posted_date: "2026-08-29",
       best_resume: "Staff / Principal / Tech Lead",
-    }],
+    })),
   };
   const { digest } = buildJobDigest(source, { generatedAt: completedAt, timezone: "Etc/UTC", maxItems: 5 });
   return planNotificationDeliveries(digest, localConfig().notifications).requests[0];
@@ -166,6 +178,140 @@ test("profile import and connector preview are sanitized and network-free", asyn
   assert.equal(credentialReads, 0);
   assert.equal(networkCalls, 0);
   assert.equal(JSON.stringify(preview).includes(connectorProfile().endpoint), false);
+  await fs.rm(root, { recursive: true, force: true });
+});
+
+test("native rendering stays private during preview and is used only for an exactly approved send", async () => {
+  const privateProfile = nativeConnectorProfile();
+  const { root, profilePath } = await workspace(privateProfile);
+  const request = connectorRequest("RUN-FICTIONAL-NATIVE", "2026-08-30T12:30:00.000Z");
+  const requestPath = await writeRequest(root, request);
+  const profilePreview = await runNotificationConnectorProfile({ projectRoot: root, profilePath });
+  assert.equal(profilePreview.preview.profile_schema_version, 2);
+  assert.equal(profilePreview.preview.native_target_included, false);
+  assert.equal(JSON.stringify(profilePreview).includes("C0123456789"), false);
+  await runNotificationConnectorProfile({
+    projectRoot: root,
+    profilePath,
+    apply: true,
+    approvalId: profilePreview.preview.approval_id,
+  });
+
+  let credentialReads = 0;
+  let networkCalls = 0;
+  const preview = await runNotificationConnectorDispatch({
+    projectRoot: root,
+    requestPath,
+    profilePath,
+    now: "2026-08-30T12:31:00.000Z",
+    environment: new Proxy({}, { get() { credentialReads += 1; return undefined; } }),
+    fetchImpl: async () => { networkCalls += 1; return new Response(null, { status: 204 }); },
+  });
+  assert.equal(preview.preview.renderer, "slack_blocks_v1");
+  assert.equal(preview.preview.native_rendering, true);
+  assert.equal(preview.preview.native_target_included, false);
+  assert.equal(preview.preview.rendered_payload_included, false);
+  assert.equal(JSON.stringify(preview).includes("C0123456789"), false);
+  assert.equal(credentialReads, 0);
+  assert.equal(networkCalls, 0);
+
+  let networkPayload;
+  const delivered = await runNotificationConnectorDispatch({
+    projectRoot: root,
+    requestPath,
+    profilePath,
+    now: "2026-08-30T12:31:00.000Z",
+    send: true,
+    approvalId: request.approval_id,
+    environment: { SYNTHETIC_CONNECTOR_BEARER: Array(33).join("x") },
+    fetchImpl: async (_endpoint, options) => {
+      networkCalls += 1;
+      networkPayload = JSON.parse(options.body);
+      return new Response(null, { status: 202 });
+    },
+  });
+  assert.equal(networkCalls, 1);
+  assert.equal(networkPayload.channel, "C0123456789");
+  assert.equal(networkPayload.blocks[0].type, "header");
+  assert.equal(JSON.stringify(delivered).includes("C0123456789"), false);
+  assert.equal(JSON.stringify(delivered).includes("Fictional Systems"), false);
+  await fs.rm(root, { recursive: true, force: true });
+});
+
+test("native rendered-body limits block before credential access or network activity", async () => {
+  const privateProfile = {
+    ...nativeConnectorProfile(),
+    request_policy: {
+      ...nativeConnectorProfile().request_policy,
+      max_request_bytes: 1_024,
+    },
+  };
+  const { root, profilePath } = await workspace(privateProfile);
+  const request = connectorRequest("RUN-FICTIONAL-NATIVE-LIMIT", "2026-08-30T12:40:00.000Z", 5);
+  const requestPath = await writeRequest(root, request);
+  const profilePreview = await runNotificationConnectorProfile({ projectRoot: root, profilePath });
+  await runNotificationConnectorProfile({
+    projectRoot: root,
+    profilePath,
+    apply: true,
+    approvalId: profilePreview.preview.approval_id,
+  });
+  let credentialReads = 0;
+  let networkCalls = 0;
+  await assert.rejects(runNotificationConnectorDispatch({
+    projectRoot: root,
+    requestPath,
+    profilePath,
+    now: "2026-08-30T12:41:00.000Z",
+    send: true,
+    approvalId: request.approval_id,
+    environment: new Proxy({}, { get() { credentialReads += 1; return Array(33).join("x"); } }),
+    fetchImpl: async () => { networkCalls += 1; return new Response(null, { status: 202 }); },
+  }), /request byte limit/);
+  assert.equal(credentialReads, 0);
+  assert.equal(networkCalls, 0);
+  await fs.rm(root, { recursive: true, force: true });
+});
+
+test("native connector failures retain no rendered content or private target", async () => {
+  const privateProfile = {
+    ...nativeConnectorProfile(),
+    request_policy: {
+      ...nativeConnectorProfile().request_policy,
+      max_attempts: 1,
+      retry_delays_ms: [],
+    },
+  };
+  const { root, profilePath } = await workspace(privateProfile);
+  const request = connectorRequest("RUN-FICTIONAL-NATIVE-FAILURE", "2026-08-30T12:50:00.000Z");
+  const requestPath = await writeRequest(root, request);
+  const profilePreview = await runNotificationConnectorProfile({ projectRoot: root, profilePath });
+  await runNotificationConnectorProfile({
+    projectRoot: root,
+    profilePath,
+    apply: true,
+    approvalId: profilePreview.preview.approval_id,
+  });
+  let markerPath;
+  await assert.rejects(runNotificationConnectorDispatch({
+    projectRoot: root,
+    requestPath,
+    profilePath,
+    now: "2026-08-30T12:51:00.000Z",
+    send: true,
+    approvalId: request.approval_id,
+    environment: { SYNTHETIC_CONNECTOR_BEARER: Array(33).join("x") },
+    fetchImpl: async () => new Response("synthetic private provider failure", { status: 503 }),
+  }), (error) => {
+    markerPath = error.pending_marker;
+    return /outcome is unknown/.test(error.message);
+  });
+  const marker = JSON.parse(await fs.readFile(markerPath, "utf8"));
+  const serialized = JSON.stringify(marker);
+  assert.equal(serialized.includes("C0123456789"), false);
+  assert.equal(serialized.includes("Fictional Systems"), false);
+  assert.equal(serialized.includes("synthetic private provider failure"), false);
+  assert.equal(marker.safety.request_items_included, false);
   await fs.rm(root, { recursive: true, force: true });
 });
 

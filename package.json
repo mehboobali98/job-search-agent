@@ -1,6 +1,6 @@
 {
   "name": "job-search-agent",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Privacy-first multi-agent job discovery with opt-in read-only Gmail alert ingestion and deterministic local tracking for Codex",
   "license": "MIT",
   "private": true,
