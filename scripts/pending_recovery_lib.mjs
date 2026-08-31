@@ -46,6 +46,9 @@ export function classifyPendingMarker(fileName, raw) {
   if (/^pending-history-import-/i.test(name) && raw.workflow === "historical_tracker_import") {
     return { workflow: "Historical tracker import", extract_key: null, command: "node scripts/import_tracker_history.mjs" };
   }
+  if (/^pending-notification-discovery-/i.test(name) && raw.workflow === "notification_connector_discovery_import") {
+    return { workflow: "Notification connector capability import", extract_key: null, command: "node scripts/import_notification_connector_discovery.mjs" };
+  }
   if (/^pending-notification-/i.test(name) && raw.workflow === "notification_delivery") {
     return { workflow: "Notification delivery", extract_key: null, command: "node scripts/deliver_notifications.mjs" };
   }
@@ -129,6 +132,15 @@ export function recoveryGuidance({ filePath, stateDirectory, raw, workbookPath =
       break;
     case "Historical tracker import":
       steps.push(`${classification.command} --recover ${shellQuote(filePath)} --apply`);
+      break;
+    case "Notification connector capability import":
+      if (raw.source_export_id && raw.approval_id) {
+        const input = path.join(
+          stateDirectory, "notification-connector-discovery", "exports",
+          `${raw.source_export_id}.capabilities.json`,
+        );
+        steps.push(`${classification.command} --input ${shellQuote(input)} --recover ${shellQuote(filePath)} --apply --approve ${shellQuote(raw.approval_id)}`);
+      }
       break;
     case "Notification delivery":
       if (raw.approval_id) {

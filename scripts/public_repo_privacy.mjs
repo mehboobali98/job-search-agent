@@ -14,6 +14,8 @@ export const BLOCKED_PUBLIC_PATHS = Object.freeze([
   /^(?:notification-status|provider-status)-exports\//i,
   /^(?:notification-connector|connector-profile)s?\//i,
   /^(?:notification-status-connector|status-connector-profile)s?\//i,
+  /^(?:notification-connector-discovery|connector-capability-export|connector-discovery)s?\//i,
+  /^(?:notification-connector-drift|connector-drift|notification-drift)-exports?\//i,
   /^renders?\//,
   /\.inspect\.ndjson$/i,
   /\.(?:xlsx|xls|pdf|docx|eml|mbox|pst|zip|tar|tgz|gz)$/i,
@@ -61,6 +63,20 @@ export function publicContentViolations(content, { fileName = "" } = {}) {
       }
       if (/^NCREC-[A-F0-9]{24}$/.test(String(parsed?.receipt_id ?? "")) && parsed?.request_sha256) {
         violations.push("private notification connector receipt");
+      }
+      if (/^NCAPEXP-[A-F0-9]{24}$/.test(String(parsed?.export_id ?? ""))
+        && typeof parsed?.account_ref === "string" && Array.isArray(parsed?.targets)) {
+        violations.push("private notification connector capability export");
+      }
+      if (/^NCAPCAT-[A-F0-9]{24}$/.test(String(parsed?.catalog_id ?? ""))
+        && parsed?.source_sha256 && Array.isArray(parsed?.targets)) {
+        violations.push("private notification connector capability catalog");
+      }
+      if (/^NCAPDRIFT-[A-F0-9]{24}$/.test(String(parsed?.report_id ?? ""))
+        && /^NCAPCAT-[A-F0-9]{24}$/.test(String(parsed?.catalog_id ?? ""))
+        && /^NCBIND-[A-F0-9]{24}$/.test(String(parsed?.binding_id ?? ""))
+        && Array.isArray(parsed?.binding_destinations) && Array.isArray(parsed?.catalog_targets)) {
+        violations.push("private notification connector drift report");
       }
       if (parsed?.schema_version === 1 && parsed?.transport === "https_json_bearer_status"
         && typeof parsed?.endpoint === "string" && parsed?.authentication?.type === "bearer_env") {

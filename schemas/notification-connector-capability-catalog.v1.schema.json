@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-connector-capability-catalog.v1.schema.json",
+  "title": "Job Search Agent sanitized notification connector capability catalog v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "catalog_id", "approval_id", "source_export_id", "source_sha256", "connection_ref", "generated_at", "operations", "renderers", "targets", "counts", "safety"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "catalog_id": { "type": "string", "pattern": "^NCAPCAT-[A-F0-9]{24}$" },
+    "approval_id": { "type": "string", "pattern": "^NCAP-[A-F0-9]{24}$" },
+    "source_export_id": { "type": "string", "pattern": "^NCAPEXP-[A-F0-9]{24}$" },
+    "source_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "connection_ref": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "operations": { "$ref": "notification-connector-capability-export.v1.schema.json#/properties/operations" },
+    "renderers": { "$ref": "notification-connector-capability-export.v1.schema.json#/properties/renderers" },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target_id", "target_sha256", "channel", "operations", "renderers"],
+        "properties": {
+          "target_id": { "type": "string", "pattern": "^NCAPTGT-[A-F0-9]{24}$" },
+          "target_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "channel": { "enum": ["email", "slack", "webhook", "custom"] },
+          "operations": { "$ref": "notification-connector-capability-export.v1.schema.json#/properties/operations" },
+          "renderers": { "$ref": "notification-connector-capability-export.v1.schema.json#/properties/renderers" }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targets"],
+      "properties": { "targets": { "type": "integer", "minimum": 1, "maximum": 100 } }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only_source", "external_connector_invoked", "explicit_apply_required", "account_identifier_included", "native_target_included", "target_label_included", "endpoint_included", "credential_included", "application_submission_allowed", "recruiter_outreach_allowed"],
+      "properties": {
+        "read_only_source": { "const": true },
+        "external_connector_invoked": { "const": false },
+        "explicit_apply_required": { "const": true },
+        "account_identifier_included": { "const": false },
+        "native_target_included": { "const": false },
+        "target_label_included": { "const": false },
+        "endpoint_included": { "const": false },
+        "credential_included": { "const": false },
+        "application_submission_allowed": { "const": false },
+        "recruiter_outreach_allowed": { "const": false }
+      }
+    }
+  }
+}

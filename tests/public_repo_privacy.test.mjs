@@ -11,6 +11,9 @@ test("private email exports and candidate artifacts are blocked from the public 
     "notification-status-exports/observation.json", "provider-status-exports/observation.json",
     "notification-connectors/live.profile.json", "connector-profiles/live.json",
     "notification-status-connectors/live.status-profile.json", "status-connector-profiles/live.json",
+    "notification-connector-discovery/private.capabilities.json", "connector-capability-exports/account.json",
+    "connector-discovery/catalog.json",
+    "notification-connector-drift-exports/report.json", "connector-drift-exports/report.json",
     "mailbox.eml", "archive.mbox", "mail-export.zip", "profile/candidate-profile.md", "profile/resumes/private.pdf", "state/private.json",
   ]) assert.equal(isBlockedPublicPath(name), true, name);
   assert.equal(isBlockedPublicPath("fixtures/job-alert-batch.synthetic.json"), false);
@@ -56,6 +59,45 @@ test("private native-rendering profiles and sanitized target bindings cannot ent
   });
   assert.ok(publicContentViolations(profile, { fileName: "native-profile.json" }).includes("private notification connector profile"));
   assert.ok(publicContentViolations(binding, { fileName: "native-binding.json" }).includes("private notification connector binding"));
+});
+
+test("private connector capability exports and sanitized catalogs cannot enter the public tree", () => {
+  const capabilityExport = JSON.stringify({
+    schema_version: 1,
+    export_id: "NCAPEXP-AAAAAAAAAAAAAAAAAAAAAAAA",
+    account_ref: "fictional-account-42",
+    targets: [{ target: "C0123456789", label: "Fictional Jobs" }],
+  });
+  const catalog = JSON.stringify({
+    schema_version: 1,
+    catalog_id: "NCAPCAT-BBBBBBBBBBBBBBBBBBBBBBBB",
+    source_sha256: "c".repeat(64),
+    targets: [{
+      target_id: "NCAPTGT-DDDDDDDDDDDDDDDDDDDDDDDD",
+      target_sha256: "e".repeat(64),
+    }],
+  });
+  assert.ok(publicContentViolations(capabilityExport, { fileName: "capabilities.json" })
+    .includes("private notification connector capability export"));
+  assert.ok(publicContentViolations(catalog, { fileName: "catalog.json" })
+    .includes("private notification connector capability catalog"));
+  assert.equal(publicContentViolations(catalog, { fileName: "fixtures/catalog.synthetic.json" })
+    .includes("private notification connector capability catalog"), false);
+});
+
+test("private connector drift reports cannot enter the public tree", () => {
+  const report = JSON.stringify({
+    schema_version: 1,
+    report_id: "NCAPDRIFT-AAAAAAAAAAAAAAAAAAAAAAAA",
+    catalog_id: "NCAPCAT-BBBBBBBBBBBBBBBBBBBBBBBB",
+    binding_id: "NCBIND-CCCCCCCCCCCCCCCCCCCCCCCC",
+    binding_destinations: [{ destination_id: "fictional-slack" }],
+    catalog_targets: [{ target_id: "NCAPTGT-DDDDDDDDDDDDDDDDDDDDDDDD" }],
+  });
+  assert.ok(publicContentViolations(report, { fileName: "connector-drift.json" })
+    .includes("private notification connector drift report"));
+  assert.equal(publicContentViolations(report, { fileName: "fixtures/connector-drift.synthetic.json" })
+    .includes("private notification connector drift report"), false);
 });
 
 test("private delivery health reports cannot enter the public tree", () => {

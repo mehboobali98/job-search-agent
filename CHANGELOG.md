@@ -6,6 +6,20 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-08-31
+
+### Added
+
+- Add a network-free notification-connector capability discovery boundary that imports a strict private account export and previews a deterministic privacy-minimized target catalog.
+- Add exact `NCAP-…` approval for atomic private catalog persistence, idempotent replay, redacted pending recovery, bounded source validation, and public-repository privacy enforcement.
+- Add a strictly read-only `npm run connector-drift` inspector that compares one sanitized capability catalog with one sanitized connector binding and reports aligned, review-required, or incompatible drift without loading a profile, target hash, endpoint, or credential.
+
+### Changed
+
+- Document the private export/import workflow across the repository and reusable skill while preserving configuration version 6, the adapter-neutral outbox contract, and all existing connector send and status boundaries.
+- Keep live account discovery, OAuth, credentials, endpoints, native targets, and target labels outside repository code, schemas for persisted catalogs, diagnostics, logs, and public files.
+- Treat version-1 and adapter-neutral bindings as manual-review when target identity is not hash-bound; never infer a target match or convert a drift report into send authorization.
+
 ## [2.6.0] - 2026-08-31
 
 ### Added
@@ -245,7 +259,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.7.0...HEAD
+[2.7.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.3.0...v2.4.0

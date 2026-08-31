@@ -157,6 +157,25 @@ npm run connector-profile -- --profile state/notification-connectors/<profile_id
 
 Preview exports a deterministic binding and exact `NCON-…` approval without writing or reading the credential. Apply stores only the binding under `state/notifications/connectors/`; it contains hashes, opaque references, renderer IDs, allowlists, and limits, but no endpoint, environment-variable name, or native target. Changing any private profile field requires a new binding approval.
 
+If a connector account can export its capabilities outside this repository, place that private read-only export under `state/notification-connector-discovery/exports/` using the exact filename `<NCAPEXP-…>.capabilities.json`. The input contract is `schemas/notification-connector-capability-export.v1.schema.json`; it may contain a private account reference, target labels, and native targets, but never credentials or endpoints. Repository code does not authenticate to an account or perform live discovery.
+
+Preview a privacy-minimized catalog without network access or persistent writes, then import it only with its exact `NCAP-…` approval:
+
+```sh
+npm run connector-discover -- --input state/notification-connector-discovery/exports/NCAPEXP-….capabilities.json
+npm run connector-discover -- --input state/notification-connector-discovery/exports/NCAPEXP-….capabilities.json --apply --approve NCAP-EXACT-ID
+```
+
+The catalog contract is `schemas/notification-connector-capability-catalog.v1.schema.json`. Apply atomically stores the catalog under `state/notifications/discovery/`; it contains only the opaque connection reference, deterministic target IDs and hashes, channels, supported operations/renderers, counts, and safety flags. It excludes the account reference, target labels, native targets, endpoints, and credentials, does not create or modify a connector profile, and cannot authorize delivery. Imports are bounded, exact-filename checked, symlink-safe, idempotent, and recover through a redacted `pending-notification-discovery-*.json` marker shown by `npm run pending`.
+
+After importing a sanitized catalog and connector binding, inspect their compatibility without loading either private profile or raw export:
+
+```sh
+npm run connector-drift -- --catalog state/notifications/discovery/NCAPCAT-….catalog.json --binding state/notifications/connectors/<profile_id>.binding.json
+```
+
+The version-1 report in `schemas/notification-connector-drift-report.v1.schema.json` is deterministic and strictly read-only. It exposes only catalog/binding/target IDs, opaque destination IDs, channels, renderer compatibility, bounded counts, and issue codes. Exact version-2 native-target hashes may produce `aligned`; connection, channel, renderer, or target drift produces `incompatible`. Version-1 and adapter-neutral bindings intentionally have no target hash, so the inspector returns `review_required` rather than guessing. The report itself omits target hashes, endpoints, credentials, native targets, labels, account identifiers, private paths, and candidate data; it neither changes a profile nor authorizes a send. Real reports remain private and cannot be staged.
+
 Then preview an existing connector-outbox request. Preview performs no credential lookup and no network call:
 
 ```sh
@@ -171,7 +190,7 @@ npm run notify-send -- --request state/notifications/outbox/NREQ-….request.jso
 
 Before reading the environment credential, the dispatcher revalidates the adapter-neutral request, approved profile hash, matching enabled local destination, private-profile allowlist, rendering policy, quiet-hour `not_before`, rendered body size, and exact approval. Preview reports only the renderer ID and byte count; it does not return the rendered payload or native target. Every retry uses the same deterministic rendered body and request ID as its idempotency key. Successful delivery writes a sanitized receipt; repeating it returns that receipt without network activity. A failure leaves `pending-notification-connector-*.json` without request items, rendered content, or target; `npm run pending` provides the exact private recovery command. If delivery was confirmed but receipt persistence failed, recovery writes the receipt without resending. For an unconfirmed attempt, recovery reuses the same key, so effective duplicate prevention still depends on the external endpoint honoring `Idempotency-Key`.
 
-No live connector or account was used to develop or test this boundary. Setup, upgrades, tests, previews, and preflight never send and never require connector credentials. Slack Block Kit is the only native renderer in version 2; provider-specific OAuth refresh, account discovery, and additional delivery-format adapters remain outside this bounded slice.
+No live connector or account was used to develop or test this boundary. Setup, upgrades, tests, previews, preflight, and capability import never send and never require connector credentials. Slack Block Kit is the only native renderer in version 2; provider-specific OAuth refresh, live account export adapters, catalog-to-profile authoring, and additional delivery-format adapters remain outside this bounded slice.
 
 ### Authenticated provider-status reconciliation
 
@@ -270,6 +289,8 @@ npm run dry-run -- --input state/RUN.json
 npm run ingest-alerts -- --input state/job-alert-imports/private-batch.json
 npm run import-history -- --source state/tracker-imports/old-tracker.xlsx --mapping state/tracker-imports/mapping.json
 npm run notify -- --input state/runs/RUN-ID.result.json
+npm run connector-discover -- --input state/notification-connector-discovery/exports/NCAPEXP-….capabilities.json
+npm run connector-drift -- --catalog state/notifications/discovery/NCAPCAT-….catalog.json --binding state/notifications/connectors/<profile_id>.binding.json
 npm run connector-profile -- --profile state/notification-connectors/<profile_id>.profile.json
 npm run notify-send -- --request state/notifications/outbox/NREQ-….request.json --profile state/notification-connectors/<profile_id>.profile.json
 npm run notify-health

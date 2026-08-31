@@ -42,10 +42,14 @@ jobs:
       - run: node --check scripts/notification_connector_contract.mjs
       - run: node --check scripts/notification_connector_runtime.mjs
       - run: node --check scripts/notification_connector_renderer.mjs
+      - run: node --check scripts/notification_connector_discovery.mjs
+      - run: node --check scripts/notification_connector_drift.mjs
       - run: node --check scripts/notification_delivery_health_lib.mjs
       - run: node --check scripts/notification_status_runtime.mjs
       - run: node --check scripts/notification_status_contract.mjs
       - run: node --check scripts/manage_notification_connector.mjs
+      - run: node --check scripts/import_notification_connector_discovery.mjs
+      - run: node --check scripts/inspect_notification_connector_drift.mjs
       - run: node --check scripts/manage_notification_status_connector.mjs
       - run: node --check scripts/dispatch_notifications.mjs
       - run: node --check scripts/probe_notification_status.mjs

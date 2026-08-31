@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-connector-capability-export.v1.schema.json",
+  "title": "Job Search Agent private notification connector capability export v1",
+  "description": "Private read-only input produced outside the repository. Real account references, target labels, and native targets must remain under ignored private state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "export_id", "exported_at", "connection_ref", "account_ref", "operations", "renderers", "targets", "safety"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "export_id": { "type": "string", "pattern": "^NCAPEXP-[A-F0-9]{24}$" },
+    "exported_at": { "type": "string", "format": "date-time" },
+    "connection_ref": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "account_ref": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": { "enum": ["notifications.deliver", "notifications.status.read"] },
+      "contains": { "const": "notifications.deliver" }
+    },
+    "renderers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": { "enum": ["adapter_neutral_json_v1", "slack_blocks_v1"] }
+    },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "label", "channel", "operations", "renderers"],
+        "properties": {
+          "target": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+          "label": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "channel": { "enum": ["email", "slack", "webhook", "custom"] },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "uniqueItems": true,
+            "items": { "enum": ["notifications.deliver", "notifications.status.read"] },
+            "contains": { "const": "notifications.deliver" }
+          },
+          "renderers": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "uniqueItems": true,
+            "items": { "enum": ["adapter_neutral_json_v1", "slack_blocks_v1"] }
+          }
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "credentials_included", "endpoints_included", "external_delivery_performed"],
+      "properties": {
+        "read_only": { "const": true },
+        "credentials_included": { "const": false },
+        "endpoints_included": { "const": false },
+        "external_delivery_performed": { "const": false }
+      }
+    }
+  }
+}

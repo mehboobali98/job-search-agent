@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-connector-drift-report.v1.schema.json",
+  "title": "Job Search Agent sanitized notification connector drift report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_id", "catalog_id", "binding_id", "connection_ref_match", "status", "counts", "binding_destinations", "catalog_targets", "safety"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "report_id": { "type": "string", "pattern": "^NCAPDRIFT-[A-F0-9]{24}$" },
+    "catalog_id": { "type": "string", "pattern": "^NCAPCAT-[A-F0-9]{24}$" },
+    "binding_id": { "type": "string", "pattern": "^NCBIND-[A-F0-9]{24}$" },
+    "connection_ref_match": { "type": "boolean" },
+    "status": { "enum": ["aligned", "review_required", "incompatible"] },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["binding_destinations", "compatible", "manual_review", "incompatible", "catalog_targets", "bound_catalog_targets", "available_catalog_targets"],
+      "properties": {
+        "binding_destinations": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "compatible": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "manual_review": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "incompatible": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "catalog_targets": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "bound_catalog_targets": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "available_catalog_targets": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "binding_destinations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["destination_id", "channel", "renderer", "target_hash_bound", "status", "matched_target_id", "candidate_target_count", "issue_codes"],
+        "properties": {
+          "destination_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+          "channel": { "enum": ["email", "slack", "webhook", "custom"] },
+          "renderer": { "enum": ["adapter_neutral_json_v1", "slack_blocks_v1"] },
+          "target_hash_bound": { "type": "boolean" },
+          "status": { "enum": ["compatible", "manual_review", "incompatible"] },
+          "matched_target_id": { "type": ["string", "null"], "pattern": "^NCAPTGT-[A-F0-9]{24}$" },
+          "candidate_target_count": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "issue_codes": {
+            "type": "array",
+            "maxItems": 1,
+            "uniqueItems": true,
+            "items": { "enum": ["connection_ref_mismatch", "target_missing_from_catalog", "channel_mismatch", "channel_not_available", "renderer_unsupported", "target_not_hash_bound"] }
+          }
+        }
+      }
+    },
+    "catalog_targets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target_id", "channel", "status", "matched_binding_count"],
+        "properties": {
+          "target_id": { "type": "string", "pattern": "^NCAPTGT-[A-F0-9]{24}$" },
+          "channel": { "enum": ["email", "slack", "webhook", "custom"] },
+          "status": { "enum": ["bound", "available"] },
+          "matched_binding_count": { "type": "integer", "minimum": 0, "maximum": 10 }
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "state_written", "network_accessed", "external_delivery_performed", "profile_files_read", "credential_environment_read", "endpoint_included", "native_target_included", "target_hash_included", "target_label_included", "account_identifier_included", "candidate_artifacts_included", "private_paths_included", "send_authorization_granted"],
+      "properties": {
+        "read_only": { "const": true },
+        "state_written": { "const": false },
+        "network_accessed": { "const": false },
+        "external_delivery_performed": { "const": false },
+        "profile_files_read": { "const": false },
+        "credential_environment_read": { "const": false },
+        "endpoint_included": { "const": false },
+        "native_target_included": { "const": false },
+        "target_hash_included": { "const": false },
+        "target_label_included": { "const": false },
+        "account_identifier_included": { "const": false },
+        "candidate_artifacts_included": { "const": false },
+        "private_paths_included": { "const": false },
+        "send_authorization_granted": { "const": false }
+      }
+    }
+  }
+}

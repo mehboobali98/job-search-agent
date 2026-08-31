@@ -57,6 +57,44 @@ test("historical tracker import markers replay atomically with explicit apply", 
   assert.equal(JSON.stringify(summary).includes("private-history.xlsx"), false);
 });
 
+test("connector capability imports recover from the exact private export without exposing account data", () => {
+  const raw = {
+    schema_version: 1,
+    workflow: "notification_connector_discovery_import",
+    created_at: "2026-08-31T08:00:00.000Z",
+    catalog_id: "NCAPCAT-BBBBBBBBBBBBBBBBBBBBBBBB",
+    approval_id: "NCAP-AAAAAAAAAAAAAAAAAAAAAAAA",
+    source_export_id: "NCAPEXP-CCCCCCCCCCCCCCCCCCCCCCCC",
+    source_sha256: "d".repeat(64),
+    connection_ref: "fictional-workspace",
+    error: "Sanitized connector capability catalog commit failed",
+    safety: {
+      account_identifier_included: false,
+      native_target_included: false,
+      target_label_included: false,
+      endpoint_included: false,
+      credential_included: false,
+      external_connector_invoked: false,
+    },
+  };
+  const name = "pending-notification-discovery-NCAPCAT-BBBBBBBBBBBBBBBBBBBBBBBB.json";
+  assert.equal(classifyPendingMarker(name, raw).workflow, "Notification connector capability import");
+  const summary = pendingMarkerSummary({
+    filePath: `/tmp/state/${name}`,
+    text: JSON.stringify(raw),
+    raw,
+    stat: { mtime: new Date("2026-08-31T08:00:00.000Z") },
+    stateDirectory: "/tmp/state",
+    now: new Date("2026-08-31T09:00:00.000Z"),
+  });
+  assert.match(summary.recovery.steps[0], /import_notification_connector_discovery\.mjs/);
+  assert.match(summary.recovery.steps[0], /NCAPEXP-CCCCCCCCCCCCCCCCCCCCCCCC\.capabilities\.json/);
+  assert.match(summary.recovery.steps[0], /--recover/);
+  assert.match(summary.recovery.steps[0], /--apply/);
+  assert.match(summary.recovery.steps[0], /--approve/);
+  assert.equal(JSON.stringify(summary).includes("fictional-workspace"), false);
+});
+
 test("notification markers require exact approved private replay", () => {
   const raw = {
     workflow: "notification_delivery",
