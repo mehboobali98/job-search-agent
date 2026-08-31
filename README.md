@@ -168,6 +168,14 @@ npm run connector-discover -- --input state/notification-connector-discovery/exp
 
 The catalog contract is `schemas/notification-connector-capability-catalog.v1.schema.json`. Apply atomically stores the catalog under `state/notifications/discovery/`; it contains only the opaque connection reference, deterministic target IDs and hashes, channels, supported operations/renderers, counts, and safety flags. It excludes the account reference, target labels, native targets, endpoints, and credentials, does not create or modify a connector profile, and cannot authorize delivery. Imports are bounded, exact-filename checked, symlink-safe, idempotent, and recover through a redacted `pending-notification-discovery-*.json` marker shown by `npm run pending`.
 
+Plan the non-secret shape of a version-2 profile only after selecting an exact sanitized catalog target, an exact configured connector destination, and an explicit renderer:
+
+```sh
+npm run connector-profile-plan -- --catalog state/notifications/discovery/NCAPCAT-….catalog.json --target NCAPTGT-EXACT-ID --destination <configured-destination-id> --renderer slack_blocks_v1
+```
+
+The version-1 authoring plan in `schemas/notification-connector-profile-plan.v1.schema.json` is strictly read-only and always keeps the future profile disabled by default. It supplies bounded request-policy and idempotency defaults while listing the values that must be provided manually in ignored private state. It never returns the source target ID or hash, connection reference, endpoint, bearer environment-variable name or value, native target, account identifier, or private path; it writes no profile and issues no approval. A Slack-native plan requires the later private target to hash-match the selected catalog target before drift can be aligned. An adapter-neutral plan remains `review_required` because its target is deliberately not hash-bound. Profile preview, exact `NCON-…` binding import, drift inspection, and any `NAPP-…` send approval remain separate actions. The planner requires an existing configured connector destination and never upgrades an older private configuration.
+
 After importing a sanitized catalog and connector binding, inspect their compatibility without loading either private profile or raw export:
 
 ```sh
@@ -198,7 +206,7 @@ npm run notify-send -- --request state/notifications/outbox/NREQ-….request.jso
 
 Before reading the environment credential, the dispatcher revalidates the adapter-neutral request, approved profile hash, matching enabled local destination, private-profile allowlist, rendering policy, quiet-hour `not_before`, rendered body size, and exact approval. Preview reports only the renderer ID and byte count; it does not return the rendered payload or native target. Every retry uses the same deterministic rendered body and request ID as its idempotency key. Successful delivery writes a sanitized receipt; repeating it returns that receipt without network activity. A failure leaves `pending-notification-connector-*.json` without request items, rendered content, or target; `npm run pending` provides the exact private recovery command. If delivery was confirmed but receipt persistence failed, recovery writes the receipt without resending. For an unconfirmed attempt, recovery reuses the same key, so effective duplicate prevention still depends on the external endpoint honoring `Idempotency-Key`.
 
-No live connector or account was used to develop or test this boundary. Setup, upgrades, tests, previews, preflight, and capability import never send and never require connector credentials. Slack Block Kit is the only native renderer in version 2; provider-specific OAuth refresh, live account export adapters, catalog-to-profile authoring, and additional delivery-format adapters remain outside this bounded slice.
+No live connector or account was used to develop or test this boundary. Setup, upgrades, tests, previews, preflight, capability import, and profile planning never send and never require connector credentials. Slack Block Kit is the only native renderer in version 2; provider-specific OAuth refresh, live account export adapters, private profile generation/editing, and additional delivery-format adapters remain outside this bounded slice.
 
 ### Authenticated provider-status reconciliation
 
@@ -300,6 +308,7 @@ npm run notify -- --input state/runs/RUN-ID.result.json
 npm run connector-discover -- --input state/notification-connector-discovery/exports/NCAPEXP-….capabilities.json
 npm run connector-drift -- --catalog state/notifications/discovery/NCAPCAT-….catalog.json --binding state/notifications/connectors/<profile_id>.binding.json
 npm run connector-history -- --before state/notifications/discovery/NCAPCAT-EARLIER.catalog.json --after state/notifications/discovery/NCAPCAT-LATER.catalog.json
+npm run connector-profile-plan -- --catalog state/notifications/discovery/NCAPCAT-….catalog.json --target NCAPTGT-EXACT-ID --destination <configured-destination-id> --renderer slack_blocks_v1
 npm run connector-profile -- --profile state/notification-connectors/<profile_id>.profile.json
 npm run notify-send -- --request state/notifications/outbox/NREQ-….request.json --profile state/notification-connectors/<profile_id>.profile.json
 npm run notify-health

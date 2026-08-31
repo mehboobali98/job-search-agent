@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-connector-profile-plan.v1.schema.json",
+  "title": "Job Search Agent sanitized notification connector profile authoring plan v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "plan_id", "catalog_id", "destination_id", "channel", "renderer", "profile_schema_version", "selected_target_ref", "destination_enabled", "profile_enabled_default", "required_manual_inputs", "request_policy_template", "idempotency", "verification", "safety"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "plan_id": { "type": "string", "pattern": "^NCAPPROF-[A-F0-9]{24}$" },
+    "catalog_id": { "type": "string", "pattern": "^NCAPCAT-[A-F0-9]{24}$" },
+    "destination_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "channel": { "enum": ["email", "slack", "webhook", "custom"] },
+    "renderer": { "enum": ["adapter_neutral_json_v1", "slack_blocks_v1"] },
+    "profile_schema_version": { "const": 2 },
+    "selected_target_ref": { "type": "string", "pattern": "^NCAPPROFTGT-[A-F0-9]{24}$" },
+    "destination_enabled": { "type": "boolean" },
+    "profile_enabled_default": { "const": false },
+    "required_manual_inputs": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": { "enum": ["profile_id", "https_endpoint", "bearer_environment_variable", "native_target"] }
+    },
+    "request_policy_template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timeout_ms", "max_request_bytes", "max_response_bytes", "max_attempts", "retry_delays_ms"],
+      "properties": {
+        "timeout_ms": { "const": 5000 },
+        "max_request_bytes": { "const": 65536 },
+        "max_response_bytes": { "const": 8192 },
+        "max_attempts": { "const": 2 },
+        "retry_delays_ms": { "type": "array", "prefixItems": [{ "const": 1000 }], "items": false, "minItems": 1, "maxItems": 1 }
+      }
+    },
+    "idempotency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "header"],
+      "properties": {
+        "required": { "const": true },
+        "header": { "const": "Idempotency-Key" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile_preview_required", "exact_binding_approval_required", "catalog_drift_check_required", "native_target_hash_match_required", "expected_drift_status", "explicit_send_approval_still_required"],
+      "properties": {
+        "profile_preview_required": { "const": true },
+        "exact_binding_approval_required": { "const": true },
+        "catalog_drift_check_required": { "const": true },
+        "native_target_hash_match_required": { "type": "boolean" },
+        "expected_drift_status": { "enum": ["aligned_only_if_native_target_matches", "review_required_target_not_hash_bound"] },
+        "explicit_send_approval_still_required": { "const": true }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "state_written", "profile_written", "raw_export_read", "profile_files_read", "credential_environment_read", "network_accessed", "external_delivery_performed", "endpoint_included", "credential_environment_name_included", "native_target_included", "target_id_included", "target_hash_included", "target_label_included", "account_identifier_included", "connection_ref_included", "candidate_artifacts_included", "private_paths_included", "approval_id_issued", "send_authorization_granted", "application_submission_allowed", "recruiter_outreach_allowed"],
+      "properties": {
+        "read_only": { "const": true },
+        "state_written": { "const": false },
+        "profile_written": { "const": false },
+        "raw_export_read": { "const": false },
+        "profile_files_read": { "const": false },
+        "credential_environment_read": { "const": false },
+        "network_accessed": { "const": false },
+        "external_delivery_performed": { "const": false },
+        "endpoint_included": { "const": false },
+        "credential_environment_name_included": { "const": false },
+        "native_target_included": { "const": false },
+        "target_id_included": { "const": false },
+        "target_hash_included": { "const": false },
+        "target_label_included": { "const": false },
+        "account_identifier_included": { "const": false },
+        "connection_ref_included": { "const": false },
+        "candidate_artifacts_included": { "const": false },
+        "private_paths_included": { "const": false },
+        "approval_id_issued": { "const": false },
+        "send_authorization_granted": { "const": false },
+        "application_submission_allowed": { "const": false },
+        "recruiter_outreach_allowed": { "const": false }
+      }
+    }
+  }
+}

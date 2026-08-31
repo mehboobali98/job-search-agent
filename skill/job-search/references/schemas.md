@@ -40,6 +40,8 @@ The runtime accepts only the documented lead/application fields and bounded valu
 
 `schemas/notification-connector-catalog-history.v1.schema.json` defines a deterministic private chronological comparison of two sanitized catalogs from the same connection. It reports unchanged/changed status, bounded target/global capability counts and deltas, and opaque change/target references. It excludes source target IDs and hashes, native targets, labels, account identifiers, profiles, endpoints, credentials, candidate artifacts, and paths, with explicit no-network/no-write/no-delivery/no-authorization safety flags.
 
+`schemas/notification-connector-profile-plan.v1.schema.json` defines a deterministic private disabled-by-default catalog-to-profile authoring plan. It contains only opaque plan/catalog/destination/selected-target references, channel and renderer, generic manual-input names, bounded request-policy and idempotency defaults, explicit later verification gates, and no-profile/no-approval/no-network/no-delivery safety flags. It excludes the source target ID/hash and connection reference, native target, endpoint, credential source/value, labels, account identifiers, candidate artifacts, and paths.
+
 `schemas/notification-delivery-health.v2.schema.json` supersedes version 1 for new reports and adds sanitized provider-observation/status-recovery evidence, provider timestamps and state, hashed status-artifact issues, and deterministic `review_provider_status` guidance. Version 1 remains documented for historical private reports.
 
 ## Search query plan

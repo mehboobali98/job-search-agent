@@ -6,6 +6,17 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-08-31
+
+### Added
+
+- Add a strictly read-only `npm run connector-profile-plan` workflow that requires an exact sanitized catalog target, configured connector destination, and explicit renderer before producing a deterministic disabled-by-default profile authoring plan.
+- Add a version-1 privacy-minimized authoring-plan schema with bounded request-policy defaults, explicit manual-input requirements, and separate preview, binding-approval, drift-check, and send-approval gates.
+
+### Changed
+
+- Extend CI, public privacy enforcement, documentation, and the reusable skill for catalog-to-profile planning without creating a profile, reading credentials, exposing target identity, changing configuration version 6, or granting delivery authorization.
+
 ## [2.8.0] - 2026-08-31
 
 ### Added
@@ -270,7 +281,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.5.0...v2.6.0
