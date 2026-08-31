@@ -6,6 +6,17 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-08-31
+
+### Added
+
+- Add a strictly read-only `npm run connector-history` comparison over two sanitized private capability catalogs, with deterministic unchanged/changed status and bounded added, removed, modified, operation, and renderer deltas.
+- Add a version-1 privacy-minimized catalog-history report that replaces source target IDs and hashes with stable opaque comparison references and cannot authorize delivery.
+
+### Changed
+
+- Extend CI, public privacy enforcement, documentation, and the reusable skill for private catalog-history reports while keeping configuration version 6 and every live connector boundary unchanged.
+
 ## [2.7.0] - 2026-08-31
 
 ### Added
@@ -259,7 +270,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Automated integration coverage for deduplication, eligibility, judge failures, alerts, locks, and expiry handling.
 - MIT License.
 
-[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.7.0...HEAD
+[Unreleased]: https://github.com/mehboobali98/job-search-agent/compare/v2.8.0...HEAD
+[2.8.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/mehboobali98/job-search-agent/compare/v2.4.0...v2.5.0

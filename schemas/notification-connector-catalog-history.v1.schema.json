@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-agent/schemas/notification-connector-catalog-history.v1.schema.json",
+  "title": "Job Search Agent sanitized notification connector catalog history report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_id", "before_catalog_id", "after_catalog_id", "before_generated_at", "after_generated_at", "status", "counts", "global_changes", "target_changes", "safety"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "report_id": { "type": "string", "pattern": "^NCAPHIST-[A-F0-9]{24}$" },
+    "before_catalog_id": { "type": "string", "pattern": "^NCAPCAT-[A-F0-9]{24}$" },
+    "after_catalog_id": { "type": "string", "pattern": "^NCAPCAT-[A-F0-9]{24}$" },
+    "before_generated_at": { "type": "string", "format": "date-time" },
+    "after_generated_at": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["unchanged", "changed"] },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before_targets", "after_targets", "added_targets", "removed_targets", "modified_targets", "target_changes", "global_operation_changes", "global_renderer_changes"],
+      "properties": {
+        "before_targets": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "after_targets": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "added_targets": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "removed_targets": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "modified_targets": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "target_changes": { "type": "integer", "minimum": 0, "maximum": 200 },
+        "global_operation_changes": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "global_renderer_changes": { "type": "integer", "minimum": 0, "maximum": 4 }
+      }
+    },
+    "global_changes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operations_added", "operations_removed", "renderers_added", "renderers_removed"],
+      "properties": {
+        "operations_added": { "type": "array", "maxItems": 2, "uniqueItems": true, "items": { "enum": ["notifications.deliver", "notifications.status.read"] } },
+        "operations_removed": { "type": "array", "maxItems": 2, "uniqueItems": true, "items": { "enum": ["notifications.deliver", "notifications.status.read"] } },
+        "renderers_added": { "type": "array", "maxItems": 2, "uniqueItems": true, "items": { "enum": ["adapter_neutral_json_v1", "slack_blocks_v1"] } },
+        "renderers_removed": { "type": "array", "maxItems": 2, "uniqueItems": true, "items": { "enum": ["adapter_neutral_json_v1", "slack_blocks_v1"] } }
+      }
+    },
+    "target_changes": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["change_id", "target_ref", "change_type", "channel", "operations_added", "operations_removed", "renderers_added", "renderers_removed"],
+        "properties": {
+          "change_id": { "type": "string", "pattern": "^NCAPHCHG-[A-F0-9]{24}$" },
+          "target_ref": { "type": "string", "pattern": "^NCAPHISTTGT-[A-F0-9]{24}$" },
+          "change_type": { "enum": ["added", "removed", "modified"] },
+          "channel": { "enum": ["email", "slack", "webhook", "custom"] },
+          "operations_added": { "type": "array", "maxItems": 2, "uniqueItems": true, "items": { "enum": ["notifications.deliver", "notifications.status.read"] } },
+          "operations_removed": { "type": "array", "maxItems": 2, "uniqueItems": true, "items": { "enum": ["notifications.deliver", "notifications.status.read"] } },
+          "renderers_added": { "type": "array", "maxItems": 2, "uniqueItems": true, "items": { "enum": ["adapter_neutral_json_v1", "slack_blocks_v1"] } },
+          "renderers_removed": { "type": "array", "maxItems": 2, "uniqueItems": true, "items": { "enum": ["adapter_neutral_json_v1", "slack_blocks_v1"] } }
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "state_written", "network_accessed", "external_delivery_performed", "raw_exports_read", "profile_files_read", "credential_environment_read", "endpoint_included", "native_target_included", "target_id_included", "target_hash_included", "target_label_included", "account_identifier_included", "candidate_artifacts_included", "private_paths_included", "send_authorization_granted"],
+      "properties": {
+        "read_only": { "const": true },
+        "state_written": { "const": false },
+        "network_accessed": { "const": false },
+        "external_delivery_performed": { "const": false },
+        "raw_exports_read": { "const": false },
+        "profile_files_read": { "const": false },
+        "credential_environment_read": { "const": false },
+        "endpoint_included": { "const": false },
+        "native_target_included": { "const": false },
+        "target_id_included": { "const": false },
+        "target_hash_included": { "const": false },
+        "target_label_included": { "const": false },
+        "account_identifier_included": { "const": false },
+        "candidate_artifacts_included": { "const": false },
+        "private_paths_included": { "const": false },
+        "send_authorization_granted": { "const": false }
+      }
+    }
+  }
+}

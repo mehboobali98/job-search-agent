@@ -38,6 +38,8 @@ The runtime accepts only the documented lead/application fields and bounded valu
 
 `schemas/notification-connector-drift-report.v1.schema.json` defines a deterministic private comparison of one sanitized capability catalog and connector binding. It contains only artifact/target/destination IDs, channels, renderer compatibility, bounded counts and issue codes, plus explicit profile-, credential-, endpoint-, target-hash-, network-, write-, delivery-, and authorization-free safety flags. `aligned` requires exact hash-bound compatibility; `review_required` preserves uncertainty for non-hash-bound destinations; `incompatible` reports bounded connection/channel/renderer/target drift.
 
+`schemas/notification-connector-catalog-history.v1.schema.json` defines a deterministic private chronological comparison of two sanitized catalogs from the same connection. It reports unchanged/changed status, bounded target/global capability counts and deltas, and opaque change/target references. It excludes source target IDs and hashes, native targets, labels, account identifiers, profiles, endpoints, credentials, candidate artifacts, and paths, with explicit no-network/no-write/no-delivery/no-authorization safety flags.
+
 `schemas/notification-delivery-health.v2.schema.json` supersedes version 1 for new reports and adds sanitized provider-observation/status-recovery evidence, provider timestamps and state, hashed status-artifact issues, and deterministic `review_provider_status` guidance. Version 1 remains documented for historical private reports.
 
 ## Search query plan

@@ -14,6 +14,7 @@ test("private email exports and candidate artifacts are blocked from the public 
     "notification-connector-discovery/private.capabilities.json", "connector-capability-exports/account.json",
     "connector-discovery/catalog.json",
     "notification-connector-drift-exports/report.json", "connector-drift-exports/report.json",
+    "notification-connector-history-exports/report.json", "connector-catalog-history-exports/report.json",
     "mailbox.eml", "archive.mbox", "mail-export.zip", "profile/candidate-profile.md", "profile/resumes/private.pdf", "state/private.json",
   ]) assert.equal(isBlockedPublicPath(name), true, name);
   assert.equal(isBlockedPublicPath("fixtures/job-alert-batch.synthetic.json"), false);
@@ -98,6 +99,20 @@ test("private connector drift reports cannot enter the public tree", () => {
     .includes("private notification connector drift report"));
   assert.equal(publicContentViolations(report, { fileName: "fixtures/connector-drift.synthetic.json" })
     .includes("private notification connector drift report"), false);
+});
+
+test("private connector catalog history reports cannot enter the public tree", () => {
+  const report = JSON.stringify({
+    schema_version: 1,
+    report_id: "NCAPHIST-AAAAAAAAAAAAAAAAAAAAAAAA",
+    before_catalog_id: "NCAPCAT-BBBBBBBBBBBBBBBBBBBBBBBB",
+    after_catalog_id: "NCAPCAT-CCCCCCCCCCCCCCCCCCCCCCCC",
+    target_changes: [{ change_id: "NCAPHCHG-DDDDDDDDDDDDDDDDDDDDDDDD" }],
+  });
+  assert.ok(publicContentViolations(report, { fileName: "catalog-history.json" })
+    .includes("private notification connector catalog history report"));
+  assert.equal(publicContentViolations(report, { fileName: "fixtures/catalog-history.synthetic.json" })
+    .includes("private notification connector catalog history report"), false);
 });
 
 test("private delivery health reports cannot enter the public tree", () => {

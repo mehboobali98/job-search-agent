@@ -16,6 +16,7 @@ export const BLOCKED_PUBLIC_PATHS = Object.freeze([
   /^(?:notification-status-connector|status-connector-profile)s?\//i,
   /^(?:notification-connector-discovery|connector-capability-export|connector-discovery)s?\//i,
   /^(?:notification-connector-drift|connector-drift|notification-drift)-exports?\//i,
+  /^(?:notification-connector-history|connector-catalog-history|connector-history)-exports?\//i,
   /^renders?\//,
   /\.inspect\.ndjson$/i,
   /\.(?:xlsx|xls|pdf|docx|eml|mbox|pst|zip|tar|tgz|gz)$/i,
@@ -77,6 +78,12 @@ export function publicContentViolations(content, { fileName = "" } = {}) {
         && /^NCBIND-[A-F0-9]{24}$/.test(String(parsed?.binding_id ?? ""))
         && Array.isArray(parsed?.binding_destinations) && Array.isArray(parsed?.catalog_targets)) {
         violations.push("private notification connector drift report");
+      }
+      if (/^NCAPHIST-[A-F0-9]{24}$/.test(String(parsed?.report_id ?? ""))
+        && /^NCAPCAT-[A-F0-9]{24}$/.test(String(parsed?.before_catalog_id ?? ""))
+        && /^NCAPCAT-[A-F0-9]{24}$/.test(String(parsed?.after_catalog_id ?? ""))
+        && Array.isArray(parsed?.target_changes)) {
+        violations.push("private notification connector catalog history report");
       }
       if (parsed?.schema_version === 1 && parsed?.transport === "https_json_bearer_status"
         && typeof parsed?.endpoint === "string" && parsed?.authentication?.type === "bearer_env") {

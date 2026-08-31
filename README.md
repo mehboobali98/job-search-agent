@@ -176,6 +176,14 @@ npm run connector-drift -- --catalog state/notifications/discovery/NCAPCAT-….c
 
 The version-1 report in `schemas/notification-connector-drift-report.v1.schema.json` is deterministic and strictly read-only. It exposes only catalog/binding/target IDs, opaque destination IDs, channels, renderer compatibility, bounded counts, and issue codes. Exact version-2 native-target hashes may produce `aligned`; connection, channel, renderer, or target drift produces `incompatible`. Version-1 and adapter-neutral bindings intentionally have no target hash, so the inspector returns `review_required` rather than guessing. The report itself omits target hashes, endpoints, credentials, native targets, labels, account identifiers, private paths, and candidate data; it neither changes a profile nor authorizes a send. Real reports remain private and cannot be staged.
 
+Compare two chronological sanitized catalogs from the same connection without reading either raw export:
+
+```sh
+npm run connector-history -- --before state/notifications/discovery/NCAPCAT-EARLIER.catalog.json --after state/notifications/discovery/NCAPCAT-LATER.catalog.json
+```
+
+The deterministic version-1 report in `schemas/notification-connector-catalog-history.v1.schema.json` distinguishes semantic `unchanged` from `changed` even when export and catalog IDs differ. It reports bounded global operation/renderer changes plus added, removed, or capability-modified targets using opaque `NCAPHISTTGT-…` references. It fails closed if the connection differs or `--after` is older. The report contains no source target IDs or hashes, native targets, labels, account identifiers, profiles, endpoints, credentials, candidate data, or private paths. The command is read-only, writes no report automatically, performs no network action, and cannot authorize delivery; any manually saved real report remains private and is blocked from staging.
+
 Then preview an existing connector-outbox request. Preview performs no credential lookup and no network call:
 
 ```sh
@@ -291,6 +299,7 @@ npm run import-history -- --source state/tracker-imports/old-tracker.xlsx --mapp
 npm run notify -- --input state/runs/RUN-ID.result.json
 npm run connector-discover -- --input state/notification-connector-discovery/exports/NCAPEXP-….capabilities.json
 npm run connector-drift -- --catalog state/notifications/discovery/NCAPCAT-….catalog.json --binding state/notifications/connectors/<profile_id>.binding.json
+npm run connector-history -- --before state/notifications/discovery/NCAPCAT-EARLIER.catalog.json --after state/notifications/discovery/NCAPCAT-LATER.catalog.json
 npm run connector-profile -- --profile state/notification-connectors/<profile_id>.profile.json
 npm run notify-send -- --request state/notifications/outbox/NREQ-….request.json --profile state/notification-connectors/<profile_id>.profile.json
 npm run notify-health
