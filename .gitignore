@@ -7,6 +7,7 @@ node_modules
 .job-search.local*.bak.json
 Job_Application_Tracker.xlsx
 profile/candidate-profile.md
+profile/upwork-profile.md
 profile/search-terms.json
 profile/eligibility-evidence.json
 profile/resumes/
